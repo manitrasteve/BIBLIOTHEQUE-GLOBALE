@@ -4,7 +4,6 @@ import {
     Mail,
     Lock,
     ArrowRight,
-    LibraryBig,
     ShieldCheck,
     Eye,
     EyeOff,
@@ -49,8 +48,13 @@ export default function LoginPage() {
         <div className="mx-auto grid max-w-[1000px] gap-6 px-4 sm:px-6 py-10 lg:grid-cols-[.85fr_1fr] lg:items-stretch">
             <div className="hero-glow hidden p-9 lg:flex lg:flex-col lg:justify-between">
                 <div className="relative z-10">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
-                        <LibraryBig className="h-6 w-6" />
+                    {/* bg-[#ffffff] : pastille toujours blanche (le logo bleu reste visible sur le fond bleu et en mode sombre) */}
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffffff] p-1.5">
+                        <img
+                            src="/images/logo-universite-mahajanga.png"
+                            alt="Université de Mahajanga"
+                            className="h-full w-full object-contain"
+                        />
                     </span>
                     <h1 className="mt-7 font-display text-4xl font-extrabold leading-tight">
                         Bienvenue dans votre espace documentaire.
