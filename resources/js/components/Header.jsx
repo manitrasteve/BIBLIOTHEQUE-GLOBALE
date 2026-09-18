@@ -7,7 +7,6 @@ import {
     ShieldCheck,
     LogOut,
     LogIn,
-    LibraryBig,
     Menu,
     X,
 } from "lucide-react";
@@ -99,8 +98,13 @@ export default function Header() {
                 <div className="mx-auto w-full px-4 sm:px-8 xl:px-10 py-3 flex items-center justify-between gap-4">
                     {/* ================= LOGO ================= */}
                     <Link to="/" className="flex items-center gap-3 min-w-0">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                            <LibraryBig className="h-5 w-5" />
+                        {/* bg-[#ffffff] : pastille toujours blanche (le logo bleu reste visible en mode sombre) */}
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-[#ffffff] p-1">
+                            <img
+                                src="/images/logo-universite-mahajanga.png"
+                                alt="Université de Mahajanga"
+                                className="h-full w-full object-contain"
+                            />
                         </span>
 
                         <span className="min-w-0">

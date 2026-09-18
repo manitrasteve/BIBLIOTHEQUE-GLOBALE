@@ -1,4 +1,4 @@
-import { LibraryBig, Sparkles, ShieldCheck } from 'lucide-react';
+import { Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -7,8 +7,8 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-                <LibraryBig className="h-5 w-5" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-[#ffffff] p-1">
+                <img src="/images/logo-universite-mahajanga.png" alt="Université de Mahajanga" className="h-full w-full object-contain" />
               </span>
               <div>
                 <p className="font-display font-extrabold text-slate-900">Bibliothèque Numérique</p>
