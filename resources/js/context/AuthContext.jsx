@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { sessionMemory } from "../lib/sessionMemory";
 
 const AuthContext = createContext(null);
 
@@ -20,6 +21,7 @@ export function AuthProvider({ children }) {
             .then(setUser)
             .catch(() => {
                 localStorage.removeItem("bm_token");
+                sessionMemory.clear();
                 setUser(null);
             })
             .finally(() => setLoading(false));
@@ -29,6 +31,7 @@ export function AuthProvider({ children }) {
         const { user, token } = await api.login(email, password);
 
         localStorage.setItem("bm_token", token);
+        sessionMemory.clear();
         setUser(user);
 
         return user;
@@ -39,6 +42,7 @@ export function AuthProvider({ children }) {
             await api.logout();
         } finally {
             localStorage.removeItem("bm_token");
+            sessionMemory.clear();
             setUser(null);
             setIsLoggingOut(false);
         }

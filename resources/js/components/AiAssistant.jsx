@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles, Send, BookText } from "lucide-react";
 import { api } from "../lib/api";
+import { sessionMemory } from "../lib/sessionMemory";
 
 const SUGGESTIONS = [
     "Résume ce document.",
@@ -10,9 +11,23 @@ const SUGGESTIONS = [
 
 export default function AiAssistant({ slug }) {
     const [question, setQuestion] = useState("");
-    const [exchanges, setExchanges] = useState([]);
+    const [exchanges, setExchanges] = useState(() => sessionMemory.getAiChat(slug));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const mountedRef = useRef(true);
+    const scrollRef = useRef(null);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [exchanges.length]);
 
     async function ask(q) {
         const finalQuestion = q ?? question;
@@ -26,18 +41,21 @@ export default function AiAssistant({ slug }) {
         try {
             const result = await api.askAi(slug, finalQuestion);
 
-            setExchanges((prev) => [
-                ...prev,
+            const next = [
+                ...sessionMemory.getAiChat(slug),
                 {
                     question: finalQuestion,
                     answer: result.answer,
                     sources: result.sources || [],
                 },
-            ]);
+            ];
+            sessionMemory.setAiChat(slug, next);
+            if (mountedRef.current) setExchanges(next);
         } catch (err) {
-            setError("L'assistant n'a pas pu répondre pour le moment.");
+            if (mountedRef.current)
+                setError("L'assistant n'a pas pu répondre pour le moment.");
         } finally {
-            setLoading(false);
+            if (mountedRef.current) setLoading(false);
         }
     }
 
@@ -60,7 +78,7 @@ export default function AiAssistant({ slug }) {
             </div>
 
             {/* Zone des conversations */}
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-6 pr-2">
                 {/* Suggestions */}
                 {exchanges.length === 0 && (
                     <div className="flex flex-wrap gap-2">

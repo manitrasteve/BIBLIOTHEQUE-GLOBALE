@@ -8,6 +8,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { sessionMemory } from "../lib/sessionMemory";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -51,9 +52,14 @@ export default function SecurePdfViewer({ slug }) {
                 const doc = await pdfjsLib.getDocument({ data: buffer })
                     .promise;
                 if (cancelled) return;
+                const saved = sessionMemory.getReaderPage(slug);
                 setPdf(doc);
                 setNumPages(doc.numPages);
-                setPageNum(1);
+                setPageNum(
+                    Number.isInteger(saved) && saved >= 1 && saved <= doc.numPages
+                        ? saved
+                        : 1,
+                );
             } catch (e) {
                 if (!cancelled) setError(e.message);
             } finally {
@@ -66,6 +72,10 @@ export default function SecurePdfViewer({ slug }) {
             cancelled = true;
         };
     }, [slug]);
+
+    useEffect(() => {
+        if (pdf) sessionMemory.setReaderPage(slug, pageNum);
+    }, [pdf, pageNum]);
 
     useEffect(() => {
         if (!pdf) return;
