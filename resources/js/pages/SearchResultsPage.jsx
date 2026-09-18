@@ -22,13 +22,15 @@ export default function SearchResultsPage() {
   }, []);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     api
       .searchDocuments({ q, ...(categoryId ? { category_id: categoryId } : {}), ...(language ? {language} : {}) })
-      .then((res) => setResults(res))
-      .catch(() => setError('Impossible de charger les résultats pour le moment.'))
-      .finally(() => setLoading(false));
+      .then((res) => active && setResults(res))
+      .catch(() => active && setError('Impossible de charger les résultats pour le moment.'))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
   }, [q, categoryId, language]);
 
   return (
@@ -44,7 +46,7 @@ export default function SearchResultsPage() {
       </h1>
 
       <div className="max-w-2xl mb-4">
-        <SearchBar initialQuery={q} />
+        <SearchBar initialQuery={q} live />
       </div>
 
       {categories.length > 0 && (

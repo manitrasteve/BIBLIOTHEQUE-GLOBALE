@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Building2, Plus, Pencil, Trash2, MapPin, Clock, X } from 'lucide-react';
 import { api } from '../../lib/api';
+import { matchesSearch } from '../../lib/search';
 import { SkeletonList } from '../../components/Skeleton';
 
 const emptyForm = {
@@ -21,7 +22,6 @@ export default function AdminLibrariesPage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
 
   useEffect(() => {
     load();
@@ -194,13 +194,13 @@ export default function AdminLibrariesPage() {
         <SkeletonList count={4} />
       ) : (
         <>
-          <form onSubmit={(e) => { e.preventDefault(); setSubmittedQuery(query.trim()); }} className="mb-5 flex gap-2">
+          <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex gap-2">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm" />
             <button className="rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper"><Building2 className="mr-2 inline h-4 w-4" />Rechercher</button>
           </form>
           <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
             <table className="min-w-full text-sm"><thead><tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-soft"><th className="px-4 py-3">Nom</th><th className="px-4 py-3">Adresse</th><th className="px-4 py-3">Horaires</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
-            <tbody>{libraries.filter(lib => !submittedQuery || `${lib.name} ${lib.address || ''} ${lib.location || ''}`.toLowerCase().includes(submittedQuery.toLowerCase())).map(lib => <tr key={lib.id} className="border-b border-line last:border-0"><td className="px-4 py-3 font-medium text-ink">{lib.name}</td><td className="px-4 py-3 text-ink-soft">{lib.address || '—'}</td><td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td><td className="px-4 py-3"><div className="flex justify-end gap-3"><button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5"/>Modifier</button><button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5"/>Supprimer</button></div></td></tr>)}{libraries.filter(lib => !submittedQuery || `${lib.name} ${lib.address || ''} ${lib.location || ''}`.toLowerCase().includes(submittedQuery.toLowerCase())).length === 0 && <tr><td colSpan="4" className="p-8 text-center text-ink-soft">Aucune bibliothèque trouvée.</td></tr>}</tbody></table>
+            <tbody>{libraries.filter(lib => matchesSearch(`${lib.name} ${lib.address || ''} ${lib.location || ''}`, query)).map(lib => <tr key={lib.id} className="border-b border-line last:border-0"><td className="px-4 py-3 font-medium text-ink">{lib.name}</td><td className="px-4 py-3 text-ink-soft">{lib.address || '—'}</td><td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td><td className="px-4 py-3"><div className="flex justify-end gap-3"><button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5"/>Modifier</button><button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5"/>Supprimer</button></div></td></tr>)}{libraries.filter(lib => matchesSearch(`${lib.name} ${lib.address || ''} ${lib.location || ''}`, query)).length === 0 && <tr><td colSpan="4" className="p-8 text-center text-ink-soft">Aucune bibliothèque trouvée.</td></tr>}</tbody></table>
           </div>
         </>
       )}

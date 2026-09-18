@@ -17,6 +17,7 @@ import {
     ShieldCheck,
 } from "lucide-react";
 import { api } from "../../lib/api";
+import { matchesSearch } from "../../lib/search";
 
 const ROLES = [
     { value: "etudiant", label: "Étudiant" },
@@ -441,7 +442,6 @@ export default function AdminUsersPage() {
     const [modal, setModal] = useState(null); // { type: 'delete'|'deactivate', user }
     const [showCreate, setShowCreate] = useState(false);
     const [query, setQuery] = useState("");
-    const [submittedQuery, setSubmittedQuery] = useState("");
 
     function load() {
         api.getUsers()
@@ -497,6 +497,10 @@ export default function AdminUsersPage() {
         }
     }
 
+    const filteredUsers = (users || []).filter((u) =>
+        matchesSearch(`${u.name} ${u.email} ${u.role} ${u.library?.name || ""}`, query),
+    );
+
     if (showCreate) {
         return (
             <CreateUserForm
@@ -524,7 +528,7 @@ export default function AdminUsersPage() {
                 </button>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); setSubmittedQuery(query.trim()); }} className="mb-5 flex gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary"><Users className="h-4 w-4"/> Rechercher</button></form>
+            <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary"><Users className="h-4 w-4"/> Rechercher</button></form>
 
             {users === null ? (
                 <p>Chargement…</p>
@@ -536,7 +540,7 @@ export default function AdminUsersPage() {
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Utilisateur</th><th className="px-4 py-3 text-left">Rôle</th><th className="px-4 py-3 text-left">Bibliothèque</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
-                        <tbody>{users.filter(u => !submittedQuery || `${u.name} ${u.email} ${u.role} ${u.library?.name || ""}`.toLowerCase().includes(submittedQuery.toLowerCase())).map((u) => (
+                        <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-8 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
                                 <td className="px-4 py-3">{u.role}</td><td className="px-4 py-3">{u.library?.name || "—"}</td>

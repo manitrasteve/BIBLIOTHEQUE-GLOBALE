@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { useDebouncedValue } from '../lib/search';
 
 const FILTERS = [
   { key: 'title', label: 'Titre' },
@@ -9,10 +10,22 @@ const FILTERS = [
   { key: 'keyword', label: 'Mot-clé' },
 ];
 
-export default function SearchBar({ initialQuery = '' }) {
+export default function SearchBar({ initialQuery = '', live = false }) {
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState('title');
   const navigate = useNavigate();
+  const debouncedQuery = useDebouncedValue(query.trim(), 350);
+
+  // Recherche dès la saisie (page de résultats) ; champ vide => état initial.
+  useEffect(() => {
+    if (!live || debouncedQuery === initialQuery.trim()) return;
+    if (!debouncedQuery) {
+      navigate('/recherche', { replace: true });
+      return;
+    }
+    const params = new URLSearchParams({ q: debouncedQuery, by: filter });
+    navigate(`/recherche?${params.toString()}`, { replace: true });
+  }, [debouncedQuery]);
 
   function handleSubmit(e) {
     e.preventDefault();

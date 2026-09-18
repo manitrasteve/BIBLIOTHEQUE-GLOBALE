@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../../lib/api";
+import { matchesSearch } from "../../lib/search";
 import StatusBadge from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
 
@@ -37,7 +38,11 @@ export default function AccountRequestsPage() {
     const [rows, setRows] = useState(null);
     const [error, setError] = useState(null);
     const [query, setQuery] = useState("");
-    const [submittedQuery, setSubmittedQuery] = useState("");
+    const matchRow = (r) =>
+        matchesSearch(
+            `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`,
+            query,
+        );
 
     const [filter, setFilter] = useState(() => {
         const fromUrl = searchParams.get("status");
@@ -145,10 +150,7 @@ export default function AccountRequestsPage() {
             </div>
 
             <form
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    setSubmittedQuery(query.trim());
-                }}
+                onSubmit={(e) => e.preventDefault()}
                 className="mb-5 flex gap-2"
             >
                 <input
@@ -212,16 +214,18 @@ export default function AccountRequestsPage() {
                             </tr>
                         </thead>
                         <tbody>
+                            {rows.filter(matchRow).length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan="5"
+                                        className="p-8 text-center text-slate-500"
+                                    >
+                                        Aucun résultat.
+                                    </td>
+                                </tr>
+                            )}
                             {rows
-                                .filter(
-                                    (r) =>
-                                        !submittedQuery ||
-                                        `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`
-                                            .toLowerCase()
-                                            .includes(
-                                                submittedQuery.toLowerCase(),
-                                            ),
-                                )
+                                .filter(matchRow)
                                 .map((r) => (
                                     <tr
                                         key={r.id}

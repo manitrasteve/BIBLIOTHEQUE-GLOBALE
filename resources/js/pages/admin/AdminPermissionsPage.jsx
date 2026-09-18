@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckSquare, KeyRound, Save, Search, UserRound } from "lucide-react";
 import { api } from "../../lib/api";
 import { SkeletonPermissions } from "../../components/Skeleton";
+import { matchesSearch } from "../../lib/search";
 
 const CATEGORY_LABELS = { documents: "Documents", membres: "Membres", corbeille: "Corbeille", activites: "Activités", notifications: "Notifications", bibliotheques: "Bibliothèques" };
 const initials = (name = "") => name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "B";
@@ -16,7 +17,7 @@ export default function AdminPermissionsPage() {
     useEffect(() => { if (!selectedId) return; setMessage(""); setError(""); api.getLibrarianPermissions(selectedId).then(({ permissions: names = [] }) => { setSelected(names); setOriginal(names); }).catch((e) => setError(e?.data?.message || "Impossible de charger les droits.")); }, [selectedId]);
 
     const librarian = librarians.find((item) => String(item.id) === selectedId);
-    const visibleLibrarians = librarians.filter((user) => `${user.name} ${user.email}`.toLowerCase().includes(query.toLowerCase()));
+    const visibleLibrarians = librarians.filter((user) => matchesSearch(`${user.name} ${user.email}`, query));
     const grouped = useMemo(() => permissions.reduce((groups, permission) => { const category = permission.category || "general"; (groups[category] ||= []).push(permission); return groups; }, {}), [permissions]);
     const added = selected.filter((name) => !original.includes(name)); const removed = original.filter((name) => !selected.includes(name)); const changed = added.length > 0 || removed.length > 0;
     const toggle = (name) => setSelected((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name]);
