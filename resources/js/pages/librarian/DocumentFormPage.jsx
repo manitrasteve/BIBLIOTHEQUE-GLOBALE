@@ -1,0 +1,563 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+    FileText,
+    UploadCloud,
+    Image as ImageIcon,
+    FilePlus2,
+} from "lucide-react";
+import { api } from "../../lib/api";
+
+const TYPES = [
+    { value: "livre", label: "Livre" },
+    { value: "memoire", label: "Mémoire" },
+    { value: "these", label: "Thèse" },
+    { value: "rapport", label: "Rapport" },
+    { value: "autre", label: "Autre" },
+];
+
+const ACCESS_LEVELS = [
+    { value: "public", label: "Public (aucune connexion requise)" },
+    { value: "authentifie", label: "Authentifié (tout utilisateur connecté)" },
+    { value: "restreint", label: "Restreint (uniquement sa bibliothèque)" },
+];
+
+const emptyForm = {
+    title: "",
+    subtitle: "",
+    abstract: "",
+    type: "memoire",
+    niveau: "",
+    category_id: "",
+    library_id: "",
+    year: "",
+    publisher: "",
+    isbn: "",
+    language: "fr",
+    edition: "",
+    keywords: "",
+    access_level: "authentifie",
+    author_ids: [],
+};
+
+export default function DocumentFormPage() {
+    const { id } = useParams();
+    const isEditing = Boolean(id);
+    const navigate = useNavigate();
+
+    const [form, setForm] = useState(emptyForm);
+    const [categories, setCategories] = useState([]);
+    const [libraries, setLibraries] = useState([]);
+    const [authors, setAuthors] = useState([]);
+    const [file, setFile] = useState(null);
+    const [cover, setCover] = useState(null);
+    const [error, setError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [newAuthor, setNewAuthor] = useState("");
+    const [authorError, setAuthorError] = useState(null);
+
+    useEffect(() => {
+        api.getCategories()
+            .then(setCategories)
+            .catch(() => {});
+        api.getLibraries()
+            .then(setLibraries)
+            .catch(() => {});
+        api.getAuthors()
+            .then((res) => setAuthors(res.data))
+            .catch(() => {});
+
+        if (isEditing) {
+            api.getManagedDocument(id).then((doc) => {
+                setForm({
+                    title: doc.title || "",
+                    subtitle: doc.subtitle || "",
+                    abstract: doc.abstract || "",
+                    type: doc.type,
+                    niveau: doc.niveau || "",
+                    category_id: doc.category_id,
+                    library_id: doc.library_id,
+                    year: doc.year || "",
+                    publisher: doc.publisher || "",
+                    isbn: doc.isbn || "",
+                    language: doc.language || "fr",
+                    edition: doc.edition || "",
+                    keywords: doc.keywords || "",
+                    access_level: doc.access_level,
+                    author_ids: doc.authors?.map((a) => a.id) || [],
+                });
+            });
+        }
+    }, [id]);
+
+    function toggleAuthor(authorId) {
+        setForm((prev) => ({
+            ...prev,
+            author_ids: prev.author_ids.includes(authorId)
+                ? prev.author_ids.filter((a) => a !== authorId)
+                : [...prev.author_ids, authorId],
+        }));
+    }
+
+    async function addAuthor() {
+        const name = newAuthor.trim();
+
+        if (!name) {
+            setAuthorError("Saisissez le nom de l'auteur.");
+            return;
+        }
+
+        setAuthorError(null);
+
+        try {
+            const author = await api.createAuthor({ name });
+
+            setAuthors((prev) =>
+                [...prev, author].sort((a, b) =>
+                    String(a.name).localeCompare(String(b.name), "fr"),
+                ),
+            );
+
+            setForm((prev) => ({
+                ...prev,
+                author_ids: [...prev.author_ids, author.id],
+            }));
+
+            setNewAuthor("");
+        } catch (err) {
+            const errors = err?.data?.errors;
+
+            setAuthorError(
+                errors
+                    ? Object.values(errors)?.[0]?.[0]
+                    : err?.data?.message || "Impossible d'ajouter cet auteur.",
+            );
+        }
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError(null);
+        setSubmitting(true);
+
+        try {
+            if (isEditing) {
+                const payload = new FormData();
+                Object.entries(form).forEach(([key, value]) => {
+                    if (key === "author_ids")
+                        value.forEach((v) => payload.append("author_ids[]", v));
+                    else if (value !== "") payload.append(key, value);
+                });
+                if (file) payload.append("file", file);
+                if (cover) payload.append("cover", cover);
+                await api.updateDocument(id, payload);
+                navigate("/bibliothecaire/documents");
+            } else {
+                if (!file) {
+                    setError("Le fichier PDF est obligatoire.");
+                    setSubmitting(false);
+                    return;
+                }
+                const payload = new FormData();
+                Object.entries(form).forEach(([key, value]) => {
+                    if (key === "author_ids") {
+                        value.forEach((v) => payload.append("author_ids[]", v));
+                    } else if (value !== "" && value !== null) {
+                        payload.append(key, value);
+                    }
+                });
+                payload.append("file", file);
+                if (cover) payload.append("cover", cover);
+
+                await api.createDocument(payload);
+                navigate("/bibliothecaire/documents");
+            }
+        } catch (err) {
+            setError(
+                err.data?.errors
+                    ? Object.values(err.data.errors)[0][0]
+                    : "L'enregistrement a échoué.",
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
+    return (
+        <div>
+            <h2 className="flex items-center gap-2 font-display text-xl text-ink mb-6">
+                {isEditing ? (
+                    <FileText
+                        className="h-5 w-5 text-brass"
+                        strokeWidth={1.75}
+                    />
+                ) : (
+                    <FilePlus2
+                        className="h-5 w-5 text-brass"
+                        strokeWidth={1.75}
+                    />
+                )}
+                {isEditing ? "Modifier le document" : "Ajouter un document"}
+            </h2>
+
+            <form
+                onSubmit={handleSubmit}
+                className="space-y-5 rounded-xl border border-line bg-paper p-6 max-w-2xl"
+            >
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Titre
+                    </label>
+                    <input
+                        required
+                        value={form.title}
+                        onChange={(e) =>
+                            setForm({ ...form, title: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Sous-titre
+                    </label>
+                    <input
+                        value={form.subtitle}
+                        onChange={(e) =>
+                            setForm({ ...form, subtitle: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Résumé
+                    </label>
+                    <textarea
+                        rows={3}
+                        value={form.abstract}
+                        onChange={(e) =>
+                            setForm({ ...form, abstract: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
+                    />
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Type
+                        </label>
+                        <select
+                            value={form.type}
+                            onChange={(e) =>
+                                setForm({ ...form, type: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        >
+                            {TYPES.map((t) => (
+                                <option key={t.value} value={t.value}>
+                                    {t.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* NOUVEAU CHAMP NIVEAU */}
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Niveau{" "}
+                            <span className="text-ink-soft">(optionnel)</span>
+                        </label>
+
+                        <select
+                            value={form.niveau}
+                            onChange={(e) =>
+                                setForm({ ...form, niveau: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        >
+                            <option value="">— Aucun niveau —</option>
+                            <option value="L1">L1</option>
+                            <option value="L2">L2</option>
+                            <option value="L3">L3</option>
+                            <option value="M1">M1</option>
+                            <option value="M2">M2</option>
+                                                        <option value="Doctorat">Doctorat</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Catégorie
+                        </label>
+                        <select
+                            required
+                            value={form.category_id}
+                            onChange={(e) =>
+                                setForm({
+                                    ...form,
+                                    category_id: e.target.value,
+                                })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        >
+                            <option value="">—</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Bibliothèque
+                        </label>
+                        <select
+                            required
+                            value={form.library_id}
+                            onChange={(e) =>
+                                setForm({ ...form, library_id: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        >
+                            <option value="">—</option>
+                            {libraries.map((l) => (
+                                <option key={l.id} value={l.id}>
+                                    {l.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Année
+                        </label>
+                        <input
+                            value={form.year}
+                            onChange={(e) =>
+                                setForm({ ...form, year: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Éditeur
+                        </label>
+                        <input
+                            value={form.publisher}
+                            onChange={(e) =>
+                                setForm({ ...form, publisher: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            ISBN
+                        </label>
+                        <input
+                            value={form.isbn}
+                            onChange={(e) =>
+                                setForm({ ...form, isbn: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Langue
+                    </label>
+                    <select
+                        value={form.language}
+                        onChange={(e) =>
+                            setForm({ ...form, language: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                    >
+                        <option value="fr">Français</option>
+                        <option value="mg">Malgache</option>
+                        <option value="en">Anglais</option>
+                        <option value="es">Espagnol</option>
+                        <option value="pt">Portugais</option>
+                        <option value="it">Italien</option>
+                        <option value="ru">Russe</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Niveau d'accès
+                    </label>
+                    <select
+                        value={form.access_level}
+                        onChange={(e) =>
+                            setForm({ ...form, access_level: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                    >
+                        {ACCESS_LEVELS.map((a) => (
+                            <option key={a.value} value={a.value}>
+                                {a.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm text-ink-soft mb-1.5">
+                        Auteur(s)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {authors.map((a) => (
+                            <button
+                                type="button"
+                                key={a.id}
+                                onClick={() => toggleAuthor(a.id)}
+                                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                                    form.author_ids.includes(a.id)
+                                        ? "bg-ink text-paper border-ink"
+                                        : "border-line text-ink-soft hover:border-brass"
+                                }`}
+                            >
+                                {a.name}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                            value={newAuthor}
+                            onChange={(e) => setNewAuthor(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addAuthor();
+                                }
+                            }}
+                            placeholder="Nom d'un nouvel auteur"
+                            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={addAuthor}
+                            className="btn-secondary"
+                        >
+                            + Ajouter un auteur
+                        </button>
+                    </div>
+                    {authorError && (
+                        <p className="mt-2 text-sm text-rose-700">
+                            {authorError}
+                        </p>
+                    )}
+                </div>
+
+                {!isEditing && (
+                    <>
+                        <div>
+                            <label className="block text-sm text-ink-soft mb-1.5">
+                                Fichier PDF
+                            </label>
+                            <label className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-paper-dim/40 px-4 py-4 cursor-pointer hover:border-brass/60 transition-colors">
+                                <UploadCloud
+                                    className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
+                                    strokeWidth={1.5}
+                                />
+                                <span className="text-sm text-ink-soft">
+                                    {file
+                                        ? file.name
+                                        : "Cliquer pour choisir un fichier PDF (obligatoire, 50 Mo max)"}
+                                </span>
+                                <input
+                                    type="file"
+                                    accept="application/pdf"
+                                    required
+                                    onChange={(e) => setFile(e.target.files[0])}
+                                    className="sr-only"
+                                />
+                            </label>
+                        </div>
+                        <div>
+                            <label className="block text-sm text-ink-soft mb-1.5">
+                                Couverture (optionnel)
+                            </label>
+                            <label className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-paper-dim/40 px-4 py-4 cursor-pointer hover:border-brass/60 transition-colors">
+                                <ImageIcon
+                                    className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
+                                    strokeWidth={1.5}
+                                />
+                                <span className="text-sm text-ink-soft">
+                                    {cover
+                                        ? cover.name
+                                        : "Cliquer pour choisir une image de couverture"}
+                                </span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) =>
+                                        setCover(e.target.files[0])
+                                    }
+                                    className="sr-only"
+                                />
+                            </label>
+                        </div>
+                    </>
+                )}
+
+                {isEditing && (
+                    <>
+                        <div>
+                            <label className="block text-sm text-ink-soft mb-1.5">
+                                Remplacer le PDF (optionnel)
+                            </label>
+                            <input
+                                type="file"
+                                accept="application/pdf"
+                                onChange={(e) =>
+                                    setFile(e.target.files?.[0] || null)
+                                }
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-ink-soft mb-1.5">
+                                Remplacer la couverture (optionnel)
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                    setCover(e.target.files?.[0] || null)
+                                }
+                            />
+                        </div>
+                    </>
+                )}
+
+                {error && <p className="text-sm text-red-700">{error}</p>}
+
+                <button
+                    type="submit"
+                    disabled={submitting}
+                    className="rounded-full bg-ink px-6 py-2.5 text-paper font-medium hover:bg-brass-deep transition-colors disabled:opacity-50"
+                >
+                    {submitting
+                        ? "Enregistrement…"
+                        : isEditing
+                          ? "Enregistrer les modifications"
+                          : "Créer le document (brouillon)"}
+                </button>
+            </form>
+        </div>
+    );
+}
