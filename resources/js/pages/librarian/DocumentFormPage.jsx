@@ -202,7 +202,7 @@ export default function DocumentFormPage() {
 
             <form
                 onSubmit={handleSubmit}
-                className="space-y-5 rounded-xl border border-line bg-paper p-6 max-w-2xl"
+                className="w-full space-y-4 rounded-xl border border-line bg-paper p-5"
             >
                 <div>
                     <label className="block text-sm text-ink-soft mb-1.5">
@@ -245,7 +245,7 @@ export default function DocumentFormPage() {
                     />
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                         <label className="block text-sm text-ink-soft mb-1.5">
                             Type
@@ -374,6 +374,7 @@ export default function DocumentFormPage() {
                     </div>
                 </div>
 
+                <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label className="block text-sm text-ink-soft mb-1.5">
                         Langue
@@ -413,6 +414,7 @@ export default function DocumentFormPage() {
                             </option>
                         ))}
                     </select>
+                </div>
                 </div>
 
                 <div>

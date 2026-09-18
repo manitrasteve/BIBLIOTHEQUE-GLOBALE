@@ -2,8 +2,8 @@ import { LibraryBig, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="mt-20 border-t border-slate-200 bg-white/75">
-      <div className="mx-auto w-full px-4 sm:px-8 xl:px-10 py-10">
+    <footer className="mt-8 border-t border-slate-200 bg-white/75">
+      <div className="mx-auto w-full px-4 sm:px-6 xl:px-8 py-6">
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-3">

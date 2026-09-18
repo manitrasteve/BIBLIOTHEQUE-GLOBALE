@@ -63,7 +63,7 @@ export default function StaffDiscussionPage() {
     const otherName = isAdmin ? conversation?.librarian?.name : conversation?.admin?.name;
 
     return (
-        <div className="max-w-4xl">
+        <div className="w-full">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div><h2 className="flex items-center gap-2 font-display text-xl font-extrabold"><MessageCircle className="h-5 w-5 text-indigo-600" /> Échange de discussion entre admin et bibliothécaire</h2><p className="mt-1 text-sm text-slate-500">Discussion privée, séparée des messages envoyés aux membres.</p></div>
                 {conversation && <button onClick={clearHistory} className="flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Supprimer mon historique</button>}

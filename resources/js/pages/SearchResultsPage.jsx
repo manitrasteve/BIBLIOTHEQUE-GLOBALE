@@ -32,7 +32,7 @@ export default function SearchResultsPage() {
   }, [q, categoryId, language]);
 
   return (
-    <div className="w-full px-4 sm:px-8 xl:px-10 py-10">
+    <div className="w-full px-4 sm:px-6 xl:px-8 py-5">
       <h1 className="font-display text-3xl text-ink mb-6">
         {q ? (
           <>
@@ -43,12 +43,12 @@ export default function SearchResultsPage() {
         )}
       </h1>
 
-      <div className="max-w-2xl mb-8">
+      <div className="max-w-2xl mb-4">
         <SearchBar initialQuery={q} />
       </div>
 
       {categories.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <Tag className="h-3.5 w-3.5 text-ink-soft/50 mr-1" strokeWidth={1.75} />
           <button
             onClick={() => setCategoryId('')}

@@ -103,7 +103,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="max-w-4xl">
+        <div className="w-full">
             {/* Titre */}
             <div className="mb-6">
                 <h2 className="font-display text-2xl font-extrabold text-slate-900">

@@ -50,7 +50,7 @@ export default function AdminMessagesPage() {
     }
 
     return (
-        <div className="max-w-4xl space-y-7">
+        <div className="w-full space-y-5">
             <div>
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
                     <Mail className="h-5 w-5 text-indigo-600" />

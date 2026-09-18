@@ -84,6 +84,8 @@
 }
 
 .connected-main {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     width: calc(100% - var(--app-sidebar-width));
     margin-left: var(--app-sidebar-width);

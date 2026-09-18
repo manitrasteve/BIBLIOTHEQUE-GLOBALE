@@ -143,8 +143,8 @@ export default function LibrarianLayout() {
             </nav>
 
             <section className="connected-main">
-                <div className="w-full px-4 py-8 sm:px-8 sm:py-10 xl:px-10">
-                    <div className="mb-7 flex items-center gap-4">
+                <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
+                    <div className="mb-4 flex items-center gap-3">
                         <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
                             <Landmark className="h-5 w-5" strokeWidth={1.75} />
                         </span>

@@ -178,9 +178,9 @@ export default function ServiceCreateAccountRequestPage({
 
     return (
         <div className="w-full py-4">
-            <div className="mx-auto max-w-5xl">
+            <div className="w-full">
                 {/* En-tête */}
-                <div className="mb-8">
+                <div className="mb-4">
                     <p className="mb-2 text-xs font-extrabold uppercase tracking-[.2em] text-violet-600">
                         Service Numérique
                     </p>

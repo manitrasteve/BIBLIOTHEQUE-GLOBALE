@@ -52,7 +52,7 @@ export default function FeedbackPage() {
     }
 
     return (
-        <div className="max-w-3xl">
+        <div className="w-full">
             <h2 className="mb-6 flex items-center gap-2 font-display text-xl font-extrabold">
                 <MessageSquare className="h-5 w-5 text-indigo-600" />
                 Avis & Suggestions

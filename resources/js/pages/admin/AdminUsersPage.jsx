@@ -264,8 +264,8 @@ function CreateUserForm({ libraries, onCancel, onCreated }) {
     );
     return (
         <div className="w-full py-4">
-            <div className="mx-auto max-w-5xl">
-                <div className="mb-8">
+            <div className="w-full">
+                <div className="mb-4">
                     <p className="mb-2 text-xs font-extrabold uppercase tracking-[.2em] text-violet-600">
                         Gestion des utilisateurs
                     </p>
