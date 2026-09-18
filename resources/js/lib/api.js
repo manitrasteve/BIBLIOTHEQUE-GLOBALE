@@ -195,13 +195,93 @@ export const api = {
 
     streamDocumentUrl: (slug) => `${API_URL}/documents/${slug}/stream`,
 
-    askAi: (slug, question) =>
+    // extra : { history: [{question, answer}], current_page }
+    askAi: (slug, question, extra = {}) =>
         request(`/documents/${slug}/ask`, {
             method: "POST",
             body: {
                 question,
+                ...extra,
             },
         }),
+
+    // Réponse en flux (SSE) : onDelta reçoit le texte au fil de l'eau ;
+    // retourne l'objet final { answer, sources, image, meta }.
+    // Erreurs : error.streamed = true si l'erreur vient du serveur pendant
+    // le flux ; sinon la requête n'a pas pu démarrer (repli possible).
+    askAiStream: async (slug, question, extra = {}, { onDelta } = {}) => {
+        const token = getToken();
+        const response = await fetch(`${API_URL}/documents/${slug}/ask-stream`, {
+            method: "POST",
+            headers: {
+                Accept: "text/event-stream",
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ question, ...extra }),
+        });
+
+        if (!response.ok || !response.body) {
+            let data = null;
+            try {
+                data = await response.json();
+            } catch {
+                // corps non JSON
+            }
+            const error = new Error(data?.message || "Une erreur est survenue.");
+            error.status = response.status;
+            error.data = data;
+            throw error;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let done = null;
+
+        while (true) {
+            const { value, done: finished } = await reader.read();
+            if (finished) break;
+
+            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+
+            let index;
+            while ((index = buffer.indexOf("\n\n")) !== -1) {
+                const block = buffer.slice(0, index);
+                buffer = buffer.slice(index + 2);
+
+                let event = "message";
+                let data = "";
+                for (const line of block.split("\n")) {
+                    if (line.startsWith("event:")) event = line.slice(6).trim();
+                    else if (line.startsWith("data:")) data += line.slice(5).trim();
+                }
+
+                let payload = null;
+                try {
+                    payload = data ? JSON.parse(data) : null;
+                } catch {
+                    continue;
+                }
+
+                if (event === "delta") onDelta?.(payload?.text || "");
+                else if (event === "done") done = payload;
+                else if (event === "error") {
+                    const error = new Error(payload?.message || "Une erreur est survenue.");
+                    error.streamed = true;
+                    throw error;
+                }
+            }
+        }
+
+        if (!done) {
+            const error = new Error("La réponse a été interrompue.");
+            error.streamed = true;
+            throw error;
+        }
+
+        return done;
+    },
 
     getMyDashboard: () => request("/dashboard/me"),
 

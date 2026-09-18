@@ -71,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents/{slug}/stream', [DocumentController::class, 'stream']);
 
     Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask']);
+    Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream']);
     Route::get('/documents/{slug}/ai-history', [AiQueryController::class, 'history']);
 
     Route::post('/documents/{slug}/favorite', [EngagementController::class, 'toggleFavorite']);

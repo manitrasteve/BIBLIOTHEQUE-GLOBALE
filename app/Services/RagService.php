@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Document;
 use App\Models\DocumentChunk;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RagService
@@ -40,23 +42,154 @@ class RagService
      */
     private const MAX_CONTEXT_CHARS = 50000;
 
+    /**
+     * Phrase exacte utilisée quand l'information n'est pas dans le document.
+     */
+    public const NOT_FOUND = "Je ne trouve pas cette information dans le document consulté.";
+
+    /**
+     * Page actuellement consultée par l'utilisateur (contexte facultatif).
+     */
+    private ?int $focusPage = null;
+
+    /**
+     * Vrai si le calcul d'embedding de la question a échoué (panne réseau
+     * ou API) : "aucun passage trouvé" ne doit alors pas être présenté
+     * comme "absent du document".
+     */
+    private bool $embeddingFailed = false;
+
     public function __construct(
         private readonly GeminiClient $gemini,
     ) {
     }
 
     /**
-     * Point d'entrée principal du RAG.
+     * Point d'entrée principal du RAG (réponse complète, sans flux).
+     *
+     * $options : history (tours précédents question/answer),
+     *            current_page (page ouverte dans le lecteur).
      */
-    public function answer(Document $document, string $question): array
-    {
+    public function answer(
+        Document $document,
+        string $question,
+        array $options = []
+    ): array {
+        return $this->run($document, $question, $options, null);
+    }
+
+    /**
+     * Même chose, mais $onDelta reçoit la réponse au fil de sa génération.
+     */
+    public function stream(
+        Document $document,
+        string $question,
+        array $options,
+        callable $onDelta
+    ): array {
+        return $this->run($document, $question, $options, $onDelta);
+    }
+
+    private function run(
+        Document $document,
+        string $question,
+        array $options,
+        ?callable $onDelta
+    ): array {
+        $plan = $this->prepare($document, $question, $options);
+
+        if (isset($plan['final'])) {
+            return $plan['final'];
+        }
+
+        if (isset($plan['image'])) {
+            return $this->generateImageAnswer($plan['image']);
+        }
+
+        $generate = $plan['generate'];
+
+        /*
+         * En flux, on n'affiche jamais une page qui n'existe pas dans le
+         * contexte : les citations sont validées au fil de l'eau et toute
+         * citation encore incomplète est retenue jusqu'au fragment suivant.
+         * La réponse finale (finalize) reste la référence.
+         */
+        $raw = '';
+        $emitted = '';
+        $safeDelta = $onDelta
+            ? function (string $delta) use (&$raw, &$emitted, $onDelta, $generate) {
+                $raw .= $delta;
+
+                [$clean] = $this->sanitizeCitations(
+                    $this->withoutOpenCitation($raw),
+                    $generate['allowed_pages']
+                );
+
+                if (
+                    strlen($clean) > strlen($emitted)
+                    && str_starts_with($clean, $emitted)
+                ) {
+                    $onDelta(substr($clean, strlen($emitted)));
+                    $emitted = $clean;
+                }
+            }
+            : null;
+
+        try {
+            $result = $onDelta
+                ? $this->gemini->streamContents(
+                    $generate['contents'],
+                    $safeDelta,
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout']]
+                )
+                : $this->gemini->generateContents(
+                    $generate['contents'],
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout']]
+                );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->errorResult(
+                $e,
+                "Le service IA est momentanément indisponible. Réessaie dans un instant."
+            );
+        }
+
+        $text = trim($result['text']);
+
+        if ($text === '') {
+            return $this->errorResult(
+                null,
+                "Je n'ai pas pu générer une réponse à partir des passages trouvés."
+            );
+        }
+
+        return $this->finalize($generate, $text, $result['model']);
+    }
+
+    /**
+     * Prépare la réponse : sélectionne le contexte et décide s'il faut
+     * appeler Gemini (clé 'generate'), générer une image (clé 'image') ou
+     * répondre directement (clé 'final').
+     */
+    public function prepare(
+        Document $document,
+        string $question,
+        array $options = []
+    ): array {
         $question = trim($question);
 
+        $page = (int) ($options['current_page'] ?? 0);
+        $this->focusPage = $page > 0 ? $page : null;
+        $this->embeddingFailed = false;
+
+        $history = $this->cleanHistory($options['history'] ?? []);
+
         if ($question === '') {
-            return [
+            return ['final' => [
                 'answer' => 'Veuillez poser une question sur ce document.',
                 'sources' => [],
-            ];
+            ]];
         }
 
         /*
@@ -74,12 +207,28 @@ class RagService
             ->orderBy('chunk_index')
             ->get();
 
+        /*
+         * Demande explicite de génération d'image : fonction distincte
+         * de l'analyse d'une image du document.
+         */
+        if ($this->isImageRequest($question)) {
+            return ['image' => [
+                'question' => $question,
+                'prompt' => $this->imagePrompt(
+                    $document,
+                    $question,
+                    $chunks,
+                    $history
+                ),
+            ]];
+        }
+
         if ($chunks->isEmpty()) {
-            return [
+            return ['final' => [
                 'answer' =>
                     "Le contenu de ce document n'est pas encore indexé pour l'assistant IA.",
                 'sources' => [],
-            ];
+            ]];
         }
 
         /*
@@ -99,12 +248,12 @@ class RagService
                 ->values();
 
             if ($pageChunks->isEmpty()) {
-                return [
+                return ['final' => [
                     'answer' =>
                         "Je n'ai trouvé aucun texte indexé correspondant à la page {$pageNumber} de ce document. "
                         . "Cette page peut être vide, composée uniquement d'une image ou ne pas avoir pu être extraite du PDF.",
                     'sources' => [],
-                ];
+                ]];
             }
 
             /*
@@ -119,13 +268,29 @@ class RagService
                 ->values();
 
             if ($meaningfulPageChunks->isEmpty()) {
-                return [
+                /*
+                 * Page sans texte exploitable : si la question porte sur un
+                 * élément visuel, on laisse le modèle regarder le PDF.
+                 */
+                if ($this->isVisualQuestion($question)) {
+                    return $this->planGeneration(
+                        $document,
+                        $question,
+                        $pageChunks,
+                        'page',
+                        $history,
+                        $pageNumber,
+                        true
+                    );
+                }
+
+                return ['final' => [
                     'answer' =>
                         "La page {$pageNumber} est bien présente dans le document, "
                         . "mais aucun texte exploitable n'a été extrait de cette page. "
                         . "Elle peut contenir principalement une image, une formule ou un tableau.",
                     'sources' => $this->sourcesFor($pageChunks),
-                ];
+                ]];
             }
 
             /*
@@ -133,23 +298,29 @@ class RagService
              *
              * Gemini n'est pas appelé inutilement.
              */
-            if ($this->isContentRequest($question)) {
-                return [
+            if (
+                $this->isContentRequest($question)
+                && !$this->isVisualQuestion($question)
+            ) {
+                return ['final' => [
                     'answer' =>
                         "### Contenu disponible — page {$pageNumber}\n\n"
                         . $this->mergeChunks($meaningfulPageChunks),
                     'sources' => $this->sourcesFor($meaningfulPageChunks),
-                ];
+                ]];
             }
 
             /*
              * Question concernant uniquement cette page.
              */
-            return $this->generateAnswer(
+            return $this->planGeneration(
                 $document,
                 $question,
                 $meaningfulPageChunks,
-                'page'
+                'page',
+                $history,
+                $pageNumber,
+                $this->isVisualQuestion($question)
             );
         }
 
@@ -181,41 +352,72 @@ class RagService
 
             $relevant = $this->retrieveRelevantChunks(
                 $chunks,
-                $question,
+                $this->contextualQuery($question, $history),
                 $topK
             );
+
+            /*
+             * "Explique cette formule", "que dit ce paragraphe ?" :
+             * la page ouverte dans le lecteur passe en priorité, sans
+             * pour autant limiter la recherche à cette seule page.
+             */
+            if ($this->focusPage !== null && $this->isDeictic($question)) {
+                $focus = $chunks->filter(
+                    fn (DocumentChunk $chunk) =>
+                        (int) $chunk->page_number === $this->focusPage
+                        && $this->isMeaningfulChunk($chunk)
+                );
+
+                $relevant = $relevant->merge($focus)->unique('id')->values();
+            }
         }
 
-        if ($relevant->isEmpty()) {
-            return [
+        $visual = $this->isVisualQuestion($question);
+
+        if ($relevant->isEmpty() && $this->embeddingFailed) {
+            return ['final' => $this->errorResult(
+                null,
+                "La recherche dans le document est momentanément indisponible (service IA injoignable). "
+                . "Réessaie dans un instant."
+            )];
+        }
+
+        if ($relevant->isEmpty() && !$visual) {
+            return ['final' => [
                 'answer' =>
-                    "Je n'ai trouvé aucun passage suffisamment pertinent dans ce document pour répondre à cette question. "
+                    self::NOT_FOUND . " "
                     . "Essaie de reformuler ta question.",
                 'sources' => [],
-            ];
+            ]];
         }
 
         /*
          * ---------------------------------------------------------
-         * 5. GÉNÉRATION DE LA RÉPONSE
+         * 5. PLAN DE GÉNÉRATION DE LA RÉPONSE
          * ---------------------------------------------------------
          */
-        return $this->generateAnswer(
+        return $this->planGeneration(
             $document,
             $question,
             $relevant,
-            $questionType
+            $questionType,
+            $history,
+            null,
+            $visual
         );
     }
 
     /**
-     * Génère la réponse finale avec Gemini.
+     * Construit la requête Gemini (contexte + prompt + modèle) sans l'envoyer.
      */
-    private function generateAnswer(
+    private function planGeneration(
         Document $document,
         string $question,
         Collection $relevant,
-        string $questionType
+        string $questionType,
+        array $history = [],
+        ?int $pageNumber = null,
+        bool $visual = false
     ): array {
         /*
          * On élimine les contenus vides et on ordonne les passages.
@@ -231,12 +433,12 @@ class RagService
             ])
             ->values();
 
-        if ($relevant->isEmpty()) {
-            return [
+        if ($relevant->isEmpty() && !$visual) {
+            return ['final' => [
                 'answer' =>
                     "Aucun contenu textuel exploitable n'a été trouvé dans les passages sélectionnés.",
                 'sources' => [],
-            ];
+            ]];
         }
 
         /*
@@ -244,7 +446,35 @@ class RagService
          *
          * On limite également la taille totale du contexte.
          */
-        $context = $this->buildContext($relevant);
+        $context = $relevant->isEmpty()
+            ? "(Aucun extrait textuel n'a été trouvé pour cette question.)"
+            : $this->buildContext($relevant);
+
+        /*
+         * Compréhension visuelle : le PDF est réellement joint à la requête
+         * uniquement si la question porte sur un élément visuel/une formule.
+         */
+        $pdfPart = $visual ? $this->pdfPart($document) : null;
+
+        $visualNote = match (true) {
+            $pdfPart !== null => "Le PDF complet du document est JOINT à cette requête : tu peux "
+                . "analyser ses images, schémas, graphiques, tableaux et formules. "
+                . "Les numéros de page sont ceux du lecteur (1re page du PDF = page 1). "
+                . "Appuie-toi sur ce que tu vois réellement dans le PDF.",
+            $visual => "AUCUN élément visuel n'a pu être fourni au modèle (PDF indisponible ou trop "
+                . "volumineux). Tu ne peux pas voir les images, graphiques, tableaux ou formules "
+                . "du document : ne prétends pas les avoir analysés et dis-le clairement si la "
+                . "question en dépend ; réponds seulement avec le texte des extraits.",
+            default => "Aucun élément visuel n'est fourni : seuls les extraits textuels sont disponibles.",
+        };
+
+        $historyBlock = $this->historyBlock($history);
+
+        $pageBlock = $this->focusPage !== null
+            ? "PAGE ACTUELLEMENT OUVERTE PAR L'UTILISATEUR : {$this->focusPage} "
+                . "(donne la priorité à cette page si la question dit « cette page », « ici », « cette formule »… "
+                . "mais utilise les autres pages si la question l'exige)."
+            : "PAGE ACTUELLEMENT OUVERTE : inconnue.";
 
         /*
          * Instructions spécifiques selon le type de question.
@@ -365,11 +595,28 @@ RÈGLES ABSOLUES :
 
 18. Ne cite jamais une page qui n'est pas représentée dans les extraits.
 
+19. Quand l'information est trouvée, commence par « Selon le document, » puis termine par une ligne « Source : page X » (ou « Source : pages X, Y »), avec uniquement de vraies pages.
+
+20. Quand l'information est absente du document, réponds EXACTEMENT « {NOT_FOUND} » (sans citer de page), puis précise brièvement ce qui manque.
+
+21. Formules : écris-les en LaTeX, en ligne avec $...$ ou en bloc avec $$...$$ (jamais en image). Explique chaque variable et l'usage ; si un calcul est demandé, fais-le seulement avec les données disponibles et signale les hypothèses.
+
+22. Tableaux : utilise un tableau Markdown. Listes : utilise des listes Markdown.
+
+23. Distingue ce qui vient du document (« Dans le document : … ») de ton explication pédagogique (« Explication : … ») lorsque tu ajoutes une explication.
+
+24. La conversation précédente sert uniquement à comprendre la question (par exemple « le troisième point ») ; les faits doivent toujours venir des extraits ou du PDF joint.
+
 INSTRUCTIONS SPÉCIFIQUES :
 
 {$instructions}
 
-EXTRAITS DU DOCUMENT :
+{$pageBlock}
+
+ÉLÉMENTS VISUELS :
+{$visualNote}
+
+{$historyBlock}EXTRAITS DU DOCUMENT :
 
 {$context}
 
@@ -380,27 +627,423 @@ QUESTION DE L'UTILISATEUR :
 RÉPONSE :
 PROMPT;
 
-        try {
-            $answer = trim(
-                $this->gemini->generate($prompt, 0.2)
-            );
-        } catch (\Throwable $e) {
-            report($e);
+        $prompt = str_replace('{NOT_FOUND}', self::NOT_FOUND, $prompt);
 
-            $answer =
-                "Le service IA est momentanément indisponible. "
-                . "Vérifie la connexion au service Gemini et réessaie.";
+        $parts = [];
+
+        if ($pdfPart !== null) {
+            $parts[] = $pdfPart;
         }
 
-        if ($answer === '') {
-            $answer =
-                "Je n'ai pas pu générer une réponse à partir des passages trouvés.";
+        $parts[] = ['text' => $prompt];
+
+        /*
+         * Modèle adapté : rapide pour une question simple, modèle principal
+         * pour une analyse globale/complexe ou visuelle.
+         */
+        $fast = config('services.gemini.fast_model') ?: null;
+        $simple = in_array($questionType, ['question', 'page'], true)
+            && !$visual
+            && $history === [];
+        $model = $simple ? $fast : null;
+
+        /*
+         * Pages que la réponse a le droit de citer.
+         */
+        $allowedPages = $relevant->pluck('page_number')->map(fn ($p) => (int) $p)->all();
+
+        if ($pdfPart !== null) {
+            $maxPage = max(
+                (int) $relevant->max('page_number'),
+                (int) $this->focusPage,
+                (int) $pageNumber
+            );
+            $allowedPages = range(1, max(1, $maxPage));
+        }
+
+        return ['generate' => [
+            'contents' => [['role' => 'user', 'parts' => $parts]],
+            'model' => $model,
+            // Le PDF joint demande un délai plus long qu'un simple extrait texte.
+            'timeout' => $pdfPart !== null ? 100 : 60,
+            'relevant' => $relevant,
+            'allowed_pages' => array_values(array_unique($allowedPages)),
+            'question_type' => $questionType,
+            'visual' => $pdfPart !== null,
+            'visual_requested' => $visual,
+        ]];
+    }
+
+    /**
+     * Post-traitement d'une réponse Gemini : vérifie les pages citées
+     * (aucune fausse page), fixe les sources et signale un "non trouvé".
+     */
+    private function finalize(array $plan, string $text, string $model): array
+    {
+        $notFound = str_contains(
+            $this->normalize($text),
+            $this->normalize('je ne trouve pas cette information dans le document')
+        );
+
+        [$text, $cited] = $this->sanitizeCitations($text, $plan['allowed_pages']);
+
+        $sources = $notFound
+            ? []
+            : $this->sourcesForCited($plan['relevant'], $cited);
+
+        return [
+            'answer' => $text,
+            'sources' => $sources,
+            'meta' => [
+                'model' => $model,
+                'question_type' => $plan['question_type'],
+                'visual' => $plan['visual'],
+                'visual_requested' => $plan['visual_requested'],
+                'not_found' => $notFound,
+            ],
+        ];
+    }
+
+    /**
+     * Supprime les citations de pages qui ne figurent pas dans le contexte
+     * réellement fourni au modèle, et retourne les pages valides citées.
+     *
+     * @return array{0:string,1:int[]}
+     */
+    public function sanitizeCitations(string $text, array $allowedPages): array
+    {
+        $allowed = array_flip(array_map('intval', $allowedPages));
+        $cited = [];
+
+        $text = preg_replace_callback(
+            '/\b(pp?\.|pages?)\s*(\d+(?:\s*(?:,|;|et|-|–)\s*(?:pp?\.\s*|pages?\s*)?\d+)*)/iu',
+            function (array $m) use ($allowed, &$cited) {
+                preg_match_all('/\d+/', $m[2], $numbers);
+
+                $valid = array_values(array_filter(
+                    array_map('intval', $numbers[0]),
+                    fn (int $n) => isset($allowed[$n])
+                ));
+
+                if ($valid === []) {
+                    return '';
+                }
+
+                array_push($cited, ...$valid);
+
+                return $m[1] . ' ' . implode(', ', array_unique($valid));
+            },
+            $text
+        ) ?? $text;
+
+        // Nettoie les restes d'une citation supprimée.
+        $text = preg_replace('/\(\s*[,;]?\s*\)/u', '', $text) ?? $text;
+        $text = preg_replace('/^\s*Sources?\s*:\s*\.?\s*$/miu', '', $text) ?? $text;
+        $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;
+
+        return [trim($text), array_values(array_unique($cited))];
+    }
+
+    /**
+     * Retire de la fin du texte une citation de page encore incomplète
+     * ("(p. 2, p", "Source : pages 4,"…) pour ne pas l'afficher avant
+     * de pouvoir la valider.
+     */
+    private function withoutOpenCitation(string $text): string
+    {
+        // Parenthèse ouverte non refermée sur la fin du texte.
+        $open = strrpos($text, '(');
+
+        if ($open !== false && strpos($text, ')', $open) === false && strlen($text) - $open < 60) {
+            $text = substr($text, 0, $open);
+        }
+
+        // "Source : page 2, 4" / "p. 12 et" / "pages 3-" en fin de texte.
+        return preg_replace(
+            '/(?:\bsources?\s*:?\s*|\b(?:pp?\.|pages?)\s*)[\d\s,;\-–]*(?:\bet\s*)?(?:\bpp?\.?\s*)?$/iu',
+            '',
+            $text
+        ) ?? $text;
+    }
+
+    /**
+     * Sources affichées : pages réellement citées si elles existent,
+     * sinon tous les passages utilisés.
+     */
+    private function sourcesForCited(Collection $relevant, array $cited): array
+    {
+        if ($cited === []) {
+            return $this->sourcesFor($relevant);
+        }
+
+        $sources = $this->sourcesFor(
+            $relevant->filter(
+                fn (DocumentChunk $chunk) =>
+                    in_array((int) $chunk->page_number, $cited, true)
+            )
+        );
+
+        $known = array_column($sources, 'page');
+
+        foreach ($cited as $page) {
+            if (!in_array($page, $known, true)) {
+                $sources[] = ['page' => $page, 'chunk_id' => null, 'excerpt' => ''];
+            }
+        }
+
+        usort($sources, fn ($a, $b) => $a['page'] <=> $b['page']);
+
+        return $sources;
+    }
+
+    /**
+     * Résultat d'erreur : l'appelant renvoie une vraie erreur HTTP,
+     * jamais une "réponse" qui ressemblerait à du contenu du document.
+     */
+    private function errorResult(?\Throwable $e, string $message, bool $mapStatus = true): array
+    {
+        $status = $e instanceof GeminiException ? $e->status() : 0;
+
+        if ($mapStatus) {
+            $message = match (true) {
+                $status === 429 => "Le quota de l'API Gemini est atteint pour le moment. Réessaie plus tard.",
+                $status === 503 => "Le service IA est très sollicité en ce moment. Réessaie dans un instant.",
+                default => $message,
+            };
         }
 
         return [
-            'answer' => $answer,
-            'sources' => $this->sourcesFor($relevant),
+            'answer' => $message,
+            'sources' => [],
+            'error' => true,
+            'status' => $status,
         ];
+    }
+
+    /**
+     * Prépare le PDF pour l'envoi inline à Gemini (compréhension visuelle).
+     * Retourne null si le fichier est absent ou trop volumineux.
+     */
+    private function pdfPart(Document $document): ?array
+    {
+        $path = $document->file_path;
+
+        if (
+            !$path
+            || !str_ends_with(strtolower($path), '.pdf')
+            || !Storage::disk('local')->exists($path)
+            || Storage::disk('local')->size($path)
+                > (int) config('services.gemini.max_inline_pdf_bytes')
+        ) {
+            return null;
+        }
+
+        return ['inlineData' => [
+            'mimeType' => 'application/pdf',
+            'data' => base64_encode(Storage::disk('local')->get($path)),
+        ]];
+    }
+
+    /**
+     * Génère l'image demandée (fonction distincte de l'analyse d'image).
+     */
+    private function generateImageAnswer(array $request): array
+    {
+        try {
+            $image = $this->gemini->generateImage($request['prompt']);
+        } catch (\Throwable $e) {
+            report($e);
+
+            $status = $e instanceof GeminiException ? $e->status() : 0;
+
+            return $this->errorResult(
+                $e,
+                $status === 429
+                    ? "La génération d'images est indisponible : le quota de l'API Gemini pour les images est atteint ou non activé."
+                    : "L'image n'a pas pu être générée pour le moment. Réessaie plus tard.",
+                false
+            );
+        }
+
+        return [
+            'answer' => ($image['text'] !== '' ? $image['text'] . "\n\n" : '')
+                . "_Image générée par l'IA à ta demande : c'est une illustration, pas un extrait du document._",
+            'sources' => [],
+            'image' => ['mime' => $image['mime'], 'data' => $image['data']],
+            'meta' => ['model' => $image['model'], 'generated_image' => true],
+        ];
+    }
+
+    /**
+     * Détecte une demande explicite de création d'image (≠ analyse d'une
+     * image du document).
+     */
+    public function isImageRequest(string $question): bool
+    {
+        $q = $this->normalize($question);
+
+        return (bool) preg_match(
+            '/\b(cree|creer|genere|generer|dessine|dessiner|produis|realise|fabrique|fais|faire|imagine|illustre|montre|donne|propose)\b'
+            . '(?:[\s\-]+\w+){0,4}?[\s\-]+(?:un|une|des)\s+(?:\w+\s+){0,2}?'
+            . '(image|illustration|schema|dessin|infographie|visuel|diagramme|affiche)\b/u',
+            $q
+        );
+    }
+
+    /**
+     * Question sur un élément visuel (figure, graphique, tableau, formule…).
+     */
+    public function isVisualQuestion(string $question): bool
+    {
+        return (bool) preg_match(
+            '/\b(graphique|courbe|diagramme|schema|figure|image|illustration|photo|tableau|'
+            . 'histogramme|carte|legende|dessin|formule|formules|equation|equations|visuel|'
+            . 'que montre|que represente|capture)\b/u',
+            $this->normalize($question)
+        );
+    }
+
+    /**
+     * Question qui renvoie à l'endroit consulté ("cette page", "ici"…).
+     */
+    private function isDeictic(string $question): bool
+    {
+        $q = $this->normalize($question);
+
+        return (bool) preg_match(
+            '/\b(cette|ce|cet|ici|celle-ci|celui-ci|ci-dessus|ci-dessous)\b/u',
+            $q
+        ) && (bool) preg_match(
+            '/\b(page|formule|equation|figure|graphique|tableau|schema|image|passage|section|'
+            . 'paragraphe|notion|definition|point|partie|chapitre|texte|illustration)\b/u',
+            $q
+        );
+    }
+
+    /**
+     * Nettoie l'historique fourni par le client (4 derniers tours,
+     * longueurs bornées).
+     *
+     * @return array<int, array{question:string,answer:string}>
+     */
+    private function cleanHistory(mixed $history): array
+    {
+        if (!is_array($history)) {
+            return [];
+        }
+
+        $clean = [];
+
+        foreach ($history as $turn) {
+            if (!is_array($turn)) {
+                continue;
+            }
+
+            $q = trim((string) ($turn['question'] ?? ''));
+            $a = trim((string) ($turn['answer'] ?? ''));
+
+            if ($q !== '' && $a !== '') {
+                $clean[] = [
+                    'question' => Str::limit($q, 400, '…'),
+                    'answer' => Str::limit($a, 1200, '…'),
+                ];
+            }
+        }
+
+        return array_slice($clean, -4);
+    }
+
+    private function historyBlock(array $history): string
+    {
+        if ($history === []) {
+            return '';
+        }
+
+        $lines = "CONVERSATION PRÉCÉDENTE (contexte uniquement) :\n";
+
+        foreach ($history as $turn) {
+            $lines .= "Utilisateur : {$turn['question']}\nAssistant : {$turn['answer']}\n\n";
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Requête de recherche enrichie par le tour précédent quand la question
+     * est courte ou fait référence à la réponse précédente.
+     */
+    private function contextualQuery(string $question, array $history): string
+    {
+        if ($history === []) {
+            return $question;
+        }
+
+        $words = count(preg_split('/\s+/u', trim($question), -1, PREG_SPLIT_NO_EMPTY));
+        $refers = (bool) preg_match(
+            '/\b(le|la|les)\s+(premier|premiere|deuxieme|troisieme|quatrieme|dernier|derniere)\b|'
+            . '\b(ce point|cette partie|celui|celle|ceux|plus de details|developpe|detaille|et pour|et aussi)\b/u',
+            $this->normalize($question)
+        );
+
+        if ($words > 8 && !$refers) {
+            return $question;
+        }
+
+        $last = end($history);
+
+        return $last['question'] . ' ' . Str::limit($last['answer'], 300, '') . ' ' . $question;
+    }
+
+    /**
+     * Assemble le texte de plusieurs chunks d'une même page.
+     */
+    private function mergeChunks(Collection $chunks): string
+    {
+        return $chunks
+            ->sortBy('chunk_index')
+            ->map(fn (DocumentChunk $chunk) => trim($chunk->content))
+            ->filter()
+            ->implode("\n\n");
+    }
+
+    /**
+     * Prompt de génération d'image, ancré si possible dans le document.
+     */
+    private function imagePrompt(
+        Document $document,
+        string $question,
+        Collection $chunks,
+        array $history
+    ): string {
+        $context = '';
+
+        try {
+            $usable = $chunks->filter(
+                fn (DocumentChunk $chunk) => $this->isMeaningfulChunk($chunk)
+            )->values();
+
+            if ($usable->isNotEmpty()) {
+                $context = Str::limit(
+                    $this->buildContext(
+                        $this->retrieveRelevantChunks(
+                            $usable,
+                            $this->contextualQuery($question, $history),
+                            3
+                        )
+                    ),
+                    1500,
+                    '…'
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return "Crée une illustration pédagogique claire, sobre et lisible (fond clair, peu de texte, "
+            . "libellés courts en français si nécessaire).\n\n"
+            . "Demande de l'utilisateur : {$question}\n\n"
+            . "Document consulté : « {$document->title} »\n"
+            . ($context !== '' ? "Contexte tiré du document :\n{$context}\n" : '');
     }
 
     /**
@@ -472,7 +1115,15 @@ PROMPT;
     $semantic = collect();
 
     try {
-        $queryEmbedding = $this->gemini->embed($question);
+        /*
+         * L'embedding d'une même question est réutilisé (cache 24 h) :
+         * pas d'appel Gemini répété pour une question identique.
+         */
+        $queryEmbedding = Cache::remember(
+            'rag:qemb:' . sha1(mb_strtolower(trim($question))),
+            now()->addDay(),
+            fn () => $this->gemini->embed($question)
+        );
 
         $semantic = $usableChunks
             ->map(
@@ -497,6 +1148,7 @@ PROMPT;
          * Si Gemini embedding échoue, la recherche lexicale
          * reste disponible comme solution de secours.
          */
+        $this->embeddingFailed = true;
         report($e);
     }
 

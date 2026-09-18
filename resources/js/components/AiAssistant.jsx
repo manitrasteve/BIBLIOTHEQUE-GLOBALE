@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, BookText } from "lucide-react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Sparkles, Send, BookText, ImageIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
+
+// Markdown + formules (KaTeX) chargés à la demande.
+const AiMarkdown = lazy(() => import("./AiMarkdown"));
 
 const SUGGESTIONS = [
     "Résume ce document.",
@@ -9,11 +12,36 @@ const SUGGESTIONS = [
     "Explique cette partie.",
 ];
 
+function AnswerText({ text }) {
+    return (
+        <Suspense
+            fallback={<p className="text-sm whitespace-pre-wrap leading-relaxed">{text}</p>}
+        >
+            <AiMarkdown>{text}</AiMarkdown>
+        </Suspense>
+    );
+}
+
+// Ouvre l'image générée dans un nouvel onglet (les URL data: ne s'ouvrent
+// pas directement dans un onglet, on passe par un Blob).
+function openImage(image) {
+    try {
+        const binary = atob(image.data);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: image.mime }));
+        window.open(url, "_blank", "noopener");
+    } catch {
+        // image illisible : rien à ouvrir
+    }
+}
+
 export default function AiAssistant({ slug }) {
     const [question, setQuestion] = useState("");
     const [exchanges, setExchanges] = useState(() => sessionMemory.getAiChat(slug));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [pending, setPending] = useState(null);
+    const [streamText, setStreamText] = useState("");
     const mountedRef = useRef(true);
     const scrollRef = useRef(null);
 
@@ -27,19 +55,45 @@ export default function AiAssistant({ slug }) {
     useEffect(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [exchanges.length]);
+    }, [exchanges.length, pending, streamText]);
 
     async function ask(q) {
-        const finalQuestion = q ?? question;
+        const finalQuestion = (q ?? question).trim();
 
-        if (!finalQuestion.trim() || loading) return;
+        if (!finalQuestion || loading) return;
 
         setLoading(true);
         setError(null);
         setQuestion("");
+        setPending(finalQuestion);
+        setStreamText("");
+
+        // Contexte : derniers échanges de la conversation temporaire + page
+        // actuellement ouverte dans le lecteur (jamais stockés côté serveur).
+        const history = sessionMemory
+            .getAiChat(slug)
+            .slice(-4)
+            .map((ex) => ({ question: ex.question, answer: ex.answer }));
+        const page = sessionMemory.getReaderPage(slug);
+        const extra = { history, ...(page ? { current_page: page } : {}) };
+
+        let streamed = false;
 
         try {
-            const result = await api.askAi(slug, finalQuestion);
+            let result;
+
+            try {
+                result = await api.askAiStream(slug, finalQuestion, extra, {
+                    onDelta: (delta) => {
+                        streamed = true;
+                        if (mountedRef.current) setStreamText((t) => t + delta);
+                    },
+                });
+            } catch (err) {
+                // Le flux n'a pas pu démarrer : repli sur la requête classique.
+                if (err.streamed || streamed) throw err;
+                result = await api.askAi(slug, finalQuestion, extra);
+            }
 
             const next = [
                 ...sessionMemory.getAiChat(slug),
@@ -47,15 +101,26 @@ export default function AiAssistant({ slug }) {
                     question: finalQuestion,
                     answer: result.answer,
                     sources: result.sources || [],
+                    image: result.image || null,
+                    meta: result.meta || null,
                 },
             ];
             sessionMemory.setAiChat(slug, next);
             if (mountedRef.current) setExchanges(next);
         } catch (err) {
-            if (mountedRef.current)
-                setError("L'assistant n'a pas pu répondre pour le moment.");
+            if (mountedRef.current) {
+                setError(
+                    err?.data?.message ||
+                        (err?.streamed ? err.message : null) ||
+                        "L'assistant n'a pas pu répondre pour le moment.",
+                );
+            }
         } finally {
-            if (mountedRef.current) setLoading(false);
+            if (mountedRef.current) {
+                setLoading(false);
+                setPending(null);
+                setStreamText("");
+            }
         }
     }
 
@@ -80,7 +145,7 @@ export default function AiAssistant({ slug }) {
             {/* Zone des conversations */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-6 pr-2">
                 {/* Suggestions */}
-                {exchanges.length === 0 && (
+                {exchanges.length === 0 && !pending && (
                     <div className="flex flex-wrap gap-2">
                         {SUGGESTIONS.map((s) => (
                             <button
@@ -122,7 +187,7 @@ export default function AiAssistant({ slug }) {
 
                             {/* Réponse de l'IA */}
                             <div className="flex justify-start">
-                                <div className="max-w-[85%] w-fit">
+                                <div className="max-w-[85%] w-fit min-w-0">
                                     <div className="bg-white text-black border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600">
                                         {/* Icône IA */}
                                         <div className="flex items-center gap-2 mb-2">
@@ -137,10 +202,41 @@ export default function AiAssistant({ slug }) {
                                         </div>
 
                                         {/* Texte de la réponse */}
-                                        <p className="text-sm text-black whitespace-pre-wrap leading-relaxed dark:text-slate-100">
-                                            {ex.answer}
-                                        </p>
+                                        <AnswerText text={ex.answer} />
+
+                                        {/* Image générée à la demande */}
+                                        {ex.image && (
+                                            <button
+                                                type="button"
+                                                onClick={() => openImage(ex.image)}
+                                                className="mt-3 block w-full text-left"
+                                                title="Ouvrir l'image dans un nouvel onglet"
+                                            >
+                                                <img
+                                                    src={`data:${ex.image.mime};base64,${ex.image.data}`}
+                                                    alt="Illustration générée par l'IA"
+                                                    className="max-h-80 w-auto max-w-full rounded-lg border border-gray-200 dark:border-slate-600"
+                                                />
+                                                <span className="mt-1 flex items-center gap-1 text-xs text-gray-600 dark:text-slate-400">
+                                                    <ImageIcon className="h-3 w-3" />
+                                                    Image générée par l'IA — cliquer pour l'agrandir
+                                                </span>
+                                            </button>
+                                        )}
                                     </div>
+
+                                    {/* Transparence sur l'analyse visuelle */}
+                                    {ex.meta?.visual && (
+                                        <p className="mt-2 text-xs text-ink-soft">
+                                            Analyse basée sur le texte et sur les éléments visuels du PDF.
+                                        </p>
+                                    )}
+                                    {ex.meta?.visual_requested && !ex.meta?.visual && (
+                                        <p className="mt-2 text-xs text-ink-soft">
+                                            Les éléments visuels du document n'ont pas pu être analysés
+                                            (réponse basée sur le texte uniquement).
+                                        </p>
+                                    )}
 
                                     {/* Sources */}
                                     {sortedSources.length > 0 && (
@@ -167,22 +263,42 @@ export default function AiAssistant({ slug }) {
                     );
                 })}
 
-                {/* Chargement */}
-                {loading && (
-                    <div className="flex justify-start">
-                        <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm dark:bg-slate-800 dark:border-slate-600">
-                            <div className="flex items-center gap-2">
-                                <Sparkles
-                                    className="h-3.5 w-3.5 text-brass/70"
-                                    strokeWidth={1.75}
-                                />
+                {/* Question en cours + réponse en train d'arriver (streaming) */}
+                {pending && (
+                    <div className="space-y-3">
+                        <div className="flex justify-end">
+                            <div className="max-w-[80%]">
+                                <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                                    <p className="text-sm whitespace-pre-wrap">
+                                        {pending}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                                <span className="text-sm text-gray-500 dark:text-slate-400">
-                                    L’assistant est en train d’écrire…
-                                    <span className="ml-2 ai-typing-dots align-middle" aria-label="L’assistant écrit">
-                                        <span></span><span></span><span></span>
-                                    </span>
-                                </span>
+                        <div className="flex justify-start">
+                            <div className="max-w-[85%] w-fit min-w-0">
+                                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles
+                                            className="h-3.5 w-3.5 text-brass/70"
+                                            strokeWidth={1.75}
+                                        />
+
+                                        {streamText ? (
+                                            <div className="min-w-0 text-black dark:text-slate-100">
+                                                <AnswerText text={streamText} />
+                                            </div>
+                                        ) : (
+                                            <span className="text-sm text-gray-500 dark:text-slate-400">
+                                                L’assistant est en train d’écrire…
+                                                <span className="ml-2 ai-typing-dots align-middle" aria-label="L’assistant écrit">
+                                                    <span></span><span></span><span></span>
+                                                </span>
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

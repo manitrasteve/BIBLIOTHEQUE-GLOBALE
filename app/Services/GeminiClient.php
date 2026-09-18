@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -129,49 +131,292 @@ public function batchEmbed(array $texts): array
     );
 }
     /**
-     * Génère une réponse avec Gemini.
+     * Génère une réponse avec Gemini (texte seul).
      */
     public function generate(
         string $prompt,
-        float $temperature = 0.3
+        float $temperature = 0.3,
+        ?string $model = null
     ): string {
-        $model = config(
-            'services.gemini.model',
-            'gemini-2.5-flash'
-        );
+        return $this->generateContents(
+            [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+            ['temperature' => $temperature, 'model' => $model]
+        )['text'];
+    }
 
-        $url = "{$this->baseUrl}/models/{$model}:generateContent";
+    /**
+     * Liste ordonnée des modèles à essayer : le modèle demandé (ou le
+     * modèle principal), puis les modèles de repli configurés.
+     *
+     * @return string[]
+     */
+    public function modelChain(?string $preferred = null): array
+    {
+        $primary = $preferred ?: config('services.gemini.model');
 
-        $response = Http::timeout(120)
-            ->withHeaders([
-                'x-goog-api-key' => $this->key(),
-                'Content-Type' => 'application/json',
-            ])
-            ->post($url, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            [
-                                'text' => $prompt
-                            ]
-                        ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => $temperature
-                ]
-            ]);
+        $chain = array_values(array_unique(array_filter([
+            $primary,
+            ...(array) config('services.gemini.fallback_models', []),
+        ])));
 
-        if ($response->failed()) {
-            throw new RuntimeException(
-                "Échec de la requête de génération Gemini " .
-                "(HTTP {$response->status()}) : " .
-                $response->body()
-            );
+        // Un modèle qui vient d'échouer (surcharge, quota) passe en dernier
+        // pendant une minute : on n'attend pas un nouvel échec à chaque question.
+        usort($chain, fn ($a, $b) => (int) $this->isDown($a) <=> (int) $this->isDown($b));
+
+        return $chain;
+    }
+
+    private function isDown(string $model): bool
+    {
+        return Cache::has("gemini:down:{$model}");
+    }
+
+    private function markDown(string $model): void
+    {
+        Cache::put("gemini:down:{$model}", true, now()->addMinute());
+    }
+
+    /**
+     * Requête HTTP Gemini avec délais bornés (une panne réseau ne bloque
+     * pas la requête plusieurs minutes).
+     */
+    private function http(int $timeout): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::connectTimeout(8)->timeout($timeout)->withHeaders($this->headers());
+    }
+
+    /**
+     * Statuts pour lesquels on tente le modèle suivant : surcharge (503),
+     * quota (429), erreur serveur, modèle retiré (404).
+     */
+    private function isRetryable(int $status): bool
+    {
+        return in_array($status, [404, 429, 500, 502, 503, 504], true);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'x-goog-api-key' => $this->key(),
+            'Content-Type' => 'application/json',
+        ];
+    }
+
+    private function payload(array $contents, array $options): array
+    {
+        $payload = [
+            'contents' => $contents,
+            'generationConfig' => [
+                'temperature' => (float) ($options['temperature'] ?? 0.3),
+            ],
+        ];
+
+        if (!empty($options['system'])) {
+            $payload['systemInstruction'] = [
+                'parts' => [['text' => $options['system']]],
+            ];
         }
 
-        return $response->json(
-            'candidates.0.content.parts.0.text'
-        ) ?? '';
+        return $payload;
+    }
+
+    private function extractText(?array $json): string
+    {
+        $text = '';
+
+        foreach (($json['candidates'][0]['content']['parts'] ?? []) as $part) {
+            if (isset($part['text']) && empty($part['thought'])) {
+                $text .= $part['text'];
+            }
+        }
+
+        return $text;
+    }
+
+    /**
+     * Génération multi-tours / multimodale avec repli automatique.
+     *
+     * $contents suit le format Gemini : [['role' => 'user'|'model',
+     * 'parts' => [['text' => ...] | ['inlineData' => [...]]]]].
+     *
+     * @return array{text:string,model:string}
+     */
+    public function generateContents(array $contents, array $options = []): array
+    {
+        $last = null;
+
+        foreach ($this->modelChain($options['model'] ?? null) as $model) {
+            try {
+                $response = $this->http($options['timeout'] ?? 60)
+                    ->post(
+                        "{$this->baseUrl}/models/{$model}:generateContent",
+                        $this->payload($contents, $options)
+                    );
+            } catch (ConnectionException $e) {
+                // Délai dépassé / réseau : on tente le modèle suivant.
+                $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
+                $this->markDown($model);
+                continue;
+            }
+
+            if ($response->successful()) {
+                return [
+                    'text' => $this->extractText($response->json()),
+                    'model' => $model,
+                ];
+            }
+
+            $last = new GeminiException(
+                "Échec de la requête de génération Gemini {$model} " .
+                "(HTTP {$response->status()}) : " . $response->body(),
+                $response->status()
+            );
+
+            if (!$this->isRetryable($response->status())) {
+                throw $last;
+            }
+
+            $this->markDown($model);
+        }
+
+        throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
+    }
+
+    /**
+     * Génération en flux (SSE). $onDelta reçoit chaque fragment de texte
+     * dès son arrivée. Le repli entre modèles n'a lieu qu'avant le premier
+     * fragment (jamais au milieu d'une réponse).
+     *
+     * @return array{text:string,model:string}
+     */
+    public function streamContents(
+        array $contents,
+        callable $onDelta,
+        array $options = []
+    ): array {
+        $last = null;
+
+        foreach ($this->modelChain($options['model'] ?? null) as $model) {
+            try {
+                $response = $this->http($options['timeout'] ?? 90)
+                    ->withOptions(['stream' => true])
+                    ->post(
+                        "{$this->baseUrl}/models/{$model}:streamGenerateContent?alt=sse",
+                        $this->payload($contents, $options)
+                    );
+            } catch (ConnectionException $e) {
+                $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
+                $this->markDown($model);
+                continue;
+            }
+
+            if (!$response->successful()) {
+                $last = new GeminiException(
+                    "Échec du flux Gemini {$model} (HTTP {$response->status()}) : " .
+                    substr((string) $response->body(), 0, 500),
+                    $response->status()
+                );
+
+                if (!$this->isRetryable($response->status())) {
+                    throw $last;
+                }
+
+                $this->markDown($model);
+
+                continue;
+            }
+
+            $body = $response->toPsrResponse()->getBody();
+            $buffer = '';
+            $full = '';
+
+            while (!$body->eof()) {
+                $buffer .= str_replace("\r\n", "\n", $body->read(512));
+
+                while (($pos = strpos($buffer, "\n\n")) !== false) {
+                    $event = substr($buffer, 0, $pos);
+                    $buffer = substr($buffer, $pos + 2);
+
+                    if (!str_starts_with($event, 'data:')) {
+                        continue;
+                    }
+
+                    $delta = $this->extractText(
+                        json_decode(trim(substr($event, 5)), true)
+                    );
+
+                    if ($delta !== '') {
+                        $full .= $delta;
+                        $onDelta($delta);
+                    }
+                }
+            }
+
+            return ['text' => $full, 'model' => $model];
+        }
+
+        throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
+    }
+
+    /**
+     * Génère une image à partir d'un texte.
+     *
+     * @return array{mime:string,data:string,text:string,model:string}
+     */
+    public function generateImage(string $prompt): array
+    {
+        $last = null;
+
+        foreach ((array) config('services.gemini.image_models', []) as $model) {
+            try {
+                $response = $this->http(90)
+                    ->post("{$this->baseUrl}/models/{$model}:generateContent", [
+                        'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+                        'generationConfig' => ['responseModalities' => ['TEXT', 'IMAGE']],
+                    ]);
+            } catch (ConnectionException $e) {
+                $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
+                continue;
+            }
+
+            if ($response->successful()) {
+                $text = '';
+                $image = null;
+
+                foreach (($response->json('candidates.0.content.parts') ?? []) as $part) {
+                    $inline = $part['inlineData'] ?? $part['inline_data'] ?? null;
+
+                    if ($inline && !empty($inline['data'])) {
+                        $image = $inline;
+                    } elseif (isset($part['text'])) {
+                        $text .= $part['text'];
+                    }
+                }
+
+                if ($image) {
+                    return [
+                        'mime' => $image['mimeType'] ?? $image['mime_type'] ?? 'image/png',
+                        'data' => $image['data'],
+                        'text' => trim($text),
+                        'model' => $model,
+                    ];
+                }
+
+                $last = new GeminiException("Le modèle {$model} n'a renvoyé aucune image.", 200);
+                continue;
+            }
+
+            $last = new GeminiException(
+                "Échec de la génération d'image {$model} (HTTP {$response->status()}) : " .
+                substr((string) $response->body(), 0, 500),
+                $response->status()
+            );
+
+            if (!$this->isRetryable($response->status())) {
+                throw $last;
+            }
+        }
+
+        throw $last ?? new GeminiException('Aucun modèle de génération d\'image configuré.', 0);
     }
 }
