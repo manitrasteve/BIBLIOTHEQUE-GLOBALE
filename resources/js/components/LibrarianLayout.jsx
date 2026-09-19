@@ -34,8 +34,9 @@ const NAV = [
     },
     {
         to: "/bibliothecaire/creer-demande-compte",
-        label: "Créer une demande de compte",
+        label: "Ajouter un utilisateur",
         icon: UserPlus,
+        permission: "ajouter_utilisateur",
     },
     {
         to: "/bibliothecaire/documents",

@@ -178,7 +178,9 @@ export default function App() {
                                 <Route
                                     path="creer-demande-compte"
                                     element={
-                                        <ServiceCreateAccountRequestPage />
+                                        <PermissionRoute permission="ajouter_utilisateur">
+                                            <ServiceCreateAccountRequestPage />
+                                        </PermissionRoute>
                                     }
                                 />
                                 <Route
