@@ -11,21 +11,10 @@ import {
     Phone,
     User,
     Home as HomeIcon,
-    UserRound,
     Send,
-    Building2,
-    ShieldCheck,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
-
-const ROLES = [
-    { value: "etudiant", label: "Étudiant" },
-    { value: "enseignant", label: "Enseignant" },
-    { value: "chercheur", label: "Chercheur" },
-    { value: "bibliothecaire", label: "Bibliothécaire" },
-    { value: "administrateur", label: "Administrateur" },
-];
 
 const STUDENT_CENTERS = [
     "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",

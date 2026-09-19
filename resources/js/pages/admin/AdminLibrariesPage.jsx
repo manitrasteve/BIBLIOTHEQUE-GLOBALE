@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Pencil, Trash2, MapPin, Clock, X } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { matchesSearch } from '../../lib/search';
 import { SkeletonList } from '../../components/Skeleton';

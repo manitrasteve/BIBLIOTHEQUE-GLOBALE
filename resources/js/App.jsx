@@ -36,7 +36,6 @@ import ServiceCreateAccountRequestPage from "./pages/librarian/ServiceCreateAcco
 
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
 import AdminLibrariesPage from "./pages/admin/AdminLibrariesPage";
-import AdminAccountsPage from "./pages/admin/AdminAccountsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminTrashPage from "./pages/admin/AdminTrashPage";
 import AdminActivityPage from "./pages/admin/AdminActivityPage";

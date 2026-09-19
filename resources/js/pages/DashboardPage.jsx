@@ -5,15 +5,12 @@ import {
     Sparkles,
     Bell,
     Heart,
-    BookOpen,
     ArrowRight,
-    Inbox,
     LayoutDashboard,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import StatCard from "../components/StatCard";
-import StatusBadge from "../components/StatusBadge";
 
 const ROLE_LABELS = {
     etudiant: "Étudiant",

@@ -5,7 +5,6 @@ import {
     LogIn,
     Eye,
     Sparkles,
-    BookOpenCheck,
     UserPlus,
     UserCheck,
     UserX,

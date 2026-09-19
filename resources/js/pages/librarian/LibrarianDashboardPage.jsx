@@ -1,7 +1,6 @@
 import {
     Ticket,
     FileText,
-    Landmark,
     LayoutDashboard,
     LibraryBig,
 } from "lucide-react";
