@@ -192,7 +192,6 @@ class AccountRequestController extends Controller
             'phone' => ['required', 'string', 'max:50'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
             'address' => ['required', 'string', 'max:255'],
-            'date_of_birth' => ['nullable', 'date'],
 
             'role' => [
                 'required',
@@ -200,10 +199,25 @@ class AccountRequestController extends Controller
             ],
 
             /**
-             * Étudiant
+             * Étudiant : mêmes champs et mêmes règles que le formulaire
+             * d'ajout d'utilisateur de l'administrateur.
              */
-            'school' => ['nullable', 'string', 'max:255'],
-            'filiere' => ['nullable', 'string', 'max:255'],
+            'date_of_birth' => ['required', 'date'],
+            'birth_place' => ['required', 'string', 'max:255'],
+            'cin_number' => ['required', 'digits:12'],
+            'cin_issued_at' => ['required', 'date'],
+            'student_card_number' => ['required', 'string', 'max:255'],
+            'school' => ['required', Rule::in([
+                'IOSTM',
+                'IUGM',
+                'ISSTM',
+                'IUTAM',
+                'ILCSS',
+                'Faculté de Médecine',
+                "Faculté des sciences, technologies et de l'environnement (FSTE)",
+                'Ecoles et formations rattachées',
+            ])],
+            'filiere' => ['required', 'string', 'max:255'],
             'niveau_type' => [
                 'nullable',
                 Rule::in(['Université']),

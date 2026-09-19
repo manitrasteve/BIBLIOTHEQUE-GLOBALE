@@ -34,6 +34,11 @@ function addUserPayload(array $overrides = []): array
         'gender' => 'masculin',
         'address' => 'Mahajanga',
         'role' => 'etudiant',
+        'date_of_birth' => '2000-05-10',
+        'birth_place' => 'Mahajanga',
+        'cin_number' => '123456789012',
+        'cin_issued_at' => '2020-01-15',
+        'student_card_number' => 'CARTE-0001',
         'school' => 'IOSTM',
         'filiere' => 'Informatique',
         'niveau_detail' => 'L1',
@@ -110,6 +115,54 @@ test('un bibliothécaire avec la permission crée une demande et le numéro de c
 
     $validated->assertOk();
     expect($validated->json('user.matricule'))->toMatch('/^ETU-' . now()->year . '-\d{4}$/');
+});
+
+test('le formulaire commun : les champs étudiant de l\'admin sont validés et enregistrés', function () {
+    Mail::fake();
+    $librarian = addUserLibrarian(true);
+
+    $this->actingAs($librarian, 'sanctum')
+        ->postJson('/api/account-requests/by-librarian', addUserPayload())
+        ->assertCreated();
+
+    $accountRequest = AccountRequest::firstOrFail();
+    expect($accountRequest->birth_place)->toBe('Mahajanga');
+    expect($accountRequest->cin_number)->toBe('123456789012');
+    expect($accountRequest->cin_issued_at?->toDateString())->toBe('2020-01-15');
+    expect($accountRequest->student_card_number)->toBe('CARTE-0001');
+    expect($accountRequest->school)->toBe('IOSTM');
+    // La bibliothèque reste imposée par le compte du bibliothécaire.
+    expect($accountRequest->library_id)->toBe($librarian->library_id);
+});
+
+test('le formulaire commun : mêmes validations que l\'administrateur pour les champs étudiant', function () {
+    $librarian = addUserLibrarian(true);
+
+    foreach ([
+        ['cin_number' => '12345'],
+        ['cin_number' => 'ABCDEFGHIJKL'],
+        ['birth_place' => ''],
+        ['cin_issued_at' => ''],
+        ['student_card_number' => ''],
+        ['date_of_birth' => ''],
+        ['school' => 'Établissement inconnu'],
+        ['filiere' => ''],
+        ['gender' => 'autre'],
+    ] as $index => $invalid) {
+        $this->actingAs($librarian, 'sanctum')
+            ->postJson('/api/account-requests/by-librarian', addUserPayload($invalid + ['email' => "invalide{$index}@example.test"]))
+            ->assertStatus(422);
+    }
+
+    expect(AccountRequest::count())->toBe(0);
+});
+
+test('le niveau universitaire reste obligatoire pour le bibliothécaire', function () {
+    $librarian = addUserLibrarian(true);
+
+    $this->actingAs($librarian, 'sanctum')
+        ->postJson('/api/account-requests/by-librarian', addUserPayload(['niveau_detail' => '']))
+        ->assertStatus(422);
 });
 
 test('la permission ne donne pas le droit de créer un autre rôle que étudiant', function () {
