@@ -23,6 +23,23 @@
         })();
     </script>
 
+    <style>
+        /* Écran d'attente affiché avant le chargement de React (remplacé au démarrage de l'app). */
+        body { margin: 0; background: #f7f8fa; }
+        html.dark body { background: #0b1220; }
+        .boot-loading {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+        html.dark .boot-loading { color: #94a3b8; }
+    </style>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -30,6 +47,8 @@
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <p class="boot-loading" role="status">Chargement de la bibliothèque…</p>
+    </div>
 </body>
 </html>

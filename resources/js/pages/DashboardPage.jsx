@@ -104,7 +104,7 @@ export default function DashboardPage() {
                             label="Mes favoris"
                             value={data.favorites}
                             hint="Vos documents favoris"
-                            to="/favoris"
+                            to="/mes-favoris"
                         />
                     </div>
                 </>
