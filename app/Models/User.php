@@ -66,7 +66,15 @@ class User extends Authenticatable
         });
     }
 
-    // Génère un matricule du type ETU-2026-0001, unique par rôle et par année.
+    // Génère le numéro de compte du type ETU-2026-0001, unique par rôle et par année.
+    // Le numéro est stocké dans la colonne historique `matricule` (renommer la colonne
+    // serait risqué pour les données et contraintes existantes).
+    public static function generateNumeroCompte(string $role): string
+    {
+        return self::generateMatricule($role);
+    }
+
+    // Conservée pour compatibilité : logique de séquence verrouillée + historique.
     public static function generateMatricule(string $role): string
     {
         $prefix = self::MATRICULE_PREFIXES[$role] ?? 'USR';
@@ -139,7 +147,13 @@ class User extends Authenticatable
         return $highest;
     }
 
-    protected $appends = ['photo_url'];
+    protected $appends = ['photo_url', 'numero_compte'];
+
+    // Alias d'affichage : le numéro de compte est l'ancien matricule stocké en base.
+    public function getNumeroCompteAttribute(): ?string
+    {
+        return $this->attributes['matricule'] ?? null;
+    }
 
     public function getPhotoUrlAttribute(): ?string
     {

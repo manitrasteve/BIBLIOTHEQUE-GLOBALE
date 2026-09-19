@@ -403,7 +403,7 @@ class AccountRequestController extends Controller
         ]);
 
         $createdUser = DB::transaction(function () use ($accountRequest, $user, $validated) {
-            $matricule = User::generateMatricule($validated['role']);
+            $matricule = User::generateNumeroCompte($validated['role']);
             $createdUser = User::create([
                 'name' => trim($accountRequest->first_name . ' ' . $accountRequest->last_name),
                 'first_name' => $accountRequest->first_name,
@@ -812,8 +812,8 @@ class AccountRequestController extends Controller
 
                     'role' => $accountRequest->role,
 
-                    // Le matricule est créé uniquement au moment de la validation finale.
-                    'matricule' => User::generateMatricule($accountRequest->role),
+                    // Le numéro de compte est créé uniquement au moment de la validation finale.
+                    'matricule' => User::generateNumeroCompte($accountRequest->role),
 
                     'faculty' => $accountRequest->faculty,
                     'school' => $accountRequest->school,
@@ -1356,7 +1356,7 @@ class AccountRequestController extends Controller
         /**
          * Génération d'un matricule si nécessaire.
          */
-        $matricule = User::generateMatricule($validated['role']);
+        $matricule = User::generateNumeroCompte($validated['role']);
 
         /**
          * Génération de l'UUID si le modèle User l'utilise.

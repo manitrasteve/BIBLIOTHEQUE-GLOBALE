@@ -113,7 +113,7 @@ class UserController extends Controller
         \App\Services\NotificationService::send($user, 'compte_supprime', 'Compte supprimé', "Votre compte a été supprimé. Raison : {$data['reason']}", $user);
         $user->delete();
 
-        return response()->json(['message' => 'Utilisateur supprimé. Son matricule reste conservé dans l’historique des membres.']);
+        return response()->json(['message' => 'Utilisateur supprimé. Son numéro de compte reste conservé dans l’historique et ne sera jamais réattribué.']);
     }
     private function sendMail(string $email, string $subject, string $body): void
     {

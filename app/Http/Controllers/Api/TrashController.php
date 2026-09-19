@@ -186,9 +186,9 @@ class TrashController extends Controller
             . "Votre compte de la Bibliothèque Numérique de l’Université de Mahajanga "
             . "a été restauré par l’administrateur.\n\n"
 
-            . "Votre numéro matricule est : {$matricule}\n\n"
+            . "Votre numéro de compte est : {$matricule}\n\n"
 
-            . "⚠️ IMPORTANT : veuillez conserver précieusement votre numéro matricule. "
+            . "⚠️ IMPORTANT : veuillez conserver précieusement votre numéro de compte."
             . "Ce numéro est important et pourra vous être demandé notamment en cas de "
             . "perte de vos informations de compte ou pour retrouver votre dossier.\n\n"
 

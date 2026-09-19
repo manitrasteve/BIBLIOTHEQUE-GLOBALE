@@ -243,7 +243,6 @@ export default function App() {
                                     path="utilisateurs"
                                     element={<AdminUsersPage />}
                                 />
-                                <Route path="membres" element={<MemberRegistryPage />} />
                                 <Route
                                     path="corbeille"
                                     element={<AdminTrashPage />}

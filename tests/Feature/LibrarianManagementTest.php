@@ -62,7 +62,7 @@ test('un administrateur crée un bibliothécaire en attente de création de mot 
     expect($user->cin_issued_at)->toBe('2025-01-15');
     expect($user->is_active)->toBeFalse();
     expect($user->password_set_at)->toBeNull();
-    expect($user->matricule)->toMatch('/^BM-\d{4}-\d{6}$/');
+    expect($user->matricule)->toMatch('/^BIB-\d{4}-\d{4}$/');
     expect($registry->matricule)->toBe($user->matricule);
     expect($registry->library_id)->toBe($library->id);
     expect($registry->status)->toBe('desactive');

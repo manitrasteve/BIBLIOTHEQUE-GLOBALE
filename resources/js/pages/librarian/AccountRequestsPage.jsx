@@ -156,7 +156,7 @@ export default function AccountRequestsPage() {
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Rechercher nom, e-mail, numéro de demande, matricule…"
+                    placeholder="Rechercher nom, e-mail, numéro de demande, numéro de compte…"
                     className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                 />
                 <button className="btn-primary">
@@ -242,7 +242,7 @@ export default function AccountRequestsPage() {
                                         <td className="px-4 py-3 font-mono text-xs">
                                             {r.request_number}
                                             <br />
-                                            Matricule : {r.matricule || "—"}
+                                            Numéro de compte : {r.matricule || "—"}
                                         </td>
                                         <td className="px-4 py-3">
                                             {{

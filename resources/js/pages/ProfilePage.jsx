@@ -120,7 +120,7 @@ export default function ProfilePage() {
             {editing && (
                 <form onSubmit={saveProfile} className="modern-card mb-6 p-5 sm:p-7">
                     <h3 className="mb-4 text-lg font-extrabold text-slate-900">Modifier mes informations</h3>
-                    <p className="mb-5 text-xs text-slate-500">Le nom, le genre, le rôle et le matricule sont protégés. Seules les informations autorisées peuvent être modifiées.</p>
+                    <p className="mb-5 text-xs text-slate-500">Le nom, le genre, le rôle et le numéro de compte sont protégés. Seules les informations autorisées peuvent être modifiées.</p>
                     <div className="grid gap-4 md:grid-cols-2">
                         {Object.entries(profileForm).map(([key,value]) => {
                             const labels={email:'Adresse e-mail',phone:'Téléphone',address:'Adresse',school:'École',filiere:'Filière',niveau_type:'Type de niveau',niveau_detail:'Niveau',faculty:'Faculté / Institut',department:'Département',position:'Fonction / Grade',teaching_specialty:"Spécialité / Domaine d'enseignement",research_lab:'Laboratoire / Centre de recherche',researcher_field:'Domaine de recherche',specialty:'Spécialité',diploma:'Diplôme',workplace:'Lieu de travail',profession:'Profession / Statut',experience:'Expérience'};
@@ -176,8 +176,8 @@ export default function ProfilePage() {
 
                     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Numéro matricule</p>
-                            <p className="mt-1 font-bold text-indigo-950">{user?.matricule || "Non renseigné"}</p>
+                            <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Numéro de compte</p>
+                            <p className="mt-1 font-bold text-indigo-950">{user?.numero_compte || user?.matricule ||"Non renseigné"}</p>
                         </div>
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
                             <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Rôle</p>

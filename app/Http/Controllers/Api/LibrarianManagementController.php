@@ -53,8 +53,12 @@ class LibrarianManagementController extends Controller
             'is_active' => false,
         ]);
 
-        $registry = MemberRegistry::create([
-            'matricule' => 'TMP-' . Str::uuid(),
+        // Numéro de compte issu de la séquence verrouillée (jamais réutilisé).
+        $matricule = User::generateNumeroCompte('bibliothecaire');
+        $user->update(['matricule' => $matricule]);
+
+        MemberRegistry::create([
+            'matricule' => $matricule,
             'user_id' => $user->id,
             'role' => 'bibliothecaire',
             'last_name' => $data['last_name'],
@@ -68,10 +72,6 @@ class LibrarianManagementController extends Controller
             'profile_data' => [],
         ]);
 
-        $matricule = 'BM-' . now()->format('Y') . '-' . str_pad((string) $registry->id, 6, '0', STR_PAD_LEFT);
-        $registry->update(['matricule' => $matricule]);
-        $user->update(['matricule' => $matricule]);
-
         $token = Str::random(64);
         \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
@@ -83,7 +83,7 @@ class LibrarianManagementController extends Controller
             "Votre compte est bien créé par l’admin.\n\n" .
             "Votre adresse e-mail pour la Bibliothèque : {$user->email}\n\n" .
             "Voici le lien sécurisé pour créer votre mot de passe :\n{$url}\n\n" .
-            "Matricule : {$matricule}\n\n" .
+            "Numéro de compte : {$matricule}\n\n" .
             "La Bibliothèque Numérique de l’Université de Mahajanga";
 
         try {

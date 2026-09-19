@@ -1,4 +1,4 @@
-import { LayoutDashboard, Bell, Heart, MessageSquare, LifeBuoy, UserRound, BookOpen, LibraryBig, Mail } from "lucide-react";
+import { LayoutDashboard, Bell, Heart, MessageSquare, LifeBuoy, BookOpen, LibraryBig, Mail } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
 
 const NAV = [
@@ -9,7 +9,6 @@ const NAV = [
     { to: "/messages", label: "Messages", icon: Mail },
     { to: "/avis-suggestions", label: "💬 Avis & Suggestions", icon: MessageSquare },
     { to: "/signaler-un-probleme", label: "🆘 Signaler un problème", icon: LifeBuoy },
-    { to: "/profil", label: "Mon profil", icon: UserRound },
 ];
 
 export default function UserLayout() {

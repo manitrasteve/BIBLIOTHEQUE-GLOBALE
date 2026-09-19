@@ -7,7 +7,6 @@ const NAV = [
     { to: "/administrateur/bibliothecaires", label: "Bibliothécaires", icon: Users },
     { to: "/administrateur/permissions", label: "Gestion des permissions", icon: KeyRound },
     { to: "/administrateur/utilisateurs", label: "Utilisateurs", icon: Users },
-    { to: "/administrateur/membres", label: "Listes des membres", icon: Users },
     { to: "/administrateur/corbeille", label: "Corbeille", icon: Trash2 },
     { to: "/administrateur/comptes", label: "Comptes à valider", icon: UserCheck },
     { to: "/administrateur/popularite", label: "Popularité", icon: Heart },

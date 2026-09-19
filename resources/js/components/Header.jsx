@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
     UserPlus,
-    UserCircle,
+    User,
+    ChevronDown,
     LayoutDashboard,
     ShieldCheck,
     LogOut,
@@ -14,6 +15,110 @@ import {
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
+
+// Petit menu déroulant de la photo de profil : Profil + Déconnexion
+function ProfileMenu({ user, pathname, openLogoutModal }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (ref.current && !ref.current.contains(event.target)) {
+                setOpen(false);
+            }
+        }
+
+        function handleEscape(event) {
+            if (event.key === "Escape") setOpen(false);
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleEscape);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, []);
+
+    // Fermer le menu lorsqu'on change de page
+    useEffect(() => {
+        setOpen(false);
+    }, [pathname]);
+
+    return (
+        <div className="relative shrink-0" ref={ref}>
+            <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                className="flex items-center gap-0.5 rounded-full"
+                aria-expanded={open}
+                aria-haspopup="menu"
+                aria-label="Menu du profil"
+            >
+                <span className="relative h-9 w-9 shrink-0">
+                    <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                        {user?.photo_url ? (
+                            <img
+                                src={user.photo_url}
+                                alt="Photo de profil"
+                                className="h-full w-full rounded-full object-cover"
+                            />
+                        ) : (
+                            <span className="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                                <User className="h-4 w-4" />
+                            </span>
+                        )}
+                    </span>
+
+                    {/* Indicateur UX : signale que la photo ouvre un menu (pas un statut) */}
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"
+                    />
+                </span>
+
+                {/* Indicateur UX : signale que la photo ouvre un menu */}
+                <ChevronDown
+                    aria-hidden="true"
+                    className={`h-3.5 w-3.5 text-slate-500 transition-transform ${
+                        open ? "rotate-180" : ""
+                    }`}
+                />
+            </button>
+
+            {open && (
+                <div
+                    role="menu"
+                    className="absolute right-0 top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2"
+                >
+                    <Link
+                        to="/profil"
+                        role="menuitem"
+                        onClick={() => setOpen(false)}
+                        className="flex min-h-[44px] items-center gap-2 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    >
+                        <User className="h-4 w-4" />
+                        Profil
+                    </Link>
+
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                            setOpen(false);
+                            openLogoutModal();
+                        }}
+                        className="flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-semibold text-rose-600 hover:bg-rose-50"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Déconnexion
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function Header() {
     const { user, logout, isLoggingOut, openLogoutModal, cancelLogout } =
@@ -244,35 +349,16 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* Bonjour */}
-                                            <Link
-                                                to="/tableau-de-bord"
-                                                onClick={() =>
-                                                    setMenuOpen(false)
-                                                }
-                                                className="flex items-center gap-2 rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-slate-100"
-                                            >
-                                                <UserCircle className="h-4 w-4" />
-                                                Mon espace
-                                            </Link>
-
-                                            <div className="my-1 border-t border-slate-100" />
-
-                                            {/* Déconnexion */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setMenuOpen(false);
-                                                    openLogoutModal();
-                                                }}
-                                                className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left font-semibold text-rose-600 hover:bg-rose-50"
-                                            >
-                                                <LogOut className="h-4 w-4" />
-                                                Déconnexion
-                                            </button>
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Photo de profil */}
+                                <ProfileMenu
+                                    user={user}
+                                    pathname={location.pathname}
+                                    openLogoutModal={openLogoutModal}
+                                />
                             </>
                         ) : (
                             /* =====================================================
@@ -376,50 +462,34 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* Bonjour */}
-                                            {user && (
-                                                <Link
-                                                    to="/tableau-de-bord"
-                                                    onClick={() =>
-                                                        setMenuOpen(false)
-                                                    }
-                                                    className="flex items-center gap-2 rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-slate-100"
-                                                >
-                                                    <UserCircle className="h-4 w-4" />
-                                                    Mon espace
-                                                </Link>
-                                            )}
-
-                                            <div className="my-1 border-t border-slate-100" />
-
-                                            {/* Déconnexion / Connexion */}
-                                            {user ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setMenuOpen(false);
-                                                        openLogoutModal();
-                                                    }}
-                                                    className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left font-semibold text-rose-600 hover:bg-rose-50"
-                                                >
-                                                    <LogOut className="h-4 w-4" />
-                                                    Déconnexion
-                                                </button>
-                                            ) : (
-                                                <Link
-                                                    to="/connexion"
-                                                    onClick={() =>
-                                                        setMenuOpen(false)
-                                                    }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-indigo-600 hover:bg-indigo-50"
-                                                >
-                                                    <LogIn className="h-4 w-4" />
-                                                    Connexion
-                                                </Link>
+                                            {/* Connexion */}
+                                            {!user && (
+                                                <>
+                                                    <div className="my-1 border-t border-slate-100" />
+                                                    <Link
+                                                        to="/connexion"
+                                                        onClick={() =>
+                                                            setMenuOpen(false)
+                                                        }
+                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-indigo-600 hover:bg-indigo-50"
+                                                    >
+                                                        <LogIn className="h-4 w-4" />
+                                                        Connexion
+                                                    </Link>
+                                                </>
                                             )}
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Photo de profil */}
+                                {user && (
+                                    <ProfileMenu
+                                        user={user}
+                                        pathname={location.pathname}
+                                        openLogoutModal={openLogoutModal}
+                                    />
+                                )}
                             </>
                         )}
                     </nav>

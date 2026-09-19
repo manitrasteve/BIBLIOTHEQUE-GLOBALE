@@ -25,7 +25,7 @@
         l'administrateur de la Bibliothèque Numérique de Mahajanga.
     </p>
 
-    <!-- MATRICULE -->
+    <!-- NUMÉRO DE COMPTE -->
     <div style="
         margin:25px 0;
         padding:20px;
@@ -40,7 +40,7 @@
             color:#475569;
             font-weight:bold;
         ">
-            Votre numéro matricule
+            Votre numéro de compte
         </p>
 
         <p style="
@@ -101,7 +101,7 @@
 
     <p style="font-size:14px; color:#64748b;">
         Nous vous recommandons également de conserver votre numéro
-        matricule dans un endroit sûr afin de pouvoir le retrouver
+        de compte dans un endroit sûr afin de pouvoir le retrouver
         facilement en cas de perte.
     </p>
 

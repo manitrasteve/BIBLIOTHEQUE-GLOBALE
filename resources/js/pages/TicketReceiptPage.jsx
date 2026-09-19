@@ -159,7 +159,7 @@ export default function TicketReceiptPage() {
                         {/* MATRICULE */}
                         <div className="rounded-xl border border-line bg-paper p-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                                Matricule membre
+                                Numéro de compte
                             </p>
 
                             <p className="mt-2 break-all text-sm font-bold text-ink">
