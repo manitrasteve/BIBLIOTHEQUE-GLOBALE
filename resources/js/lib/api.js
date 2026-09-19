@@ -110,14 +110,6 @@ export const api = {
             auth: false,
         }),
 
-    getMembers: (params = {}) => {
-        const query = new URLSearchParams(params).toString();
-        return request(`/members${query ? `?${query}` : ""}`);
-    },
-
-    importMembers: (formData) =>
-        request("/members/import", { method: "POST", body: formData }),
-
     getAccountRequest: (uuid) =>
         request(`/account-requests/${uuid}`, {
             auth: false,

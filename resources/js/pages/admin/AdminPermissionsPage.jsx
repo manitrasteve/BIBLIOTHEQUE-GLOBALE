@@ -4,7 +4,7 @@ import { api } from "../../lib/api";
 import { SkeletonPermissions } from "../../components/Skeleton";
 import { matchesSearch } from "../../lib/search";
 
-const CATEGORY_LABELS = { documents: "Documents", membres: "Membres", corbeille: "Corbeille", activites: "Activités", notifications: "Notifications", bibliotheques: "Bibliothèques" };
+const CATEGORY_LABELS = { documents: "Documents", corbeille: "Corbeille", activites: "Activités", notifications: "Notifications", bibliotheques: "Bibliothèques" };
 const initials = (name = "") => name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "B";
 
 export default function AdminPermissionsPage() {

@@ -21,7 +21,6 @@ use App\Http\Controllers\Api\StaffDiscussionController;
 use App\Http\Controllers\Api\LibrarianManagementController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TrashController;
-use App\Http\Controllers\Api\MemberRegistryController;
 use App\Http\Controllers\Api\PermissionManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -112,8 +111,6 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian']);
-        Route::get('/members', [MemberRegistryController::class, 'index'])->middleware('permission:voir_liste_membres');
-        Route::post('/members/import', [MemberRegistryController::class, 'import'])->middleware('permission:importer_membres');
         Route::post('/categories', [CategoryController::class, 'store']);
         Route::put('/categories/{category}', [CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);

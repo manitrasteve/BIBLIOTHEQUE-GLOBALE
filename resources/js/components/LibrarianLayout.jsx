@@ -9,7 +9,6 @@ import {
     Mail,
     MessageCircle,
     UserPlus,
-    Users,
     Menu,
     X,
     Trash2,
@@ -49,12 +48,6 @@ const NAV = [
             "supprimer_document",
             "publier_document",
         ],
-    },
-    {
-        to: "/bibliothecaire/membres",
-        label: "Listes des membres",
-        icon: Users,
-        permission: "voir_liste_membres",
     },
     {
         to: "/bibliothecaire/corbeille",

@@ -49,7 +49,6 @@ import AdminLibrariansPage from "./pages/admin/AdminLibrariansPage";
 import AdminPermissionsPage from "./pages/admin/AdminPermissionsPage";
 import MessagesPage from "./pages/MessagesPage";
 import StaffDiscussionPage from "./pages/StaffDiscussionPage";
-import MemberRegistryPage from "./pages/MemberRegistryPage";
 
 export default function App() {
     return (
@@ -191,7 +190,6 @@ export default function App() {
                                     element={<NotificationsPage />}
                                 />
                                 <Route path="documents" element={<PermissionRoute permissions={["voir_documents", "ajouter_document", "modifier_document", "supprimer_document", "publier_document"]}><DocumentsManagePage /></PermissionRoute>} />
-                                <Route path="membres" element={<PermissionRoute permission="voir_liste_membres"><MemberRegistryPage /></PermissionRoute>} />
                                 <Route path="corbeille" element={<PermissionRoute permission="voir_corbeille"><AdminTrashPage /></PermissionRoute>} />
                                 <Route
                                     path="documents/nouveau"
