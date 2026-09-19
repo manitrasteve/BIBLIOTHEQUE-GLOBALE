@@ -119,8 +119,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/authors/{author}', [AuthorController::class, 'update']);
         Route::delete('/authors/{author}', [AuthorController::class, 'destroy']);
 
-        Route::get('/documents-manage', [DocumentController::class, 'manageIndex'])->middleware('permission:voir_documents,ajouter_document,modifier_document,supprimer_document,publier_document');
-        Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow'])->middleware('permission:voir_documents,ajouter_document,modifier_document,supprimer_document,publier_document');
+        Route::get('/documents-manage', [DocumentController::class, 'manageIndex']);
+        Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow']);
         Route::post('/documents', [DocumentController::class, 'store'])->middleware('permission:ajouter_document');
         Route::put('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');
         Route::post('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');

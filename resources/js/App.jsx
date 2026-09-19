@@ -193,7 +193,7 @@ export default function App() {
                                     path="notifications"
                                     element={<NotificationsPage />}
                                 />
-                                <Route path="documents" element={<PermissionRoute permissions={["voir_documents", "ajouter_document", "modifier_document", "supprimer_document", "publier_document"]}><DocumentsManagePage /></PermissionRoute>} />
+                                <Route path="documents" element={<DocumentsManagePage />} />
                                 <Route path="corbeille" element={<PermissionRoute permission="voir_corbeille"><AdminTrashPage /></PermissionRoute>} />
                                 <Route path="bibliotheques" element={<PermissionRoute permission="ajouter_bibliotheque"><AdminLibrariesPage /></PermissionRoute>} />
                                 <Route path="statistiques" element={<PermissionRoute permission="voir_statistiques"><AdminStatsPage /></PermissionRoute>} />

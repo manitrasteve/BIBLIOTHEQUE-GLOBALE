@@ -11,6 +11,7 @@ const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Arc
 
 export default function DocumentsManagePage() {
   const { user } = useAuth();
+  const can = (permission) => user?.role === 'administrateur' || user?.permissions?.includes(permission);
   const [documents, setDocuments] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState(null);
@@ -85,13 +86,15 @@ export default function DocumentsManagePage() {
           ))}
         </div>
 
-        <Link
-          to="/bibliothecaire/documents/nouveau"
-          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2} />
-          Ajouter un document
-        </Link>
+        {can('ajouter_document') && (
+          <Link
+            to="/bibliothecaire/documents/nouveau"
+            className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2} />
+            Ajouter un document
+          </Link>
+        )}
       </div>
 
       {error && <p className="text-red-700 mb-4">{error}</p>}
@@ -133,14 +136,16 @@ export default function DocumentsManagePage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Link
-                        to={`/bibliothecaire/documents/${doc.id}/modifier`}
-                        className="flex items-center gap-1 text-brass hover:text-brass-deep"
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        Modifier
-                      </Link>
-                      {doc.status !== 'publie' && (
+                      {can('modifier_document') && (
+                        <Link
+                          to={`/bibliothecaire/documents/${doc.id}/modifier`}
+                          className="flex items-center gap-1 text-brass hover:text-brass-deep"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          Modifier
+                        </Link>
+                      )}
+                      {doc.status !== 'publie' && can('publier_document') && (
                         <button
                           onClick={() => publish(doc)}
                           disabled={busySlug === doc.slug}
@@ -151,7 +156,7 @@ export default function DocumentsManagePage() {
                         </button>
                       )}
                       <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
-                      {doc.status === 'publie' && (
+                      {doc.status === 'publie' && can('modifier_document') && (
                         <button
                           onClick={() => archive(doc)}
                           disabled={busySlug === doc.slug}

@@ -49,13 +49,6 @@ const NAV = [
         to: "/bibliothecaire/documents",
         label: "Documents",
         icon: FileText,
-        permissions: [
-            "voir_documents",
-            "ajouter_document",
-            "modifier_document",
-            "supprimer_document",
-            "publier_document",
-        ],
     },
     {
         to: "/bibliothecaire/bibliotheques",
