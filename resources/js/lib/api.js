@@ -658,6 +658,46 @@ export const api = {
 
     getMyAiQueries: () => request("/mes-questions-ia"),
 
+    getMyReadings: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/mes-lectures${query ? `?${query}` : ""}`);
+    },
+
+    // ---------------------------------------------------------
+    // Espace chercheur : historique des recherches + veille
+    // ---------------------------------------------------------
+
+    getMySearches: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/research/searches${query ? `?${query}` : ""}`);
+    },
+
+    saveSearch: (data) =>
+        request("/research/searches", { method: "POST", body: data }),
+
+    deleteSearch: (id) =>
+        request(`/research/searches/${id}`, { method: "DELETE" }),
+
+    clearSearches: () => request("/research/searches", { method: "DELETE" }),
+
+    getWatchTopics: () => request("/research/watch-topics"),
+
+    addWatchTopic: (data) =>
+        request("/research/watch-topics", { method: "POST", body: data }),
+
+    deleteWatchTopic: (id) =>
+        request(`/research/watch-topics/${id}`, { method: "DELETE" }),
+
+    getWatchTopicDocuments: (id, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(
+            `/research/watch-topics/${id}/documents${query ? `?${query}` : ""}`,
+        );
+    },
+
     getAdminConsultations: () => request("/consultations"),
 
     getAdminAiQueries: () => request("/ai-queries"),

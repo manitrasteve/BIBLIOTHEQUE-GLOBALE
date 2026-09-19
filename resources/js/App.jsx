@@ -27,6 +27,13 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SiteUpdatesPage from "./pages/SiteUpdatesPage";
 import UserLayout from "./components/UserLayout";
+import MyReadingsPage from "./pages/MyReadingsPage";
+import MyActivitiesPage from "./pages/MyActivitiesPage";
+import ResearchSpacePage from "./pages/ResearchSpacePage";
+import MySearchesPage from "./pages/MySearchesPage";
+import ScientificWatchPage from "./pages/ScientificWatchPage";
+
+const MEMBER_ROLES = ["etudiant", "enseignant", "chercheur"];
 
 import AccountRequestsPage from "./pages/librarian/AccountRequestsPage";
 import DocumentsManagePage from "./pages/librarian/DocumentsManagePage";
@@ -126,6 +133,26 @@ export default function App() {
                                 <Route
                                     path="/mes-favoris"
                                     element={<FavoritesPage />}
+                                />
+                                <Route
+                                    path="/mes-lectures"
+                                    element={<RoleRoute roles={MEMBER_ROLES}><MyReadingsPage /></RoleRoute>}
+                                />
+                                <Route
+                                    path="/mes-activites"
+                                    element={<RoleRoute roles={MEMBER_ROLES}><MyActivitiesPage /></RoleRoute>}
+                                />
+                                <Route
+                                    path="/espace-recherche"
+                                    element={<RoleRoute roles={["chercheur"]}><ResearchSpacePage /></RoleRoute>}
+                                />
+                                <Route
+                                    path="/mes-recherches"
+                                    element={<RoleRoute roles={["chercheur"]}><MySearchesPage /></RoleRoute>}
+                                />
+                                <Route
+                                    path="/veille-scientifique"
+                                    element={<RoleRoute roles={["chercheur"]}><ScientificWatchPage /></RoleRoute>}
                                 />
                                 <Route
                                     path="/avis-suggestions"

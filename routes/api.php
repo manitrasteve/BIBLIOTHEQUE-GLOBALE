@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\UserMessageController;
 use App\Http\Controllers\Api\StaffDiscussionController;
 use App\Http\Controllers\Api\LibrarianManagementController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ResearchController;
 use App\Http\Controllers\Api\TrashController;
 use App\Http\Controllers\Api\PermissionManagementController;
 use Illuminate\Support\Facades\Route;
@@ -77,6 +78,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/favorites', [EngagementController::class, 'favorites']);
     Route::get('/mes-consultations', [EngagementController::class, 'myConsultations']);
     Route::get('/mes-questions-ia', [EngagementController::class, 'myAiQueries']);
+    Route::get('/mes-lectures', [EngagementController::class, 'myReadings']);
+
+    // Espace chercheur : historique des recherches + veille scientifique.
+    Route::middleware('role:chercheur')->prefix('research')->group(function () {
+        Route::get('/searches', [ResearchController::class, 'searches']);
+        Route::post('/searches', [ResearchController::class, 'storeSearch']);
+        Route::delete('/searches', [ResearchController::class, 'clearSearches']);
+        Route::delete('/searches/{search}', [ResearchController::class, 'destroySearch']);
+
+        Route::get('/watch-topics', [ResearchController::class, 'topics']);
+        Route::post('/watch-topics', [ResearchController::class, 'storeTopic']);
+        Route::delete('/watch-topics/{topic}', [ResearchController::class, 'destroyTopic']);
+        Route::get('/watch-topics/{topic}/documents', [ResearchController::class, 'topicDocuments']);
+    });
     Route::post('/feedbacks', [FeedbackController::class, 'store']);
     Route::post('/problem-reports', [ProblemReportController::class, 'store']);
 

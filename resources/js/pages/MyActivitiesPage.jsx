@@ -1,0 +1,123 @@
+import { useEffect, useState } from "react";
+import {
+    Activity,
+    LogIn,
+    Eye,
+    Sparkles,
+    Heart,
+    HeartOff,
+    Search,
+} from "lucide-react";
+import { api } from "../lib/api";
+
+// Seules les actions réellement enregistrées par le système sont affichées.
+const ACTION_CONFIG = {
+    connexion: { label: "Connexion", icon: LogIn },
+    consultation_document: { label: "Document consulté", icon: Eye },
+    question_ia: { label: "Question à l'Assistant IA", icon: Sparkles },
+    ajout_favori: { label: "Favori ajouté", icon: Heart },
+    retrait_favori: { label: "Favori supprimé", icon: HeartOff },
+    recherche: { label: "Recherche", icon: Search },
+};
+
+function formatDate(value) {
+    if (!value) return "";
+    return new Date(value).toLocaleString("fr-FR");
+}
+
+export default function MyActivitiesPage() {
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        let active = true;
+        setResult(null);
+        setError(null);
+        api.getActivityLogs({ page })
+            .then((res) => active && setResult(res))
+            .catch(() => {
+                if (!active) return;
+                setError("Impossible de charger vos activités.");
+                setResult({ data: [] });
+            });
+        return () => {
+            active = false;
+        };
+    }, [page]);
+
+    const rows = result?.data || [];
+
+    return (
+        <div>
+            <div className="mb-6 flex items-center gap-2">
+                <Activity className="h-5 w-5 text-indigo-600" />
+                <h2 className="font-display text-xl font-extrabold">Mes activités</h2>
+            </div>
+
+            {error && (
+                <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>
+            )}
+
+            {result === null ? (
+                <p className="text-slate-500">Chargement…</p>
+            ) : rows.length === 0 ? (
+                <div className="modern-card p-10 text-center text-slate-500">
+                    Aucune activité enregistrée pour l'instant.
+                </div>
+            ) : (
+                <ul className="space-y-3">
+                    {rows.map((log) => {
+                        const config = ACTION_CONFIG[log.action];
+                        const Icon = config?.icon || Activity;
+
+                        return (
+                            <li key={log.id} className="modern-card flex items-start gap-3 p-4">
+                                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                                    <Icon className="h-4 w-4" />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-slate-900">
+                                        {config?.label || log.action.replaceAll("_", " ")}
+                                    </p>
+                                    {log.description && (
+                                        <p className="break-words text-sm text-slate-600">
+                                            {log.description}
+                                        </p>
+                                    )}
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        {formatDate(log.created_at)}
+                                    </p>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+
+            {result?.last_page > 1 && (
+                <div className="mt-6 flex items-center justify-between gap-3">
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                    >
+                        Précédent
+                    </button>
+                    <span className="text-sm text-slate-500">
+                        Page {result.current_page} / {result.last_page}
+                    </span>
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={page >= result.last_page}
+                        onClick={() => setPage((p) => p + 1)}
+                    >
+                        Suivant
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}

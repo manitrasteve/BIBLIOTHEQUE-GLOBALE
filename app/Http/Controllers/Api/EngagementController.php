@@ -74,6 +74,39 @@ class EngagementController extends Controller
         return response()->json($rows);
     }
 
+    // « Mes lectures » : un document par ligne, avec sa dernière consultation.
+    public function myReadings(Request $request)
+    {
+        $rows = Consultation::where('user_id', $request->user()->id)
+            ->selectRaw('document_id, MAX(consulted_at) as last_consulted_at, COUNT(*) as views')
+            ->groupBy('document_id')
+            ->orderByDesc('last_consulted_at')
+            ->paginate(20);
+
+        $documents = Document::with('authors:id,name')
+            ->where('status', 'publie')
+            ->whereIn('id', $rows->pluck('document_id'))
+            ->get()
+            ->keyBy('id');
+
+        $rows->setCollection($rows->getCollection()->map(function ($row) use ($documents) {
+            $d = $documents->get($row->document_id);
+
+            return $d ? [
+                'document_id' => $d->id,
+                'slug' => $d->slug,
+                'title' => $d->title,
+                'type' => $d->type,
+                'year' => $d->year,
+                'authors' => $d->authors->pluck('name'),
+                'last_consulted_at' => $row->last_consulted_at,
+                'views' => (int) $row->views,
+            ] : null;
+        })->filter()->values());
+
+        return response()->json($rows);
+    }
+
     public function myAiQueries(Request $request)
     {
         $rows = AiQuery::where('user_id', $request->user()->id)

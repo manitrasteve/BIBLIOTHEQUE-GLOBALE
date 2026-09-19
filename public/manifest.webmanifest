@@ -1,0 +1,35 @@
+{
+    "id": "/",
+    "name": "Bibliothèque Numérique — Université de Mahajanga",
+    "short_name": "Bibliothèque UMG",
+    "description": "Bibliothèque numérique de l'Université de Mahajanga : catalogue, lecture sécurisée et assistant IA.",
+    "lang": "fr",
+    "dir": "ltr",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "theme_color": "#2563eb",
+    "background_color": "#ffffff",
+    "categories": ["education", "books"],
+    "icons": [
+        {
+            "src": "/images/pwa/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/pwa/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/pwa/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

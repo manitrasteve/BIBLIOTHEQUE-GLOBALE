@@ -36,6 +36,11 @@ class DocumentController extends Controller
             });
         }
 
+        // Filtre optionnel par auteur (Espace recherche du chercheur).
+        if ($author = $request->get('author')) {
+            $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$author}%"));
+        }
+
         if ($category = $request->get('category_id')) {
             $query->where('category_id', $category);
         }
