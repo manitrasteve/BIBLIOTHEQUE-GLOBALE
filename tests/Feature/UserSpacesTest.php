@@ -53,6 +53,20 @@ test('mes activités ne renvoie que les activités réelles de l\'utilisateur', 
     expect($data)->toHaveCount(1)->and($data[0]['description'])->toBe('Mon document');
 });
 
+test('l\'administrateur voit ses seules activités avec mine=1 et tout l\'historique sans', function () {
+    $admin = spaceUser('administrateur');
+    $librarian = spaceUser('bibliothecaire');
+    ActivityLog::record($admin->id, 'publication_document', 'Mon action admin');
+    ActivityLog::record($librarian->id, 'consultation_document', 'Action du bibliothécaire');
+
+    Sanctum::actingAs($admin);
+    expect($this->getJson('/api/activity-logs?mine=1')->assertOk()->json('data'))->toHaveCount(1)
+        ->and($this->getJson('/api/activity-logs')->assertOk()->json('data'))->toHaveCount(2);
+
+    Sanctum::actingAs($librarian);
+    expect($this->getJson('/api/activity-logs?mine=1')->assertOk()->json('data'))->toHaveCount(1);
+});
+
 // ---------- RBAC chercheur ----------
 
 test('les routes de recherche et de veille sont réservées au chercheur', function (string $role) {

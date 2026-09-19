@@ -17,6 +17,7 @@ import {
     Heart,
     MessageSquare,
     LifeBuoy,
+    Activity,
 } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../context/AuthContext";
@@ -95,6 +96,7 @@ const NAV = [
         permission: "voir_signalements",
         hideForAdmin: true,
     },
+    { to: "/bibliothecaire/activites", label: "Mes activités", icon: Activity },
     { to: "/bibliothecaire/messages", label: "Messages", icon: Mail },
     {
         to: "/bibliothecaire/discussions",

@@ -13,7 +13,8 @@ class ActivityLogController extends Controller
     {
         $query = ActivityLog::with('user:id,name,role')->orderByDesc('created_at');
 
-        if (!$request->user()->isAdmin()) {
+        // `mine=1` : « Mes activités » — même pour l'administrateur, uniquement ses propres actions.
+        if (!$request->user()->isAdmin() || $request->boolean('mine')) {
             $query->where('user_id', $request->user()->id);
         } elseif ($action = $request->get('action')) {
             $query->where('action', $action);

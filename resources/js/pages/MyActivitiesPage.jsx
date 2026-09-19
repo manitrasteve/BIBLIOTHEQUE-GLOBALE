@@ -7,6 +7,10 @@ import {
     Heart,
     HeartOff,
     Search,
+    Upload,
+    UserPlus,
+    UserCheck,
+    UserX,
 } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -18,6 +22,14 @@ const ACTION_CONFIG = {
     ajout_favori: { label: "Favori ajouté", icon: Heart },
     retrait_favori: { label: "Favori supprimé", icon: HeartOff },
     recherche: { label: "Recherche", icon: Search },
+    // Actions du personnel (administrateur / bibliothécaire) déjà enregistrées par le système.
+    publication_document: { label: "Document publié", icon: Upload },
+    creation_compte: { label: "Compte créé", icon: UserPlus },
+    validation_compte: { label: "Compte validé", icon: UserCheck },
+    desactivation_compte: { label: "Compte désactivé", icon: UserX },
+    reactivation_compte: { label: "Compte réactivé", icon: UserCheck },
+    suppression_utilisateur: { label: "Compte supprimé", icon: UserX },
+    permissions_modifiees: { label: "Permissions modifiées", icon: UserCheck },
 };
 
 function formatDate(value) {
@@ -34,7 +46,7 @@ export default function MyActivitiesPage() {
         let active = true;
         setResult(null);
         setError(null);
-        api.getActivityLogs({ page })
+        api.getActivityLogs({ page, mine: 1 })
             .then((res) => active && setResult(res))
             .catch(() => {
                 if (!active) return;

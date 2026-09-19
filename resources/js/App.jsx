@@ -235,6 +235,7 @@ export default function App() {
                                     path="documents/:id/modifier"
                                     element={<DocumentFormPage />}
                                 />
+                                <Route path="activites" element={<MyActivitiesPage />} />
                                 <Route
                                     path="messages"
                                     element={<AdminMessagesPage />}
@@ -312,6 +313,7 @@ export default function App() {
                                     path="discussions"
                                     element={<StaffDiscussionPage />}
                                 />
+                                <Route path="activites" element={<MyActivitiesPage />} />
                                 <Route
                                     path="historique"
                                     element={<AdminActivityPage />}
