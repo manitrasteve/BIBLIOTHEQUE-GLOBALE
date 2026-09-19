@@ -406,7 +406,11 @@ export default function AiAssistant({ slug }) {
                     e.preventDefault();
                     ask();
                 }}
-                className="mt-4 flex gap-2"
+                className={
+                    fullscreen
+                        ? "mx-auto mt-4 flex w-full max-w-2xl gap-2"
+                        : "mt-4 flex gap-2"
+                }
             >
                 <input
                     value={question}
