@@ -121,7 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/documents-manage', [DocumentController::class, 'manageIndex']);
         Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow']);
-        Route::post('/documents', [DocumentController::class, 'store'])->middleware('permission:ajouter_document');
+        Route::post('/documents', [DocumentController::class, 'store']);
         Route::put('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');
         Route::post('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');

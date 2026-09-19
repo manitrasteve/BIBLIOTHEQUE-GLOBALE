@@ -202,7 +202,7 @@ export default function App() {
                                 <Route path="signalements" element={<PermissionRoute permission="voir_signalements"><AdminReportsPage /></PermissionRoute>} />
                                 <Route
                                     path="documents/nouveau"
-                                    element={<PermissionRoute permission="ajouter_document"><DocumentFormPage /></PermissionRoute>}
+                                    element={<DocumentFormPage />}
                                 />
                                 <Route
                                     path="documents/:id/modifier"

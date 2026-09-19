@@ -87,15 +87,13 @@ export default function DocumentsManagePage() {
           ))}
         </div>
 
-        {can('ajouter_document') && (
-          <Link
-            to={`${basePath}/nouveau`}
-            className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            Ajouter un document
-          </Link>
-        )}
+        <Link
+          to={`${basePath}/nouveau`}
+          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2} />
+          Ajouter un document
+        </Link>
       </div>
 
       {error && <p className="text-red-700 mb-4">{error}</p>}

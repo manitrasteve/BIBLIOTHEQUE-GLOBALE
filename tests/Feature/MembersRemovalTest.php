@@ -29,7 +29,7 @@ test('les autres permissions restent proposées', function () {
     $categories = collect($response->json())->pluck('category')->unique()->values()->all();
 
     expect($categories)->toContain('documents', 'corbeille', 'activites', 'notifications', 'bibliotheques');
-    expect(collect($response->json())->pluck('name'))->toContain('voir_corbeille', 'ajouter_document');
+    expect(collect($response->json())->pluck('name'))->toContain('voir_corbeille', 'modifier_document');
 });
 
 test('les routes de l\'ancienne liste des membres n\'existent plus', function () {
