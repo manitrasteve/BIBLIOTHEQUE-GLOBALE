@@ -74,7 +74,13 @@ class AdminMessageController extends Controller
             $status = 'envoye';
             $error = null;
             try {
-                Mail::raw($message->message, fn ($mail) => $mail
+                Mail::send('emails.notice', [
+                    'heading' => $message->subject,
+                    'paragraphs' => array_merge(
+                        ['Bonjour ' . $user->name . ','],
+                        preg_split('/\R{2,}/', trim($message->message))
+                    ),
+                ], fn ($mail) => $mail
                     ->to($user->email)
                     ->subject($message->subject));
                 $ok++;

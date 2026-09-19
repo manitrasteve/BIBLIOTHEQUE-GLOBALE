@@ -1205,6 +1205,7 @@ class AccountRequestController extends Controller
                 'user' => $accountRequest->createdUser,
                 'request' => $accountRequest,
                 'token' => $token,
+                'variant' => 'new_link',
             ],
             function ($message) use ($accountRequest) {
                 $message
@@ -1228,8 +1229,12 @@ class AccountRequestController extends Controller
             'message' => ['required', 'string'],
         ]);
 
-        Mail::raw(
-            $validated['message'],
+        Mail::send(
+            'emails.notice',
+            [
+                'heading' => $validated['subject'],
+                'paragraphs' => preg_split('/\R{2,}/', trim($validated['message'])),
+            ],
             function ($mail) use ($accountRequest, $validated) {
                 $mail
                     ->to($accountRequest->email)
@@ -1511,6 +1516,7 @@ class AccountRequestController extends Controller
                     'user' => $result['user'],
                     'request' => $result['request'],
                     'token' => $result['token'],
+                    'variant' => 'created',
                 ],
                 function ($message) use ($result) {
                     $message

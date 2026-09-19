@@ -180,34 +180,27 @@ class TrashController extends Controller
             ?? $accountRequest->matricule
             ?? '—';
 
-        $body =
-            "Bonjour {$user->name},\n\n"
-
-            . "Votre compte de la Bibliothèque Numérique de l’Université de Mahajanga "
-            . "a été restauré par l’administrateur.\n\n"
-
-            . "Votre numéro de compte est : {$matricule}\n\n"
-
-            . "⚠️ IMPORTANT : veuillez conserver précieusement votre numéro de compte."
-            . "Ce numéro est important et pourra vous être demandé notamment en cas de "
-            . "perte de vos informations de compte ou pour retrouver votre dossier.\n\n"
-
-            . "Pour des raisons de sécurité, vous devez créer un nouveau mot de passe "
-            . "avant de pouvoir utiliser votre compte.\n\n"
-
-            . "Cliquez sur le lien sécurisé suivant pour créer votre nouveau mot de passe :\n"
-            . "{$url}\n\n"
-
-            . "Attention : ce lien est valable pendant 24 heures et ne peut être utilisé "
-            . "qu'une seule fois.\n\n"
-
-            . "Référence de votre demande : {$accountRequest->request_number}\n\n"
-
-            . "La Bibliothèque Numérique de l’Université de Mahajanga";
+        $content = [
+            'heading' => 'Votre compte a été restauré',
+            'paragraphs' => [
+                "Bonjour {$user->name},",
+                'Votre compte de la Bibliothèque Numérique a été restauré par l’administrateur.',
+                'Pour des raisons de sécurité, vous devez créer un nouveau mot de passe avant de pouvoir utiliser votre compte.',
+            ],
+            'details' => [
+                'Numéro de compte' => $matricule,
+                'Référence de la demande' => $accountRequest->request_number,
+            ],
+            'buttonLabel' => 'Créer mon mot de passe',
+            'buttonUrl' => $url,
+            'note' => 'Ce lien est valable pendant 24 heures et ne peut être utilisé qu’une seule fois.',
+            'footerNote' => 'Conservez précieusement votre numéro de compte : il pourra vous être demandé en cas de perte de vos informations.',
+        ];
 
         try {
-            Mail::raw(
-                $body,
+            Mail::send(
+                'emails.notice',
+                $content,
                 function ($message) use ($user) {
                     $message
                         ->to($user->email)

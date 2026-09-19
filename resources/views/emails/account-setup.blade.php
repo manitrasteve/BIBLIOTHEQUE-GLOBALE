@@ -1,124 +1,43 @@
-<!DOCTYPE html>
+@php
+    $variant = $variant ?? 'validated';
+    $accountNumber = $user->matricule ?? ($request->matricule ?? null);
+    $libraryName = optional($user->library)->name ?? optional($request->library ?? null)->name;
 
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Création de votre compte</title>
-</head>
+    $headings = [
+        'validated' => 'Votre compte a été validé',
+        'created' => 'Votre compte a été créé',
+        'new_link' => 'Un nouveau lien vous a été envoyé',
+    ];
 
-<body style="margin:0; padding:0; background:#f4f7fb; font-family:Arial, sans-serif; color:#1e293b;">
+    $paragraphs = ['Bonjour ' . $user->name . ','];
 
+    if ($variant === 'new_link') {
+        $paragraphs[] = 'Un nouveau lien vous a été envoyé pour créer votre mot de passe.';
+    } elseif ($variant === 'created') {
+        $paragraphs[] = 'Votre compte a été créé par l’administrateur de la Bibliothèque Numérique.';
+        $paragraphs[] = 'Vous pouvez maintenant créer votre mot de passe.';
+    } else {
+        $paragraphs[] = 'Votre compte a été validé.';
+        $paragraphs[] = 'Vous pouvez maintenant créer votre mot de passe.';
+    }
 
-<div style="max-width:600px; margin:40px auto; background:white; border-radius:16px; padding:35px; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+    $details = [];
+    if ($accountNumber) {
+        $details['Numéro de compte'] = $accountNumber;
+    }
+    if ($libraryName) {
+        $details['Bibliothèque'] = $libraryName;
+    }
 
-    <h1 style="margin-top:0; color:#1e3a8a;">
-        Bienvenue dans la Bibliothèque Numérique de Mahajanga
-    </h1>
-
-    <p>
-        Bonjour <strong>{{ $user->name }}</strong>,
-    </p>
-
-    <p>
-        Votre compte utilisateur vient d'être créé et validé par
-        l'administrateur de la Bibliothèque Numérique de Mahajanga.
-    </p>
-
-    <!-- NUMÉRO DE COMPTE -->
-    <div style="
-        margin:25px 0;
-        padding:20px;
-        background:#eff6ff;
-        border:2px solid #bfdbfe;
-        border-radius:12px;
-        text-align:center;
-    ">
-        <p style="
-            margin:0 0 8px 0;
-            font-size:14px;
-            color:#475569;
-            font-weight:bold;
-        ">
-            Votre numéro de compte
-        </p>
-
-        <p style="
-            margin:0;
-            font-size:26px;
-            color:#1d4ed8;
-            font-weight:bold;
-            letter-spacing:1px;
-        ">
-            {{ $request->matricule ?? $user->matricule }}
-        </p>
-
-        <p style="
-            margin:12px 0 0 0;
-            font-size:13px;
-            color:#64748b;
-        ">
-            Veuillez mémoriser et conserver précieusement ce numéro.
-            Il pourra vous être demandé ultérieurement en cas de perte
-            ou de récupération de vos informations de compte.
-        </p>
-    </div>
-
-    <p>
-        Pour terminer la création de votre compte, vous devez maintenant
-        choisir votre mot de passe.
-    </p>
-
-    <div style="text-align:center; margin:30px 0;">
-        <a
-            href="{{ rtrim(config('app.url'), '/') . '/creer-mot-de-passe?token=' . urlencode($token) }}"
-            style="
-                display:inline-block;
-                padding:14px 25px;
-                background:#2563eb;
-                color:white;
-                text-decoration:none;
-                border-radius:10px;
-                font-weight:bold;
-            "
-        >
-            Créer mon mot de passe
-        </a>
-    </div>
-
-    <p style="
-        padding:15px;
-        background:#fff7ed;
-        border:1px solid #fed7aa;
-        border-radius:10px;
-        font-size:14px;
-        color:#9a3412;
-    ">
-        <strong>Important :</strong>
-        ce lien de création du mot de passe est valable pendant
-        <strong>3 jours</strong>.
-    </p>
-
-    <p style="font-size:14px; color:#64748b;">
-        Nous vous recommandons également de conserver votre numéro
-        de compte dans un endroit sûr afin de pouvoir le retrouver
-        facilement en cas de perte.
-    </p>
-
-    <p style="font-size:14px; color:#64748b;">
-        Si vous n'êtes pas à l'origine de la création de ce compte,
-        vous pouvez ignorer cet e-mail et contacter l'administration
-        de la Bibliothèque Numérique de Mahajanga.
-    </p>
-
-    <hr style="border:none; border-top:1px solid #e2e8f0; margin:30px 0;">
-
-    <p style="font-size:13px; color:#94a3b8; margin-bottom:0;">
-        Bibliothèque Numérique de Mahajanga
-    </p>
-
-</div>
-
-
-</body>
-</html>
+    // Même lien sécurisé que celui généré par l'application (token inchangé).
+    $setupUrl = rtrim(config('app.url'), '/') . '/creer-mot-de-passe?token=' . urlencode($token);
+@endphp
+@include('emails.notice', [
+    'heading' => $headings[$variant] ?? $headings['validated'],
+    'paragraphs' => $paragraphs,
+    'details' => $details,
+    'buttonLabel' => 'Créer mon mot de passe',
+    'buttonUrl' => $setupUrl,
+    'note' => ($variant === 'new_link' ? 'Ce nouveau lien' : 'Ce lien') . ' est valable pendant 24 heures et ne peut être utilisé qu’une seule fois.',
+    'footerNote' => ($accountNumber ? 'Conservez précieusement votre numéro de compte : il pourra vous être demandé en cas de perte de vos informations. ' : '') . 'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail ou contactez l’administration.',
+])

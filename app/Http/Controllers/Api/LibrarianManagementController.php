@@ -79,15 +79,25 @@ class LibrarianManagementController extends Controller
         );
         $url = rtrim(config('app.url'), '/') . '/reinitialiser-mot-de-passe?token=' . urlencode($token) . '&email=' . urlencode($user->email);
 
-        $body = "Bonjour {$user->name},\n\n" .
-            "Votre compte est bien créé par l’admin.\n\n" .
-            "Votre adresse e-mail pour la Bibliothèque : {$user->email}\n\n" .
-            "Voici le lien sécurisé pour créer votre mot de passe :\n{$url}\n\n" .
-            "Numéro de compte : {$matricule}\n\n" .
-            "La Bibliothèque Numérique de l’Université de Mahajanga";
+        $content = [
+            'heading' => 'Votre compte Bibliothécaire a été créé',
+            'paragraphs' => [
+                "Bonjour {$user->name},",
+                'Votre compte a été créé par l’administrateur de la Bibliothèque Numérique.',
+                'Vous pouvez maintenant créer votre mot de passe.',
+            ],
+            'details' => [
+                'Numéro de compte' => $matricule,
+                'Adresse e-mail' => $user->email,
+            ],
+            'buttonLabel' => 'Créer mon mot de passe',
+            'buttonUrl' => $url,
+            'note' => 'Ce lien est valable pendant 60 minutes et ne peut être utilisé qu’une seule fois.',
+            'footerNote' => 'Conservez précieusement votre numéro de compte.',
+        ];
 
         try {
-            Mail::raw($body, fn ($message) => $message
+            Mail::send('emails.notice', $content, fn ($message) => $message
                 ->to($user->email)
                 ->subject('Votre compte Bibliothèque a été créé par l’administrateur'));
         } catch (\Throwable $e) {

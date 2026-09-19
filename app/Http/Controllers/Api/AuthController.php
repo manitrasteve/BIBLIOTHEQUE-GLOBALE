@@ -128,12 +128,19 @@ class AuthController extends Controller
                 urlencode($user->email);
 
             try {
-                Mail::raw(
-                    "Bonjour {$user->name},\n\n" .
-                    "Réinitialisez votre mot de passe avec ce lien " .
-                    "sécurisé valable 60 minutes :\n{$url}\n\n" .
-                    "Si vous n'êtes pas à l'origine de cette demande, " .
-                    "ignorez simplement cet e-mail.",
+                Mail::send(
+                    'emails.notice',
+                    [
+                        'heading' => 'Réinitialisation de votre mot de passe',
+                        'paragraphs' => [
+                            "Bonjour {$user->name},",
+                            'Vous avez demandé à réinitialiser votre mot de passe.',
+                        ],
+                        'buttonLabel' => 'Réinitialiser mon mot de passe',
+                        'buttonUrl' => $url,
+                        'note' => 'Ce lien est valable pendant 60 minutes.',
+                        'footerNote' => "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet e-mail.",
+                    ],
                     fn ($message) => $message
                         ->to($user->email)
                         ->subject('Réinitialisation de votre mot de passe'),

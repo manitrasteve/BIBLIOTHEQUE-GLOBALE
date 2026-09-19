@@ -53,7 +53,17 @@ class UserController extends Controller
         $this->sendMail(
             $user->email,
             'Votre compte a été réactivé',
-            "Bonjour {$user->name},\n\nVotre compte a été réactivé.\nVeuillez créer votre mot de passe avec ce lien sécurisé (valable 60 minutes) :\n{$url}\n\nLa Bibliothèque Numérique de l'Université de Mahajanga"
+            [
+                'heading' => 'Votre compte a été réactivé',
+                'paragraphs' => [
+                    "Bonjour {$user->name},",
+                    'Votre compte a été réactivé.',
+                    'Vous pouvez maintenant créer votre mot de passe.',
+                ],
+                'buttonLabel' => 'Créer mon mot de passe',
+                'buttonUrl' => $url,
+                'note' => 'Ce lien est valable pendant 60 minutes.',
+            ]
         );
 
         return response()->json($user);
@@ -75,7 +85,14 @@ class UserController extends Controller
         $this->sendMail(
             $user->email,
             'Votre compte a été désactivé',
-            "Bonjour {$user->name},\n\nVotre compte a été désactivé.\nRaison : {$data['reason']}\n\nLa Bibliothèque Numérique de l'Université de Mahajanga"
+            [
+                'heading' => 'Votre compte a été désactivé',
+                'paragraphs' => [
+                    "Bonjour {$user->name},",
+                    'Votre compte a été désactivé par l’administrateur.',
+                    "Motif : {$data['reason']}",
+                ],
+            ]
         );
 
         return response()->json($user);
@@ -103,7 +120,14 @@ class UserController extends Controller
         $this->sendMail(
             $email,
             'Votre compte a été supprimé',
-            "Bonjour {$name},\n\nVotre compte a été supprimé par l'administrateur.\nRaison : {$data['reason']}\n\nLa Bibliothèque Numérique de l'Université de Mahajanga"
+            [
+                'heading' => 'Votre compte a été supprimé',
+                'paragraphs' => [
+                    "Bonjour {$name},",
+                    'Votre compte de la Bibliothèque Numérique a été supprimé par l’administrateur.',
+                    "Motif : {$data['reason']}",
+                ],
+            ]
         );
 
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {
@@ -115,10 +139,10 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Utilisateur supprimé. Son numéro de compte reste conservé dans l’historique et ne sera jamais réattribué.']);
     }
-    private function sendMail(string $email, string $subject, string $body): void
+    private function sendMail(string $email, string $subject, array $content): void
     {
         try {
-            Mail::raw($body, fn ($message) => $message->to($email)->subject($subject));
+            Mail::send('emails.notice', $content, fn ($message) => $message->to($email)->subject($subject));
         } catch (\Throwable $e) {
             report($e);
         }
