@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { Sparkles, Send, BookText, ImageIcon } from "lucide-react";
+import { Sparkles, Send, BookText, ImageIcon, Maximize2, Minimize2 } from "lucide-react";
 import { api } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
 
@@ -42,8 +42,11 @@ export default function AiAssistant({ slug }) {
     const [error, setError] = useState(null);
     const [pending, setPending] = useState(null);
     const [streamText, setStreamText] = useState("");
+    const [fullscreen, setFullscreen] = useState(false);
     const mountedRef = useRef(true);
     const scrollRef = useRef(null);
+    const rootRef = useRef(null);
+    const nativeFullscreenRef = useRef(false);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -55,7 +58,60 @@ export default function AiAssistant({ slug }) {
     useEffect(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [exchanges.length, pending, streamText]);
+    }, [exchanges.length, pending, streamText, fullscreen]);
+
+    // Plein écran natif : Échap le quitte (le navigateur nous prévient ici).
+    useEffect(() => {
+        function onChange() {
+            if (document.fullscreenElement === rootRef.current) {
+                nativeFullscreenRef.current = true;
+                setFullscreen(true);
+            } else if (nativeFullscreenRef.current) {
+                nativeFullscreenRef.current = false;
+                setFullscreen(false);
+            }
+        }
+
+        document.addEventListener("fullscreenchange", onChange);
+        return () => {
+            document.removeEventListener("fullscreenchange", onChange);
+            if (document.fullscreenElement === rootRef.current) {
+                document.exitFullscreen?.();
+            }
+        };
+    }, []);
+
+    // Repli sans API native (ex. Safari iPhone) : plein écran CSS, Échap pour quitter.
+    useEffect(() => {
+        if (!fullscreen || nativeFullscreenRef.current) return undefined;
+
+        function onKey(event) {
+            if (event.key === "Escape") setFullscreen(false);
+        }
+
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [fullscreen]);
+
+    function toggleFullscreen() {
+        if (document.fullscreenElement === rootRef.current) {
+            document.exitFullscreen();
+            return;
+        }
+
+        if (fullscreen) {
+            setFullscreen(false);
+            return;
+        }
+
+        const el = rootRef.current;
+
+        if (el?.requestFullscreen) {
+            el.requestFullscreen().catch(() => setFullscreen(true));
+        } else {
+            setFullscreen(true);
+        }
+    }
 
     async function ask(q) {
         const finalQuestion = (q ?? question).trim();
@@ -125,21 +181,51 @@ export default function AiAssistant({ slug }) {
     }
 
     return (
-        <div className="rounded-xl border border-line bg-paper-dim/40 p-5 flex flex-col h-[80vh]">
+        <div
+            ref={rootRef}
+            className={
+                fullscreen
+                    ? "fixed inset-0 z-[60] flex h-screen w-screen flex-col rounded-none border-0 bg-paper p-4 sm:p-6"
+                    : "rounded-xl border border-line bg-paper-dim/40 p-5 flex flex-col h-[80vh]"
+            }
+        >
             {/* En-tête */}
-            <div className="mb-4">
-                <p className="flex items-center gap-2 font-display text-lg text-ink">
-                    <Sparkles
-                        className="h-4 w-4 text-brass/70"
-                        strokeWidth={1.75}
-                    />
-                    Assistant IA
-                </p>
+            <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                    <p className="flex items-center gap-2 font-display text-lg text-ink">
+                        <Sparkles
+                            className="h-4 w-4 text-brass/70"
+                            strokeWidth={1.75}
+                        />
+                        Assistant IA
+                    </p>
 
-                <p className="text-xs text-ink-soft mt-1">
-                    Les réponses se basent uniquement sur le contenu de ce
-                    document.
-                </p>
+                    <p className="text-xs text-ink-soft mt-1">
+                        Les réponses se basent uniquement sur le contenu de ce
+                        document.
+                    </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                    {fullscreen && (
+                        <span className="hidden text-xs text-ink-soft sm:inline">
+                            Échap pour quitter
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        className="rounded-lg border border-line p-1.5 text-ink-soft transition-colors hover:border-brass hover:text-brass"
+                        title={fullscreen ? "Quitter le plein écran (Échap)" : "Plein écran"}
+                        aria-label={fullscreen ? "Quitter le plein écran" : "Afficher en plein écran"}
+                    >
+                        {fullscreen ? (
+                            <Minimize2 className="h-4 w-4" />
+                        ) : (
+                            <Maximize2 className="h-4 w-4" />
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* Zone des conversations */}
