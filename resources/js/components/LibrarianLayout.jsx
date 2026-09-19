@@ -37,6 +37,8 @@ const NAV = [
         label: "Ajouter un utilisateur",
         icon: UserPlus,
         permission: "ajouter_utilisateur",
+        // L'administrateur ajoute les utilisateurs depuis Administration → Utilisateurs.
+        hideForAdmin: true,
     },
     {
         to: "/bibliothecaire/documents",
@@ -71,6 +73,7 @@ export default function LibrarianLayout() {
     const { user } = useAuth();
 
     const nav = NAV.filter((item) => {
+        if (item.hideForAdmin && user?.role === "administrateur") return false;
         if (!item.permission && !item.permissions) return true;
         if (user?.role === "administrateur") return true;
         if (item.permission) return user?.permissions?.includes(item.permission);
