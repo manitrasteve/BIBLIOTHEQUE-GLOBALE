@@ -12,9 +12,15 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 import { SkeletonDashboard } from "../../components/Skeleton";
 import StatCard from "../../components/StatCard";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminStatsPage() {
     const [s, setS] = useState(null);
+    const { user } = useAuth();
+    // Le bibliothécaire ayant « Voir les statistiques » consulte cette page en lecture seule :
+    // les liens vers les pages réservées à l'administrateur sont masqués.
+    const isAdmin = user?.role === "administrateur";
+    const canSeePopularity = isAdmin || user?.permissions?.includes("voir_popularite");
 
     useEffect(() => {
         api.getAdminDashboard()
@@ -46,7 +52,7 @@ export default function AdminStatsPage() {
                     icon={Users}
                     label="Utilisateurs"
                     value={s.total_users}
-                    to="/administrateur/utilisateurs"
+                    to={isAdmin ? "/administrateur/utilisateurs" : undefined}
                 />
 
                 {/* Comptes vérifiés à valider */}
@@ -55,7 +61,7 @@ export default function AdminStatsPage() {
                     label="Demandes vérifiées à valider"
                     value={s.pending_account_validations}
                     tone="warning"
-                    to="/administrateur/comptes?status=verifiee"
+                    to={isAdmin ? "/administrateur/comptes?status=verifiee" : "/bibliothecaire/tickets-comptes?status=verifiee"}
                 />
 
                 {/* Documents publiés */}
@@ -72,7 +78,7 @@ export default function AdminStatsPage() {
                     label="Nouvelles demandes"
                     value={s.pending_account_requests}
                     tone="warning"
-                    to="/administrateur/comptes?status=en_attente"
+                    to={isAdmin ? "/administrateur/comptes?status=en_attente" : "/bibliothecaire/tickets-comptes?status=en_attente"}
                 />
 
                 {/* Consultations */}
@@ -80,7 +86,7 @@ export default function AdminStatsPage() {
                     icon={Eye}
                     label="Consultations"
                     value={s.total_consultations}
-                    to="/administrateur/historique?type=consultations"
+                    to={isAdmin ? "/administrateur/historique?type=consultations" : undefined}
                 />
 
                 {/* Questions IA */}
@@ -88,7 +94,7 @@ export default function AdminStatsPage() {
                     icon={Sparkles}
                     label="Questions posées à l'IA"
                     value={s.total_ai_queries}
-                    to="/administrateur/historique?type=ai"
+                    to={isAdmin ? "/administrateur/historique?type=ai" : undefined}
                 />
 
                 {/* Favoris */}
@@ -96,13 +102,13 @@ export default function AdminStatsPage() {
                     icon={Heart}
                     label="Favoris"
                     value={s.total_favorites}
-                    to="/administrateur/historique?type=favoris"
+                    to={isAdmin ? "/administrateur/historique?type=favoris" : undefined}
                 />
             </div>
 
-            <div className="mt-6">
+            {canSeePopularity && <div className="mt-6">
                 <Link
-                    to="/administrateur/popularite"
+                    to={isAdmin ? "/administrateur/popularite" : "/bibliothecaire/popularite"}
                     className="modern-card flex items-center justify-between gap-4 p-5 transition hover:border-indigo-300 hover:shadow-md"
                 >
                     <div>
@@ -120,7 +126,7 @@ export default function AdminStatsPage() {
                         Voir →
                     </span>
                 </Link>
-            </div>
+            </div>}
         </div>
     );
 }

@@ -390,9 +390,10 @@ export const api = {
             body: data,
         }),
 
+    // POST (et non PUT) : Laravel ne lit pas les fichiers d'un PUT multipart.
     updateLibrary: (id, data) =>
         request(`/libraries/${id}`, {
-            method: "PUT",
+            method: "POST",
             body: data,
         }),
 

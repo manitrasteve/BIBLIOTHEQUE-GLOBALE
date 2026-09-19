@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { MessageSquare, LifeBuoy, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
 function Inbox({ kind }) {
+    // Consultation seule pour le bibliothécaire : répondre / supprimer restent réservés à l'administrateur.
+    const { user } = useAuth();
+    const isAdmin = user?.role === "administrateur";
     const [rows, setRows] = useState(null);
     const isFeedback = kind === "feedback";
 
@@ -83,7 +87,7 @@ function Inbox({ kind }) {
                     )}
                     {isFeedback ? "Avis des utilisateurs" : "Signalements"}
                 </h2>
-                {!!rows?.length && (
+                {isAdmin && !!rows?.length && (
                     <button
                         onClick={clearAll}
                         className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
@@ -121,7 +125,7 @@ function Inbox({ kind }) {
                                     </p>
                                 )}
                             </div>
-                            <div className="flex h-fit shrink-0 items-center gap-2">
+                            {isAdmin && <div className="flex h-fit shrink-0 items-center gap-2">
                                 <button
                                     onClick={() => reply(r)}
                                     className="btn-secondary"
@@ -135,7 +139,7 @@ function Inbox({ kind }) {
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>
-                            </div>
+                            </div>}
                         </div>
                     </div>
                 ))

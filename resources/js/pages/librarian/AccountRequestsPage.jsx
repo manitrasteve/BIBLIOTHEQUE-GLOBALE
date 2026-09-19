@@ -11,6 +11,8 @@ import {
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import StatusBadge from "../../components/StatusBadge";
+import DetailModal, { ViewButton } from "../../components/DetailModal";
+import { requestSections } from "../../lib/detailSections";
 import { useAuth } from "../../context/AuthContext";
 
 const FILTERS = [
@@ -38,6 +40,7 @@ export default function AccountRequestsPage() {
     const [rows, setRows] = useState(null);
     const [error, setError] = useState(null);
     const [query, setQuery] = useState("");
+    const [viewing, setViewing] = useState(null);
     const matchRow = (r) =>
         matchesSearch(
             `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`,
@@ -263,6 +266,11 @@ export default function AccountRequestsPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end flex-wrap gap-2">
+                                                <ViewButton
+                                                    onClick={() =>
+                                                        setViewing(r)
+                                                    }
+                                                />
                                                 {user?.role ===
                                                     "bibliothecaire" &&
                                                     r.status ===
@@ -327,6 +335,15 @@ export default function AccountRequestsPage() {
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {viewing && (
+                <DetailModal
+                    title={`${viewing.first_name || ""} ${viewing.last_name || ""}`.trim()}
+                    subtitle={`Demande ${viewing.request_number || ""}`.trim()}
+                    sections={requestSections(viewing, LABELS)}
+                    onClose={() => setViewing(null)}
+                />
             )}
         </div>
     );

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Library;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class LibraryController extends Controller
 {
@@ -19,35 +20,48 @@ class LibraryController extends Controller
         return response()->json($library);
     }
 
-    // Admin uniquement
+    // Administrateur, ou bibliothécaire ayant la permission « ajouter_bibliotheque » (middleware de route).
     public function store(Request $request)
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'opening_hours' => ['nullable', 'string', 'max:255'],
-            'opening_days' => ['nullable', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:255'],
+            'location' => ['required', 'string', 'max:255'],
+            'opening_hours' => ['required', 'string', 'max:255'],
+            'opening_days' => ['required', 'string', 'max:255'],
             'map_link' => ['nullable', 'url'],
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
+
+        unset($data['photo']);
+        $data['photo_path'] = $request->file('photo')->store('libraries', 'public');
 
         $library = Library::create($data);
 
         return response()->json($library, 201);
     }
 
+    // Admin uniquement
     public function update(Request $request, Library $library)
     {
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'opening_hours' => ['nullable', 'string', 'max:255'],
-            'opening_days' => ['nullable', 'string', 'max:255'],
+            'address' => ['sometimes', 'required', 'string', 'max:255'],
+            'location' => ['sometimes', 'required', 'string', 'max:255'],
+            'opening_hours' => ['sometimes', 'required', 'string', 'max:255'],
+            'opening_days' => ['sometimes', 'required', 'string', 'max:255'],
             'map_link' => ['nullable', 'url'],
+            // Facultative en modification : les anciennes bibliothèques n'ont pas encore de couverture.
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
+
+        unset($data['photo']);
+        if ($request->hasFile('photo')) {
+            if ($library->photo_path) Storage::disk('public')->delete($library->photo_path);
+            $data['photo_path'] = $request->file('photo')->store('libraries', 'public');
+        }
 
         $library->update($data);
 
@@ -56,6 +70,7 @@ class LibraryController extends Controller
 
     public function destroy(Library $library)
     {
+        if ($library->photo_path) Storage::disk('public')->delete($library->photo_path);
         $library->delete();
 
         return response()->json(['message' => 'Bibliothèque supprimée.']);

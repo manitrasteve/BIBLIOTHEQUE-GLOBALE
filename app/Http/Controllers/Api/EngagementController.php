@@ -55,7 +55,7 @@ class EngagementController extends Controller
 
     public function stats(Request $request)
     {
-        abort_unless($request->user()->isAdmin(),403);
+        abort_unless($request->user()->hasPermission('voir_popularite'),403);
         $docs=Document::where('status','publie')->withCount(['consultations','favorites','aiQueries'])->orderByDesc('consultations_count')->limit(20)->get(['id','slug','title','type','year']);
         return response()->json(['documents'=>$docs,'totals'=>[
             'consultations'=>Consultation::count(),'favorites'=>Favorite::count(),'ai_queries'=>AiQuery::count()

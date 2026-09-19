@@ -36,6 +36,7 @@ function Field({
                 className="mb-2 block text-sm font-semibold text-slate-700"
             >
                 {label}
+                {required ? " *" : ""}
             </label>
 
             <div className="relative">
@@ -214,7 +215,7 @@ export default function CreateUserForm({
                         </div>
                     )}
                     <div className="mb-7">
-                        <label className="mb-2 block text-sm font-bold text-slate-700">Bibliothèque</label>
+                        <label className="mb-2 block text-sm font-bold text-slate-700">Bibliothèque *</label>
                         <select value={form.library_id} onChange={update("library_id")} required disabled={Boolean(lockedLibraryId)} className="mb-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                             <option value="">Sélectionner une bibliothèque</option>
                             {libraries
@@ -260,7 +261,7 @@ export default function CreateUserForm({
                         {field("first_name", "Prénom")}
                         {field("email", "Adresse e-mail", "email", true)}
                         {field("phone", "Numéro de téléphone", "tel", true)}
-                        {field("address", "Adresse", "text", true)}
+                        {field("address", "Adresse", "text", form.role !== "chercheur")}
                         <div>
                             <span className="mb-2 block text-sm font-semibold text-slate-700">Genre *</span>
                             <div className="flex gap-4 pt-2">
@@ -275,9 +276,10 @@ export default function CreateUserForm({
 
                         <div>
                             <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                Date de naissance
+                                Date de naissance *
                             </label>
                             <input
+                                required
                                 type="date"
                                 value={form.date_of_birth}
                                 onChange={update("date_of_birth")}
@@ -292,18 +294,8 @@ export default function CreateUserForm({
                                     "text",
                                     true,
                                 )}
-                                {field(
-                                    "department",
-                                    "Département",
-                                    "text",
-                                    true,
-                                )}
-                                {field(
-                                    "position",
-                                    "Fonction / Grade",
-                                    "text",
-                                    true,
-                                )}
+                                {field("department", "Département")}
+                                {field("position", "Fonction / Grade")}
                                 {field(
                                     "teaching_specialty",
                                     "Spécialité / Domaine d'enseignement",
@@ -316,15 +308,13 @@ export default function CreateUserForm({
                             <>
                                 {field(
                                     "faculty",
-                                    "Institution / Faculté",
+                                    "Institut / Faculté",
                                     "text",
                                     true,
                                 )}
                                 {field(
                                     "research_lab",
                                     "Laboratoire / Centre de recherche",
-                                    "text",
-                                    true,
                                 )}
                                 {field(
                                     "researcher_field",

@@ -11,6 +11,8 @@ import {
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import CreateUserForm from "../../components/CreateUserForm";
+import DetailModal, { ViewButton } from "../../components/DetailModal";
+import { userSections } from "../../lib/detailSections";
 
 // Petite modale de confirmation + saisie de raison, réutilisée pour
 // la suppression et la désactivation.
@@ -93,6 +95,7 @@ export default function AdminUsersPage() {
     const [modal, setModal] = useState(null); // { type: 'delete'|'deactivate', user }
     const [showCreate, setShowCreate] = useState(false);
     const [query, setQuery] = useState("");
+    const [viewing, setViewing] = useState(null);
 
     function load() {
         api.getUsers()
@@ -196,13 +199,21 @@ export default function AdminUsersPage() {
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
                                 <td className="px-4 py-3">{u.role}</td><td className="px-4 py-3">{u.library?.name || "—"}</td>
                                 <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span></td>
-                                <td className="px-4 py-3"><div className="flex justify-end gap-2">{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600"><Trash2 className="h-4 w-4"/></button>}</div></td>
+                                <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600"><Trash2 className="h-4 w-4"/></button>}</div></td>
                             </tr>
                         ))}</tbody>
                     </table>
                 </div>
             )}
 
+            {viewing && (
+                <DetailModal
+                    title={viewing.name}
+                    subtitle={viewing.email}
+                    sections={userSections(viewing)}
+                    onClose={() => setViewing(null)}
+                />
+            )}
             {modal?.type === "delete" && (
                 <ReasonModal
                     title={`Êtes-vous sûr de supprimer ${modal.user.name} ?`}

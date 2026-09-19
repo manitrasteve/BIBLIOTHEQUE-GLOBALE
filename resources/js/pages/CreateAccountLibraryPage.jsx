@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Phone, UserPlus } from "lucide-react";
 import { api } from "../lib/api";
+import LibraryCover from "../components/LibraryCover";
 
 export default function CreateAccountLibraryPage() {
     const { libraryId } = useParams();
@@ -31,12 +32,13 @@ export default function CreateAccountLibraryPage() {
     }
 
     return (
-        <div className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+        <div className="mx-auto max-w-3xl px-6 py-8 sm:py-10">
             <button type="button" onClick={() => navigate("/creer-un-compte")} className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-brass-deep">
                 <ArrowLeft className="h-4 w-4" /> Choisir une autre bibliothèque
             </button>
 
             <div className="rounded-xl border border-line bg-paper p-6 sm:p-10">
+                <LibraryCover library={library} className="mb-6" />
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-brass">Bibliothèque sélectionnée</p>
                 <h1 className="font-display text-3xl text-ink">{library.name}</h1>
                 {library.description && <p className="mt-5 leading-7 text-ink-soft">{library.description}</p>}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Clock, ArrowRight } from "lucide-react";
 import { api } from "../lib/api";
+import LibraryCover from "../components/LibraryCover";
 
 export default function CreateAccountSelectLibraryPage() {
     const [libraries, setLibraries] = useState([]);
@@ -16,7 +17,7 @@ export default function CreateAccountSelectLibraryPage() {
     }, []);
 
     return (
-        <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="mx-auto max-w-3xl px-6 py-8 sm:py-10">
             <p className="text-xs uppercase tracking-[0.25em] text-brass font-semibold mb-3">
                 Étape 1 sur 2
             </p>
@@ -37,6 +38,7 @@ export default function CreateAccountSelectLibraryPage() {
                         to={`/creer-un-compte/${lib.id}`}
                         className="group rounded-xl border border-line bg-paper p-5 hover:border-brass/60 hover:-translate-y-0.5 transition-all"
                     >
+                        <LibraryCover library={lib} className="mb-4" />
                         <div className="flex items-start justify-between gap-2">
                             <p className="font-display text-lg text-ink group-hover:text-brass-deep transition-colors">
                                 {lib.name}

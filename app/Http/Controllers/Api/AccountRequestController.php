@@ -1283,10 +1283,11 @@ class AccountRequestController extends Controller
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:50'],
-            'address' => ['required', 'string', 'max:255'],
+            // L'adresse est facultative pour un chercheur, obligatoire pour les autres rôles.
+            'address' => [Rule::requiredIf($request->input('role') !== 'chercheur'), 'nullable', 'string', 'max:255'],
             'library_id' => ['required', 'integer', 'exists:libraries,id'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
-            'date_of_birth' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'date'],
+            'date_of_birth' => ['required', 'date'],
             'birth_place' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
             'cin_number' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'digits:12'],
             'cin_issued_at' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'date'],
@@ -1301,7 +1302,7 @@ class AccountRequestController extends Controller
                 ]),
             ],
 
-            'faculty' => ['nullable', 'string', 'max:255'],
+            'faculty' => [Rule::requiredIf(in_array($request->input('role'), ['enseignant', 'chercheur'], true)), 'nullable', 'string', 'max:255'],
             'school' => [
                 Rule::requiredIf($request->input('role') === 'etudiant'),
                 'nullable',
@@ -1333,11 +1334,11 @@ class AccountRequestController extends Controller
 
             'department' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
-            'teaching_specialty' => ['nullable', 'string', 'max:255'],
+            'teaching_specialty' => [Rule::requiredIf($request->input('role') === 'enseignant'), 'nullable', 'string', 'max:255'],
 
             'research_lab' => ['nullable', 'string', 'max:255'],
-            'researcher_field' => ['nullable', 'string', 'max:255'],
-            'specialty' => ['nullable', 'string', 'max:255'],
+            'researcher_field' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
+            'specialty' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -1448,7 +1449,7 @@ class AccountRequestController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
                 'gender' => $validated['gender'],
-                'address' => $validated['address'],
+                'address' => $validated['address'] ?? null,
                 'date_of_birth' => $validated['date_of_birth'] ?? null,
                 'birth_place' => $validated['birth_place'] ?? null,
                 'cin_number' => $validated['cin_number'] ?? null,

@@ -149,21 +149,18 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:administrateur')->group(function () {
         Route::post('/account-requests/{accountRequest}/admin-reject', [AccountRequestController::class, 'adminReject']);
-        Route::post('/libraries', [LibraryController::class, 'store']);
         Route::put('/libraries/{library}', [LibraryController::class, 'update']);
+        Route::post('/libraries/{library}', [LibraryController::class, 'update']); // multipart (photo de couverture)
         Route::delete('/libraries/{library}', [LibraryController::class, 'destroy']);
 
         Route::post('/account-requests/validate-all', [AccountRequestController::class, 'validateAll']);
         Route::post('/account-requests/users/{user}/activate', [AccountRequestController::class, 'activate']);
-        Route::get('/engagement-stats', [EngagementController::class, 'stats']);
         Route::get('/consultations', [EngagementController::class, 'adminConsultations']);
         Route::get('/ai-queries', [EngagementController::class, 'adminAiQueries']);
         Route::get('/all-favorites', [EngagementController::class, 'adminFavorites']);
-        Route::get('/feedbacks', [FeedbackController::class, 'index']);
         Route::post('/feedbacks/{feedback}/reply', [FeedbackController::class, 'reply']);
         Route::delete('/feedbacks/clear-all', [FeedbackController::class, 'clearAll']);
         Route::delete('/feedbacks/{feedback}', [FeedbackController::class, 'destroy']);
-        Route::get('/problem-reports', [ProblemReportController::class, 'index']);
         Route::post('/problem-reports/{report}/reply', [ProblemReportController::class, 'reply']);
         Route::delete('/problem-reports/clear-all', [ProblemReportController::class, 'clearAll']);
         Route::delete('/problem-reports/{report}', [ProblemReportController::class, 'destroy']);
@@ -179,7 +176,27 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::get('/bibliothecaires', [PermissionManagementController::class, 'librarians']);
        Route::get('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'show']);
        Route::put('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'update']);
+    });
 
+    /*
+    |----------------------------------------------------------------------
+    | Permissions individuelles : ajout de bibliothèque + consultation en lecture seule.
+    | L'administrateur passe toujours ; réponses / suppressions restent réservées à l'admin.
+    |----------------------------------------------------------------------
+    */
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:ajouter_bibliotheque'])->group(function () {
+        Route::post('/libraries', [LibraryController::class, 'store']);
+    });
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_popularite'])->group(function () {
+        Route::get('/engagement-stats', [EngagementController::class, 'stats']);
+    });
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_avis_utilisateurs'])->group(function () {
+        Route::get('/feedbacks', [FeedbackController::class, 'index']);
+    });
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_signalements'])->group(function () {
+        Route::get('/problem-reports', [ProblemReportController::class, 'index']);
+    });
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_statistiques'])->group(function () {
         Route::get('/dashboard/admin', [DashboardController::class, 'admin']);
     });
 

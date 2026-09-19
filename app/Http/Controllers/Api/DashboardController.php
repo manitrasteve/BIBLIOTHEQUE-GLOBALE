@@ -41,7 +41,7 @@ class DashboardController extends Controller
      */
     public function admin(Request $request)
     {
-        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless($request->user()->hasPermission('voir_statistiques'), 403);
 
         return response()->json([
             'total_users' => \App\Models\User::count(),

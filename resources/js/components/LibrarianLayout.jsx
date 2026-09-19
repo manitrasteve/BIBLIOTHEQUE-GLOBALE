@@ -12,6 +12,11 @@ import {
     Menu,
     X,
     Trash2,
+    Building2,
+    BarChart3,
+    Heart,
+    MessageSquare,
+    LifeBuoy,
 } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../context/AuthContext";
@@ -53,10 +58,49 @@ const NAV = [
         ],
     },
     {
+        to: "/bibliothecaire/bibliotheques",
+        label: "Ajouter une bibliothèque",
+        icon: Building2,
+        permission: "ajouter_bibliotheque",
+        // L'administrateur gère les bibliothèques depuis Administration → Bibliothèques.
+        hideForAdmin: true,
+    },
+    {
         to: "/bibliothecaire/corbeille",
         label: "Corbeille",
         icon: Trash2,
         permission: "voir_corbeille",
+        // L'administrateur utilise Administration → Corbeille (même page, même API).
+        hideForAdmin: true,
+    },
+    // Consultation en lecture seule : l'administrateur les trouve dans Administration.
+    {
+        to: "/bibliothecaire/statistiques",
+        label: "Statistiques",
+        icon: BarChart3,
+        permission: "voir_statistiques",
+        hideForAdmin: true,
+    },
+    {
+        to: "/bibliothecaire/popularite",
+        label: "Popularité",
+        icon: Heart,
+        permission: "voir_popularite",
+        hideForAdmin: true,
+    },
+    {
+        to: "/bibliothecaire/avis",
+        label: "Avis des utilisateurs",
+        icon: MessageSquare,
+        permission: "voir_avis_utilisateurs",
+        hideForAdmin: true,
+    },
+    {
+        to: "/bibliothecaire/signalements",
+        label: "Signalements",
+        icon: LifeBuoy,
+        permission: "voir_signalements",
+        hideForAdmin: true,
     },
     { to: "/bibliothecaire/messages", label: "Messages", icon: Mail },
     {

@@ -15,6 +15,14 @@ class Library extends Model
         'location', 'opening_hours', 'opening_days', 'photo_path', 'map_link',
     ];
 
+    protected $appends = ['cover_url'];
+
+    // Photo de couverture : null pour les bibliothèques créées avant l'ajout du champ.
+    public function getCoverUrlAttribute(): ?string
+    {
+        return $this->photo_path ? asset('storage/'.$this->photo_path) : null;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Library $library) {
