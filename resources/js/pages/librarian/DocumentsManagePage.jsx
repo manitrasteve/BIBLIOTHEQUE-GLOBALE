@@ -135,15 +135,13 @@ export default function DocumentsManagePage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {can('modifier_document') && (
-                        <Link
-                          to={`${basePath}/${doc.id}/modifier`}
-                          className="flex items-center gap-1 text-brass hover:text-brass-deep"
-                        >
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Modifier
-                        </Link>
-                      )}
+                      <Link
+                        to={`${basePath}/${doc.id}/modifier`}
+                        className="flex items-center gap-1 text-brass hover:text-brass-deep"
+                      >
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Modifier
+                      </Link>
                       {doc.status !== 'publie' && can('publier_document') && (
                         <button
                           onClick={() => publish(doc)}
@@ -155,7 +153,7 @@ export default function DocumentsManagePage() {
                         </button>
                       )}
                       <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
-                      {doc.status === 'publie' && can('modifier_document') && (
+                      {doc.status === 'publie' && (
                         <button
                           onClick={() => archive(doc)}
                           disabled={busySlug === doc.slug}

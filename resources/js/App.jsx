@@ -206,7 +206,7 @@ export default function App() {
                                 />
                                 <Route
                                     path="documents/:id/modifier"
-                                    element={<PermissionRoute permission="modifier_document"><DocumentFormPage /></PermissionRoute>}
+                                    element={<DocumentFormPage />}
                                 />
                                 <Route
                                     path="messages"

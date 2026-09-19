@@ -26,21 +26,28 @@ test('un bibliothécaire peut ajouter un document sans permission (la validation
     $this->postJson('/api/documents', [])->assertStatus(422);
 });
 
-test('modifier, publier et supprimer restent soumis à permission', function () {
+test('un bibliothécaire peut modifier et archiver un document sans permission', function () {
     Sanctum::actingAs(documentModuleLibrarian());
+    $document = Document::factory()->create(['status' => 'publie']);
 
-    $id = Document::factory()->create(['status' => 'publie'])->id;
+    $this->postJson("/api/documents/{$document->id}", [])->assertOk();
+    $this->postJson("/api/documents/{$document->id}/archive")->assertOk();
+    expect($document->fresh()->status)->toBe('archive');
+});
+
+test('publier et supprimer restent soumis à permission', function () {
+    Sanctum::actingAs(documentModuleLibrarian());
+    $id = Document::factory()->create(['status' => 'brouillon'])->id;
 
     $this->postJson("/api/documents/{$id}/publish")->assertForbidden();
-    $this->postJson("/api/documents/{$id}/archive")->assertForbidden();
     $this->deleteJson("/api/documents/{$id}")->assertForbidden();
 });
 
-test('voir_documents et ajouter_document ne sont plus proposées, les autres actions restent', function () {
+test('seules les permissions publier et supprimer restent dans la catégorie Document', function () {
     Sanctum::actingAs(User::factory()->create(['role' => 'administrateur', 'is_active' => true]));
 
     $names = collect($this->getJson('/api/permissions')->assertOk()->json())->pluck('name');
 
-    expect($names)->not->toContain('voir_documents', 'ajouter_document')
-        ->and($names)->toContain('modifier_document', 'publier_document', 'supprimer_document');
+    expect($names)->not->toContain('voir_documents', 'ajouter_document', 'modifier_document')
+        ->and($names)->toContain('publier_document', 'supprimer_document');
 });

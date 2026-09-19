@@ -122,10 +122,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/documents-manage', [DocumentController::class, 'manageIndex']);
         Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow']);
         Route::post('/documents', [DocumentController::class, 'store']);
-        Route::put('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');
-        Route::post('/documents/{document}', [DocumentController::class, 'update'])->middleware('permission:modifier_document');
+        Route::put('/documents/{document}', [DocumentController::class, 'update']);
+        Route::post('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');
-        Route::post('/documents/{document}/archive', [DocumentController::class, 'archive'])->middleware('permission:modifier_document');
+        Route::post('/documents/{document}/archive', [DocumentController::class, 'archive']);
         Route::post('/documents/{document}/reindex', [DocumentController::class, 'reindex']);
 
         Route::get('/admin-messages/recipients', [AdminMessageController::class, 'recipients']);
