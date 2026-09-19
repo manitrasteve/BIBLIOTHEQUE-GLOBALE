@@ -41,6 +41,7 @@ export default function AccountRequestsPage() {
     const [error, setError] = useState(null);
     const [query, setQuery] = useState("");
     const [viewing, setViewing] = useState(null);
+    const [busyId, setBusyId] = useState(null);
     const matchRow = (r) =>
         matchesSearch(
             `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`,
@@ -78,6 +79,8 @@ export default function AccountRequestsPage() {
     }, [filter]);
 
     async function verify(id) {
+        if (busyId) return;
+        setBusyId(id);
         try {
             setError(null);
 
@@ -86,10 +89,14 @@ export default function AccountRequestsPage() {
             await load();
         } catch (e) {
             setError(e.data?.message || "Vérification impossible.");
+        } finally {
+            setBusyId(null);
         }
     }
 
     async function validate(id) {
+        if (busyId) return;
+        setBusyId(id);
         try {
             setError(null);
 
@@ -98,6 +105,8 @@ export default function AccountRequestsPage() {
             await load();
         } catch (e) {
             setError(e.data?.message || "Validation impossible.");
+        } finally {
+            setBusyId(null);
         }
     }
 
@@ -280,10 +289,11 @@ export default function AccountRequestsPage() {
                                                                 onClick={() =>
                                                                     verify(r.id)
                                                                 }
-                                                                className="btn-secondary"
+                                                                disabled={busyId !== null}
+                                                                className="btn-secondary disabled:opacity-50"
                                                             >
                                                                 <CheckCircle2 className="h-4 w-4" />
-                                                                Vérifier
+                                                                {busyId === r.id ? "Vérification…" : "Vérifier"}
                                                             </button>
                                                             <button
                                                                 onClick={() =>
@@ -306,10 +316,11 @@ export default function AccountRequestsPage() {
                                                                         r.id,
                                                                     )
                                                                 }
-                                                                className="btn-primary"
+                                                                disabled={busyId !== null}
+                                                                className="btn-primary disabled:opacity-50"
                                                             >
                                                                 <ShieldCheck className="h-4 w-4" />
-                                                                Valider
+                                                                {busyId === r.id ? "Validation…" : "Valider"}
                                                             </button>
                                                             <button
                                                                 onClick={() =>

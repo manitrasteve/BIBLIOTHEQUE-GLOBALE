@@ -556,6 +556,31 @@ class AccountRequestController extends Controller
     }
 
     /**
+     * Envoie un e-mail hors de la requête HTTP : l'appel SMTP (lent) ne bloque plus
+     * le bouton. La tâche part dans la file « database », puis un worker éphémère est
+     * lancé en arrière-plan ; un `queue:work` / `queue:listen` déjà actif la traite aussi.
+     */
+    private function queueMail(\Closure $send): void
+    {
+        dispatch($send);
+
+        if (config('queue.default') !== 'database') {
+            return;
+        }
+
+        try {
+            $php = stripos(basename(PHP_BINARY), 'php') !== false ? PHP_BINARY : 'php';
+            $worker = '"' . $php . '" "' . base_path('artisan') . '" queue:work --stop-when-empty --tries=1 --quiet';
+            $command = PHP_OS_FAMILY === 'Windows'
+                ? 'start /B "" ' . $worker . ' > NUL 2>&1'
+                : $worker . ' > /dev/null 2>&1 &';
+            pclose(popen($command, 'r'));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
      * Vérification d'une demande par le Service Numérique.
      */
     public function verify(Request $request, AccountRequest $accountRequest)
@@ -582,7 +607,7 @@ class AccountRequestController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
-        dispatch(function () use ($accountRequest) {
+        $this->queueMail(function () use ($accountRequest) {
             try {
                 Mail::send(
                     'emails.account-request-verified',
@@ -598,7 +623,7 @@ class AccountRequestController extends Controller
             } catch (\Throwable $e) {
                 report($e);
             }
-        })->afterResponse();
+        });
 
         NotificationService::sendToRole(
             'administrateur',
@@ -905,7 +930,7 @@ class AccountRequestController extends Controller
          * Envoi du lien de création du mot de passe.
          */
         if (!$result['already_processed']) {
-            dispatch(function () use ($result, $accountRequest) {
+            $this->queueMail(function () use ($result, $accountRequest) {
                 try {
                     Mail::send(
                         'emails.account-setup',
@@ -923,7 +948,7 @@ class AccountRequestController extends Controller
                 } catch (\Throwable $e) {
                     report($e);
                 }
-            })->afterResponse();
+            });
         }
 
         /**
