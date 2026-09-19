@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FileText, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,7 @@ const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Arc
 
 export default function DocumentsManagePage() {
   const { user } = useAuth();
+  const basePath = useLocation().pathname.startsWith('/administrateur') ? '/administrateur/documents' : '/bibliothecaire/documents';
   const can = (permission) => user?.role === 'administrateur' || user?.permissions?.includes(permission);
   const [documents, setDocuments] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
@@ -88,7 +89,7 @@ export default function DocumentsManagePage() {
 
         {can('ajouter_document') && (
           <Link
-            to="/bibliothecaire/documents/nouveau"
+            to={`${basePath}/nouveau`}
             className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
           >
             <Plus className="h-4 w-4" strokeWidth={2} />
@@ -138,7 +139,7 @@ export default function DocumentsManagePage() {
                     <div className="flex items-center gap-3">
                       {can('modifier_document') && (
                         <Link
-                          to={`/bibliothecaire/documents/${doc.id}/modifier`}
+                          to={`${basePath}/${doc.id}/modifier`}
                           className="flex items-center gap-1 text-brass hover:text-brass-deep"
                         >
                           <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />

@@ -257,6 +257,9 @@ export default function App() {
                                     path="bibliothecaires"
                                     element={<AdminLibrariansPage />}
                                 />
+                                <Route path="documents" element={<DocumentsManagePage />} />
+                                <Route path="documents/nouveau" element={<DocumentFormPage />} />
+                                <Route path="documents/:id/modifier" element={<DocumentFormPage />} />
                                 <Route path="permissions" element={<AdminPermissionsPage />} />
                                 <Route
                                     path="comptes"

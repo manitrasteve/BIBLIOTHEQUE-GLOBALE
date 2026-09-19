@@ -1,8 +1,9 @@
-import { BarChart3, Building2, UserCheck, History, ShieldCheck, Heart, MessageSquare, LifeBuoy, Mail, Users, MessageCircle, Trash2, KeyRound } from "lucide-react";
+import { FileText, BarChart3, Building2, UserCheck, History, ShieldCheck, Heart, MessageSquare, LifeBuoy, Mail, Users, MessageCircle, Trash2, KeyRound } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
 
 const NAV = [
     { to: "/administrateur/statistiques", label: "Statistiques", icon: BarChart3 },
+    { to: "/administrateur/documents", label: "Documents", icon: FileText },
     { to: "/administrateur/bibliotheques", label: "Bibliothèques", icon: Building2 },
     { to: "/administrateur/bibliothecaires", label: "Bibliothécaires", icon: Users },
     { to: "/administrateur/permissions", label: "Gestion des permissions", icon: KeyRound },

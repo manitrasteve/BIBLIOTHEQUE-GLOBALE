@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     FileText,
     UploadCloud,
@@ -44,6 +44,9 @@ export default function DocumentFormPage() {
     const { id } = useParams();
     const isEditing = Boolean(id);
     const navigate = useNavigate();
+    const listPath = useLocation().pathname.startsWith("/administrateur")
+        ? "/administrateur/documents"
+        : "/bibliothecaire/documents";
 
     const [form, setForm] = useState(emptyForm);
     const [categories, setCategories] = useState([]);
@@ -151,7 +154,7 @@ export default function DocumentFormPage() {
                 if (file) payload.append("file", file);
                 if (cover) payload.append("cover", cover);
                 await api.updateDocument(id, payload);
-                navigate("/bibliothecaire/documents");
+                navigate(listPath);
             } else {
                 if (!file) {
                     setError("Le fichier PDF est obligatoire.");
@@ -170,7 +173,7 @@ export default function DocumentFormPage() {
                 if (cover) payload.append("cover", cover);
 
                 await api.createDocument(payload);
-                navigate("/bibliothecaire/documents");
+                navigate(listPath);
             }
         } catch (err) {
             setError(
