@@ -128,7 +128,7 @@ class ResearchController extends Controller
         return response()->json(['message' => 'Thème supprimé.']);
     }
 
-    // Documents correspondant à un thème ; les nouveautés sont signalées puis marquées comme vues.
+    // Documents correspondant à un thème ; les nouveautés (depuis la dernière visite) sont signalées.
     public function topicDocuments(Request $request, WatchTopic $topic)
     {
         abort_unless($topic->user_id === $request->user()->id, 404);
@@ -150,11 +150,16 @@ class ResearchController extends Controller
             'is_new' => $since && $d->published_at && $d->published_at->gt($since),
         ]);
 
-        if ((int) $request->get('page', 1) === 1) {
-            $topic->update(['last_seen_at' => now()]);
-        }
-
         return response()->json($documents);
+    }
+
+    // Marque les nouveautés du thème comme vues (appelé par la page après affichage).
+    public function markTopicSeen(Request $request, WatchTopic $topic)
+    {
+        abort_unless($topic->user_id === $request->user()->id, 404);
+        $topic->update(['last_seen_at' => now()]);
+
+        return response()->json(['message' => 'Nouveautés marquées comme vues.']);
     }
 
     private function topicPayload(WatchTopic $topic): array

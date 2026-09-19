@@ -45,8 +45,11 @@ export default function ScientificWatchPage() {
             .then((res) => {
                 if (!active) return;
                 setDocuments(res);
-                // La première page marque les nouveautés comme vues : on actualise les compteurs.
-                if (docPage === 1) loadTopics();
+                // Les « Nouveau » restent affichés ; les nouveautés sont marquées vues côté serveur
+                // et les compteurs des thèmes actualisés.
+                if (docPage === 1 && res.data.some((d) => d.is_new)) {
+                    api.markWatchTopicSeen(selected.id).then(loadTopics).catch(() => {});
+                }
             })
             .catch(() => active && setDocuments({ data: [] }));
         return () => {

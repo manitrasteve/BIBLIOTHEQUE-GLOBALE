@@ -91,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/watch-topics', [ResearchController::class, 'storeTopic']);
         Route::delete('/watch-topics/{topic}', [ResearchController::class, 'destroyTopic']);
         Route::get('/watch-topics/{topic}/documents', [ResearchController::class, 'topicDocuments']);
+        Route::post('/watch-topics/{topic}/seen', [ResearchController::class, 'markTopicSeen']);
     });
     Route::post('/feedbacks', [FeedbackController::class, 'store']);
     Route::post('/problem-reports', [ProblemReportController::class, 'store']);

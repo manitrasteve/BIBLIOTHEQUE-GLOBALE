@@ -132,7 +132,11 @@ test('la veille compte les documents publiés après le début du suivi', functi
     $docs = $this->getJson("/api/research/watch-topics/{$id}/documents")->assertOk()->json('data');
     expect($docs)->toHaveCount(2)->and(collect($docs)->where('is_new', true))->toHaveCount(1);
 
-    // Consultés : plus de nouveautés.
+    // La lecture seule ne modifie rien : les nouveautés restent signalées.
+    expect($this->getJson('/api/research/watch-topics')->json('data.0.new_count'))->toBe(1);
+
+    // Une fois marquées comme vues : plus de nouveautés.
+    $this->postJson("/api/research/watch-topics/{$id}/seen")->assertOk();
     expect($this->getJson('/api/research/watch-topics')->json('data.0.new_count'))->toBe(0);
 });
 
@@ -144,6 +148,7 @@ test('un chercheur ne voit ni ne supprime les thèmes d\'un autre', function () 
     $this->getJson('/api/research/watch-topics')->assertOk()->assertJsonCount(0, 'data');
     $this->deleteJson("/api/research/watch-topics/{$id}")->assertNotFound();
     $this->getJson("/api/research/watch-topics/{$id}/documents")->assertNotFound();
+    $this->postJson("/api/research/watch-topics/{$id}/seen")->assertNotFound();
 });
 
 // ---------- Filtre auteur du catalogue ----------

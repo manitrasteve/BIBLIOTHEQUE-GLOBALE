@@ -690,6 +690,9 @@ export const api = {
     deleteWatchTopic: (id) =>
         request(`/research/watch-topics/${id}`, { method: "DELETE" }),
 
+    markWatchTopicSeen: (id) =>
+        request(`/research/watch-topics/${id}/seen`, { method: "POST" }),
+
     getWatchTopicDocuments: (id, params = {}) => {
         const query = new URLSearchParams(params).toString();
 
