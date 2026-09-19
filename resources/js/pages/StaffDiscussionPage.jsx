@@ -72,7 +72,7 @@ export default function StaffDiscussionPage() {
             {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {!conversation ? <div className="modern-card p-10 text-center text-slate-500">Sélectionnez une conversation.</div> : <div className="modern-card overflow-hidden">
                 <div className="border-b border-slate-200 bg-indigo-50 p-4"><p className="font-bold text-indigo-950">Conversation avec {otherName}</p><p className="text-xs text-indigo-700">Messages privés entre le personnel.</p></div>
-                <div className="min-h-[420px] max-h-[60vh] space-y-3 overflow-y-auto bg-slate-50 p-4">
+                <div className="min-h-72 max-h-[calc(100dvh-24rem)] space-y-3 overflow-y-auto bg-slate-50 p-4">
                     {messages.length === 0 && <p className="py-16 text-center text-sm text-slate-400">Aucun message. Commencez la discussion.</p>}
                     {messages.map((m) => { const mine = Number(m.sender_id) === Number(user.id); return <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`group max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-indigo-600 text-white" : "bg-white text-slate-800 border border-slate-200"}`}><p className="whitespace-pre-wrap text-sm leading-6">{m.message}</p><div className={`mt-1 flex items-center justify-between gap-4 text-[10px] ${mine ? "text-indigo-100" : "text-slate-400"}`}><span>{new Date(m.created_at).toLocaleString("fr-FR")}</span><button onClick={() => remove(m.id)} title="Supprimer" className="opacity-70 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>; })}
                 </div>

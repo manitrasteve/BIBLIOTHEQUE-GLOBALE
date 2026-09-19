@@ -177,7 +177,7 @@ export default function ServiceCreateAccountRequestPage({
     );
 
     return (
-        <div className="w-full py-4">
+        <div className="w-full">
             <div className="w-full">
                 {/* En-tête */}
                 <div className="mb-4">

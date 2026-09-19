@@ -102,7 +102,7 @@ export default function AdminLibrariesPage() {
       {error && <p className="text-red-700 mb-4">{error}</p>}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-8 space-y-4 rounded-xl border border-line bg-paper p-6 max-w-xl">
+        <form onSubmit={handleSubmit} className="mb-6 w-full space-y-4 rounded-xl border border-line bg-paper p-5">
           <div className="flex items-center justify-between">
             <p className="font-display text-lg text-ink">{editingId ? 'Modifier' : 'Nouvelle bibliothèque'}</p>
             <button type="button" onClick={() => setShowForm(false)} className="text-ink-soft hover:text-ink">

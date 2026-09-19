@@ -86,7 +86,7 @@ export default function NotificationsPage() {
     const hasUnread = notifications?.some((n) => !n.read_at);
 
     return (
-        <div className="w-full px-4 py-5 sm:px-6">
+        <div className="w-full">
             <div className="flex items-baseline justify-between mb-8">
                 <h1 className="flex items-center gap-2 font-display text-3xl  text-brass hover:text-brass-deep">
                     <Bell

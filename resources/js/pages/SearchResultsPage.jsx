@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { SearchX, Tag, Languages } from 'lucide-react';
 import { api } from '../lib/api';
 import SearchBar from '../components/SearchBar';
@@ -8,6 +8,8 @@ import { SkeletonDocumentCard } from '../components/Skeleton';
 
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
+  // Dans l'espace bibliothécaire, le layout fournit déjà les marges.
+  const inLayout = useLocation().pathname.startsWith('/bibliothecaire');
   const q = searchParams.get('q') || '';
 
   const [results, setResults] = useState(null);
@@ -34,7 +36,7 @@ export default function SearchResultsPage() {
   }, [q, categoryId, language]);
 
   return (
-    <div className="w-full px-4 sm:px-6 xl:px-8 py-5">
+    <div className={`w-full ${inLayout ? '' : 'px-4 sm:px-6 xl:px-8 py-5'}`}>
       <h1 className="font-display text-3xl text-ink mb-6">
         {q ? (
           <>
