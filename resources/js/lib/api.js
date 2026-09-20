@@ -701,11 +701,23 @@ export const api = {
         );
     },
 
-    getAdminConsultations: () => request("/consultations"),
+    getAdminConsultations: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
 
-    getAdminAiQueries: () => request("/ai-queries"),
+        return request(`/consultations${query ? `?${query}` : ""}`);
+    },
 
-    getAdminFavorites: () => request("/all-favorites"),
+    getAdminAiQueries: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/ai-queries${query ? `?${query}` : ""}`);
+    },
+
+    getAdminFavorites: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/all-favorites${query ? `?${query}` : ""}`);
+    },
 
     toggleFavorite: (slug) =>
         request(`/documents/${slug}/favorite`, {

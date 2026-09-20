@@ -10,10 +10,44 @@ import {
     UserX,
     Upload,
     Heart,
+    HeartOff,
+    Search,
     ListFilter,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { SkeletonList } from "../../components/Skeleton";
+
+// Pagination commune aux quatre vues (le serveur pagine : 30 entrées globales, 25 par vue détaillée).
+function Pagination({ meta, page, onChange }) {
+    if (!meta || meta.last_page <= 1) return null;
+
+    return (
+        <nav
+            aria-label="Pagination"
+            className="mt-5 flex flex-wrap items-center justify-between gap-3"
+        >
+            <button
+                type="button"
+                className="btn-secondary"
+                disabled={page <= 1}
+                onClick={() => onChange(page - 1)}
+            >
+                Précédent
+            </button>
+            <span className="text-sm text-ink-soft">
+                Page {meta.current_page} / {meta.last_page} · {meta.total} entrées
+            </span>
+            <button
+                type="button"
+                className="btn-secondary"
+                disabled={page >= meta.last_page}
+                onClick={() => onChange(page + 1)}
+            >
+                Suivant
+            </button>
+        </nav>
+    );
+}
 
 const ACTION_CONFIG = {
     connexion: {
@@ -64,6 +98,24 @@ const ACTION_CONFIG = {
         label: "Permissions modifiées",
         icon: UserCheck,
     },
+
+    // Actions enregistrées par le système mais absentes de la liste jusqu'ici.
+    creation_bibliothecaire: {
+        label: "Création de bibliothécaire",
+        icon: UserPlus,
+    },
+    ajout_favori: {
+        label: "Favori ajouté",
+        icon: Heart,
+    },
+    retrait_favori: {
+        label: "Favori supprimé",
+        icon: HeartOff,
+    },
+    recherche: {
+        label: "Recherche",
+        icon: Search,
+    },
 };
 
 export default function AdminActivityPage() {
@@ -72,40 +124,57 @@ export default function AdminActivityPage() {
     const type = searchParams.get("type") || "";
 
     const [logs, setLogs] = useState(null);
+    const [meta, setMeta] = useState(null);
+    const [page, setPage] = useState(1);
     const [actionFilter, setActionFilter] = useState("");
     const [error, setError] = useState(null);
+
+    // Changer de vue ou de filtre repart de la première page.
+    useEffect(() => {
+        setPage(1);
+    }, [type, actionFilter]);
 
     /*
      * Chargement selon le type demandé par les cartes
      * du dashboard administrateur.
      */
     useEffect(() => {
+        let active = true; // ignore les réponses arrivées en retard (changement rapide de filtre / page)
         setLogs(null);
         setError(null);
 
         let promise;
 
         if (type === "consultations") {
-            promise = api.getAdminConsultations();
+            promise = api.getAdminConsultations({ page });
         } else if (type === "ai") {
-            promise = api.getAdminAiQueries();
+            promise = api.getAdminAiQueries({ page });
         } else if (type === "favoris") {
-            promise = api.getAdminFavorites();
+            promise = api.getAdminFavorites({ page });
         } else {
-            promise = api.getActivityLogs(
-                actionFilter ? { action: actionFilter } : {},
-            );
+            promise = api.getActivityLogs({
+                page,
+                ...(actionFilter ? { action: actionFilter } : {}),
+            });
         }
 
         promise
             .then((res) => {
+                if (!active) return;
                 setLogs(res.data || []);
+                setMeta(res);
             })
             .catch(() => {
+                if (!active) return;
                 setError("Impossible de charger l'historique.");
                 setLogs([]);
+                setMeta(null);
             });
-    }, [type, actionFilter]);
+
+        return () => {
+            active = false;
+        };
+    }, [type, actionFilter, page]);
 
     /*
      * Affichage spécifique : consultations
@@ -180,6 +249,8 @@ export default function AdminActivityPage() {
                         ))}
                     </div>
                 )}
+
+                <Pagination meta={meta} page={page} onChange={setPage} />
             </div>
         );
     }
@@ -259,6 +330,8 @@ export default function AdminActivityPage() {
                         ))}
                     </div>
                 )}
+
+                <Pagination meta={meta} page={page} onChange={setPage} />
             </div>
         );
     }
@@ -337,6 +410,8 @@ export default function AdminActivityPage() {
                         ))}
                     </div>
                 )}
+
+                <Pagination meta={meta} page={page} onChange={setPage} />
             </div>
         );
     }
@@ -419,7 +494,7 @@ export default function AdminActivityPage() {
                                 </span>
 
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm text-ink">
+                                    <p className="break-words text-sm text-ink">
                                         <span className="font-medium">
                                             {log.user?.name ||
                                                 "Utilisateur supprimé"}
@@ -428,7 +503,7 @@ export default function AdminActivityPage() {
                                     </p>
 
                                     {log.description && (
-                                        <p className="mt-0.5 text-xs text-ink-soft">
+                                        <p className="mt-0.5 break-words text-xs text-ink-soft">
                                             {log.description}
                                         </p>
                                     )}
@@ -444,6 +519,8 @@ export default function AdminActivityPage() {
                     })}
                 </ul>
             )}
+
+            <Pagination meta={meta} page={page} onChange={setPage} />
         </div>
     );
 }
