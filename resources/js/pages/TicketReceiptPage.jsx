@@ -17,8 +17,6 @@ export default function TicketReceiptPage() {
 
         api.getAccountRequest(uuid)
             .then((data) => {
-                console.log("Réponse complète de getAccountRequest :", data);
-
                 /*
                  * Laravel peut renvoyer la demande sous plusieurs formes :
                  *
@@ -36,8 +34,6 @@ export default function TicketReceiptPage() {
                     data?.data?.request ??
                     data?.data ??
                     data;
-
-                console.log("Demande utilisée par la page :", requestData);
 
                 setTicket(requestData);
             })

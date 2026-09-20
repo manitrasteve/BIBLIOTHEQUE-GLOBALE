@@ -27,6 +27,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SiteUpdatesPage from "./pages/SiteUpdatesPage";
 import UserLayout from "./components/UserLayout";
+import NotFoundPage from "./pages/NotFoundPage";
 import MyReadingsPage from "./pages/MyReadingsPage";
 import MyActivitiesPage from "./pages/MyActivitiesPage";
 import ResearchSpacePage from "./pages/ResearchSpacePage";
@@ -319,6 +320,9 @@ export default function App() {
                                     element={<AdminActivityPage />}
                                 />
                             </Route>
+
+                            {/* Adresse inconnue */}
+                            <Route path="*" element={<NotFoundPage />} />
                         </Routes>
                     </main>
                     <Footer />

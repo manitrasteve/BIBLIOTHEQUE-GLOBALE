@@ -68,6 +68,11 @@ class DocumentIngestionService
             return;
         }
 
+        // L'indexation appelle Gemini par lots (un mémoire de 200 pages = des dizaines d'appels) et
+        // s'exécute pendant l'envoi du document : sans cela, la limite PHP (120 s) interrompait la
+        // requête alors que le document était déjà créé (erreur affichée, puis doublon au réessai).
+        @set_time_limit(600);
+
         // Remplace les anciens chunks (utile en cas de ré-ingestion / mise à jour du fichier).
         $document->chunks()->delete();
 
