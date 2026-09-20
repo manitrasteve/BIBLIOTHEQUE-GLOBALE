@@ -30,6 +30,20 @@ const ACTION_CONFIG = {
     reactivation_compte: { label: "Compte réactivé", icon: UserCheck },
     suppression_utilisateur: { label: "Compte supprimé", icon: UserX },
     permissions_modifiees: { label: "Permissions modifiées", icon: UserCheck },
+    creation_bibliothecaire: { label: "Bibliothécaire créé", icon: UserPlus },
+    // Actions de gestion (audit)
+    creation_document: { label: "Document ajouté", icon: Upload },
+    modification_document: { label: "Document modifié", icon: Upload },
+    archivage_document: { label: "Document archivé", icon: Upload },
+    suppression_document: { label: "Document supprimé", icon: UserX },
+    restauration_document: { label: "Document restauré", icon: Upload },
+    suppression_definitive_document: { label: "Document supprimé définitivement", icon: UserX },
+    creation_bibliotheque: { label: "Bibliothèque créée", icon: UserPlus },
+    modification_bibliotheque: { label: "Bibliothèque modifiée", icon: UserCheck },
+    suppression_bibliotheque: { label: "Bibliothèque supprimée", icon: UserX },
+    restauration_utilisateur: { label: "Compte restauré", icon: UserCheck },
+    suppression_definitive_utilisateur: { label: "Compte supprimé définitivement", icon: UserX },
+    vidage_corbeille: { label: "Corbeille vidée", icon: UserX },
 };
 
 function formatDate(value) {

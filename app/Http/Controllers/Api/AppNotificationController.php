@@ -20,7 +20,10 @@ class AppNotificationController extends Controller
 
          $type = ltrim((string) $notification->related_type, '\\');
 
-         if ($type === 'document' || $type === Document::class) {
+         if (in_array($notification->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)) {
+             // Personnel : le document peut être brouillon, archivé ou en Corbeille (page publique indisponible).
+             $notification->related_url = $this->staffDocumentUrl($request->user(), $notification->related_id);
+         } elseif ($type === 'document' || $type === Document::class) {
              $document = Document::find($notification->related_id);
              if ($document) {
                  $notification->related_url = '/documents/' . $document->slug;
@@ -47,6 +50,21 @@ class AppNotificationController extends Controller
      });
 
      return response()->json($items);
+ }
+ private function staffDocumentUrl($user, $documentId): string
+ {
+     $base = $user->isAdmin() ? '/administrateur' : '/bibliothecaire';
+     $document = Document::withTrashed()->find($documentId);
+
+     if (!$document) {
+         return "{$base}/documents"; // supprimé définitivement : retour à la liste
+     }
+
+     if ($document->trashed()) {
+         return $user->isAdmin() || $user->hasPermission('voir_corbeille') ? "{$base}/corbeille" : "{$base}/documents";
+     }
+
+     return "{$base}/documents/{$document->id}/modifier";
  }
  public function unreadCount(Request $request){return response()->json(['count'=>$request->user()->appNotifications()->unread()->count()]);}
  public function markRead(Request $request,AppNotification $appNotification){abort_unless($appNotification->user_id===$request->user()->id,403);$appNotification->markAsRead();return response()->json($appNotification);}

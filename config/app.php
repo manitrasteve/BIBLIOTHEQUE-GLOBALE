@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Fuseau utilisé pour écrire les dates dans le texte des notifications (les dates stockées restent en UTC).
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Indian/Antananarivo'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

@@ -61,7 +61,7 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="mx-auto max-w-lg px-4 py-12">
+        <div className="mx-auto max-w-lg px-4 py-8">
             <form
                 onSubmit={submit}
                 className="modern-card space-y-5 p-7"

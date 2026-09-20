@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccountRequest;
 use App\Models\MemberRegistry;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,12 @@ use Illuminate\Validation\Rule;
 
 class AccountRequestController extends Controller
 {
+    // Un bibliothécaire ne traite que les demandes de sa propre bibliothèque (l'administrateur : toutes).
+    private function authorizeRequestLibrary(User $user, AccountRequest $accountRequest): void
+    {
+        abort_unless($user->managesLibrary($accountRequest->library_id), 403, 'Cette demande appartient à une autre bibliothèque.');
+    }
+
     /**
      * Liste des demandes de création de compte.
      */
@@ -38,6 +45,9 @@ class AccountRequestController extends Controller
             'createdBy',
             'processedBy',
         ]);
+
+        // Le bibliothécaire ne voit que les demandes de sa bibliothèque.
+        $request->user()->restrictToManagedLibrary($query);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -406,6 +416,8 @@ class AccountRequestController extends Controller
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 
+        $this->authorizeRequestLibrary($user, $accountRequest);
+
         if (!in_array($accountRequest->status, ['en_attente', 'verifiee'], true)) {
             return response()->json(['message' => 'Ce ticket ne peut plus être traité.'], 422);
         }
@@ -464,6 +476,8 @@ class AccountRequestController extends Controller
 
             return $createdUser;
         });
+
+        ActivityLogService::log($user->id, 'creation_compte', "{$createdUser->name} — {$createdUser->role}", $createdUser);
 
         return response()->json([
             'message' => 'Le compte a été créé et reste en attente d’activation.',
@@ -593,6 +607,8 @@ class AccountRequestController extends Controller
             ], 403);
         }
 
+        $this->authorizeRequestLibrary($user, $accountRequest);
+
         if ($accountRequest->status !== 'en_attente') {
             return response()->json([
                 'message' => 'Cette demande ne peut plus être vérifiée.',
@@ -653,6 +669,8 @@ class AccountRequestController extends Controller
         if (!$user || !$user->isLibrarian()) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
+
+        $this->authorizeRequestLibrary($user, $accountRequest);
 
         if ($accountRequest->status !== 'en_attente') {
             return response()->json([
@@ -776,6 +794,8 @@ class AccountRequestController extends Controller
                 'message' => 'Accès non autorisé.',
             ], 403);
         }
+
+        $this->authorizeRequestLibrary($admin, $accountRequest);
 
         if (
             in_array($accountRequest->status, ['validee', 'traitee'], true)
@@ -930,6 +950,8 @@ class AccountRequestController extends Controller
          * Envoi du lien de création du mot de passe.
          */
         if (!$result['already_processed']) {
+            ActivityLogService::log($admin->id, 'validation_compte', "{$result['user']->name} — {$result['user']->role}", $result['user']);
+
             $this->queueMail(function () use ($result, $accountRequest) {
                 try {
                     Mail::send(
@@ -1545,6 +1567,8 @@ class AccountRequestController extends Controller
                 'token' => $token,
             ];
         });
+
+        ActivityLogService::log($admin->id, 'creation_compte', "{$result['user']->name} — {$result['user']->role}", $result['user']);
 
         /**
          * Envoi du lien de création du mot de passe.

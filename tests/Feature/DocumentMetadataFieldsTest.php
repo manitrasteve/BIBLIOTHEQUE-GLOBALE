@@ -24,7 +24,8 @@ function metadataPayload(array $overrides = []): array
         'title' => 'Introduction à l’algorithmique',
         'type' => 'Livre numérique',
         'category' => 'Sciences informatiques',
-        'library_id' => Library::factory()->create()->id,
+        // La bibliothèque du compte connecté (un bibliothécaire ne crée que dans la sienne).
+        'library_id' => auth()->user()?->library_id ?? Library::factory()->create()->id,
         'language' => 'Français',
         'access_level' => 'authentifie',
         'file' => UploadedFile::fake()->create('cours.pdf', 100, 'application/pdf'),
@@ -114,8 +115,9 @@ test('l\'ancien envoi par category_id reste accepté', function () {
 });
 
 test('modification : les valeurs existantes se changent librement, y compris le type, et le niveau peut être vidé', function () {
-    Sanctum::actingAs(metadataUser('bibliothecaire'));
-    $document = Document::factory()->create(['type' => 'livre', 'niveau' => 'L2', 'language' => 'fr', 'isbn' => '123', 'publisher' => 'Ancien']);
+    $librarian = metadataUser('bibliothecaire');
+    Sanctum::actingAs($librarian);
+    $document = Document::factory()->create(['library_id' => $librarian->library_id, 'type' => 'livre', 'niveau' => 'L2', 'language' => 'fr', 'isbn' => '123', 'publisher' => 'Ancien']);
 
     $this->post("/api/documents/{$document->id}", [
         'type' => 'Rapport de stage',

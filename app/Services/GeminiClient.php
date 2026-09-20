@@ -217,6 +217,14 @@ public function batchEmbed(array $texts): array
             ];
         }
 
+        // Appel de fonctions (assistants de gestion) : options facultatives, absentes du RAG.
+        if (!empty($options['tools'])) {
+            $payload['tools'] = $options['tools'];
+        }
+        if (!empty($options['tool_config'])) {
+            $payload['toolConfig'] = $options['tool_config'];
+        }
+
         return $payload;
     }
 
@@ -269,6 +277,69 @@ public function batchEmbed(array $texts): array
             $last = new GeminiException(
                 "Échec de la requête de génération Gemini {$model} " .
                 "(HTTP {$response->status()}) : " . $response->body(),
+                $response->status()
+            );
+
+            if (!$this->isRetryable($response->status())) {
+                throw $last;
+            }
+
+            $this->markDown($model);
+        }
+
+        throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
+    }
+
+    /**
+     * Génération avec appel de fonctions (outils). Même repli entre modèles que generateContents(),
+     * mais renvoie le contenu brut du modèle : il doit être renvoyé tel quel au tour suivant
+     * (les modèles récents y joignent une « thoughtSignature » obligatoire).
+     *
+     * @return array{content:array,text:string,function_calls:array<int,array{name:string,args:array}>,model:string}
+     */
+    public function generateWithTools(array $contents, array $options = []): array
+    {
+        $last = null;
+
+        foreach ($this->modelChain($options['model'] ?? null) as $model) {
+            try {
+                $response = $this->http($options['timeout'] ?? 60)
+                    ->post(
+                        "{$this->baseUrl}/models/{$model}:generateContent",
+                        $this->payload($contents, $options)
+                    );
+            } catch (ConnectionException $e) {
+                $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
+                $this->markDown($model);
+                continue;
+            }
+
+            if ($response->successful()) {
+                $content = $response->json('candidates.0.content') ?? ['role' => 'model', 'parts' => []];
+                $calls = [];
+
+                foreach (($content['parts'] ?? []) as $i => $part) {
+                    if (isset($part['functionCall']['name'])) {
+                        $calls[] = ['name' => (string) $part['functionCall']['name'], 'args' => (array) ($part['functionCall']['args'] ?? [])];
+
+                        // Sans argument, Gemini envoie « args: {} » : décodé en tableau vide, il serait renvoyé « [] »
+                        // (liste) et l'API refuserait la requête. On le garde en objet vide.
+                        if (empty($part['functionCall']['args'])) {
+                            $content['parts'][$i]['functionCall']['args'] = new \stdClass();
+                        }
+                    }
+                }
+
+                return [
+                    'content' => $content,
+                    'text' => $this->extractText($response->json()),
+                    'function_calls' => $calls,
+                    'model' => $model,
+                ];
+            }
+
+            $last = new GeminiException(
+                "Échec de la requête Gemini (outils) {$model} (HTTP {$response->status()}) : " . $response->body(),
                 $response->status()
             );
 

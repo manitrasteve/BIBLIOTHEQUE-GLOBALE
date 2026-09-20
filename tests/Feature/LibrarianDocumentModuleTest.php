@@ -14,6 +14,14 @@ function documentModuleLibrarian(): User
     ]);
 }
 
+// Documents créés dans la bibliothèque du compte connecté (un bibliothécaire ne gère que la sienne).
+function moduleDocs(int $count, array $attributes = [])
+{
+    $own = auth()->user()?->library_id ? ['library_id' => auth()->user()->library_id] : [];
+
+    return Document::factory()->count($count)->create(array_merge($own, $attributes));
+}
+
 test('un bibliothécaire sans aucune permission accède à la liste des documents', function () {
     Sanctum::actingAs(documentModuleLibrarian());
 
@@ -26,11 +34,11 @@ test('la recherche de documents est partielle, insensible à la casse et couvre 
         : documentModuleLibrarian());
 
     foreach (['Analyse', 'Bibliothèque', 'Structure', 'Support', 'Stéphanie'] as $title) {
-        Document::factory()->create(['title' => $title, 'status' => 'publie']);
+        moduleDocs(1, ['title' => $title, 'status' => 'publie']);
     }
     // Plus de 20 documents récents : « Steve » est relégué hors de la première page.
-    Document::factory()->create(['title' => 'Steve', 'status' => 'brouillon', 'created_at' => now()->subDays(5)]);
-    Document::factory()->count(22)->create(['status' => 'publie', 'created_at' => now()]);
+    moduleDocs(1, ['title' => 'Steve', 'status' => 'brouillon', 'created_at' => now()->subDays(5)]);
+    moduleDocs(22, ['status' => 'publie', 'created_at' => now()]);
 
     $titles = fn (string $q) => collect($this->getJson('/api/documents-manage?' . http_build_query(['q' => $q]))->assertOk()->json('data'))->pluck('title')->all();
 
@@ -53,8 +61,8 @@ test('la recherche de documents est partielle, insensible à la casse et couvre 
 
 test('la recherche se combine avec le filtre de statut', function () {
     Sanctum::actingAs(documentModuleLibrarian());
-    Document::factory()->create(['title' => 'Structure publiée', 'status' => 'publie']);
-    Document::factory()->create(['title' => 'Structure brouillon', 'status' => 'brouillon']);
+    moduleDocs(1, ['title' => 'Structure publiée', 'status' => 'publie']);
+    moduleDocs(1, ['title' => 'Structure brouillon', 'status' => 'brouillon']);
 
     $titles = collect($this->getJson('/api/documents-manage?q=structure&status=brouillon')->json('data'))->pluck('title')->all();
 
@@ -69,7 +77,7 @@ test('un bibliothécaire peut ajouter un document sans permission (la validation
 
 test('un bibliothécaire peut modifier et archiver un document sans permission', function () {
     Sanctum::actingAs(documentModuleLibrarian());
-    $document = Document::factory()->create(['status' => 'publie']);
+    $document = moduleDocs(1, ['status' => 'publie'])->first();
 
     $this->postJson("/api/documents/{$document->id}", [])->assertOk();
     $this->postJson("/api/documents/{$document->id}/archive")->assertOk();
@@ -78,7 +86,7 @@ test('un bibliothécaire peut modifier et archiver un document sans permission',
 
 test('publier et supprimer restent soumis à permission', function () {
     Sanctum::actingAs(documentModuleLibrarian());
-    $id = Document::factory()->create(['status' => 'brouillon'])->id;
+    $id = moduleDocs(1, ['status' => 'brouillon'])->first()->id; // sa propre bibliothèque : le refus vient bien de la permission
 
     $this->postJson("/api/documents/{$id}/publish")->assertForbidden();
     $this->deleteJson("/api/documents/{$id}")->assertForbidden();

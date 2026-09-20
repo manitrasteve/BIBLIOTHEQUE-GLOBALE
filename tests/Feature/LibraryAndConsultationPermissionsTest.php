@@ -46,6 +46,7 @@ test('modifier une bibliothèque : réservé à l\'admin ou au bibliothécaire a
 
     // Avec « modifier » : modification autorisée, mais ni création ni suppression.
     $editor = librarianWith(['modifier_bibliotheque']);
+    $editor->update(['library_id' => $library->id]); // un bibliothécaire ne modifie que SA bibliothèque
     $this->actingAs($editor, 'sanctum')->postJson("/api/libraries/{$library->id}", ['name' => 'Nouveau nom'])->assertOk();
     $this->actingAs($editor, 'sanctum')->putJson("/api/libraries/{$library->id}", ['name' => 'Nouveau nom 2'])->assertOk();
     expect($library->fresh()->name)->toBe('Nouveau nom 2');

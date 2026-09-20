@@ -56,9 +56,12 @@ class EngagementController extends Controller
     public function stats(Request $request)
     {
         abort_unless($request->user()->hasPermission('voir_popularite'),403);
-        $docs=Document::where('status','publie')->withCount(['consultations','favorites','aiQueries'])->orderByDesc('consultations_count')->limit(20)->get(['id','slug','title','type','year']);
+        // Le bibliothécaire ne voit que les documents (et totaux) de sa bibliothèque.
+        $me=$request->user();
+        $ofMyLibrary=fn($q)=>$me->isAdmin()?$q:$q->whereHas('document',fn($d)=>$me->restrictToManagedLibrary($d));
+        $docs=$me->restrictToManagedLibrary(Document::where('status','publie'))->withCount(['consultations','favorites','aiQueries'])->orderByDesc('consultations_count')->limit(20)->get(['id','slug','title','type','year']);
         return response()->json(['documents'=>$docs,'totals'=>[
-            'consultations'=>Consultation::count(),'favorites'=>Favorite::count(),'ai_queries'=>AiQuery::count()
+            'consultations'=>$ofMyLibrary(Consultation::query())->count(),'favorites'=>$ofMyLibrary(Favorite::query())->count(),'ai_queries'=>$ofMyLibrary(AiQuery::query())->count()
         ]]);
     }
 

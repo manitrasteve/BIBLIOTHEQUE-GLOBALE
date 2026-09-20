@@ -90,7 +90,7 @@ export default function DocumentDetailPage() {
             user?.is_active === true);
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-7">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-7 xl:flex xl:h-[calc(100dvh-var(--app-header-height))] xl:flex-col xl:overflow-hidden xl:py-4">
             {/* =========================================================
                 RETOUR AU CATALOGUE
             ========================================================= */}
@@ -106,13 +106,14 @@ export default function DocumentDetailPage() {
                 CONTENU PRINCIPAL
                 LES DEUX BLOCS ONT LA MÊME HAUTEUR
             ========================================================= */}
-            <div className="mt-5 flex flex-col xl:flex-row gap-5 items-stretch">
+            <div className="mt-5 flex flex-col xl:flex-row gap-5 items-stretch xl:mt-3 xl:min-h-0 xl:flex-1">
                 {/* =====================================================
                     BLOC GAUCHE
                     COUVERTURE + INFORMATIONS
+                    (défile seul sur grand écran pour garder la lecture visible)
                 ===================================================== */}
-                <div className="w-full xl:w-[330px] 2xl:w-[350px] flex-shrink-0 self-stretch">
-                    <div className="w-full h-full border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
+                <div className="w-full xl:w-[330px] 2xl:w-[350px] flex-shrink-0 self-stretch xl:min-h-0 xl:overflow-y-auto">
+                    <div className="w-full h-full xl:h-auto xl:min-h-full border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
                         <div className="p-4 flex-1">
                             {/* =================================================
                                 COUVERTURE + INFORMATIONS À CÔTÉ
@@ -399,7 +400,7 @@ export default function DocumentDetailPage() {
                     GRANDE ZONE LECTURE / IA
                 ===================================================== */}
                 {canRead && (
-                    <div className="w-full xl:flex-1 min-w-0 self-stretch">
+                    <div className="w-full xl:flex-1 min-w-0 self-stretch xl:min-h-0">
                         <div className="w-full h-full border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
                             {/* ONGLETS */}
                             <div className="flex gap-1 px-4 sm:px-5 border-b border-line flex-shrink-0">

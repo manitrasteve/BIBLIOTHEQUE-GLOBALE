@@ -8,12 +8,20 @@ import {
     Bell,
     CheckCheck,
     Inbox,
+    FilePlus2,
+    Pencil,
+    Archive,
+    Trash2,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { SkeletonList } from "../components/Skeleton";
 
 const TYPE_ICONS = {
     document_publie: BookOpen,
+    document_ajoute: FilePlus2,
+    document_modifie: Pencil,
+    document_archive: Archive,
+    document_supprime: Trash2,
     compte_valide: CheckCircle2,
     compte_a_valider: UserPlus,
     compte_expire: Clock3,

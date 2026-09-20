@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\ProblemReportController;
 use App\Http\Controllers\Api\AdminMessageController;
+use App\Http\Controllers\Api\AdminAssistantController;
+use App\Http\Controllers\Api\LibrarianAssistantController;
 use App\Http\Controllers\Api\SiteUpdateController;
 use App\Http\Controllers\Api\UserMessageController;
 use App\Http\Controllers\Api\StaffDiscussionController;
@@ -126,6 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
     | Bibliothécaire + Administrateur
     |----------------------------------------------------------------------
     */
+    Route::post('/assistant/librarian', [LibrarianAssistantController::class, 'ask'])->middleware(['role:bibliothecaire', 'throttle:20,1']);
+
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
         Route::post('/categories', [CategoryController::class, 'store']);
@@ -185,6 +189,8 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::post('/users/{user}/reactivate', [UserController::class, 'reactivate']);
        Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate']);
        Route::delete('/users/{user}', [UserController::class, 'destroy']);
+       // Assistant IA de gestion : administrateur uniquement, limité pour maîtriser les appels Gemini.
+       Route::post('/assistant/admin', [AdminAssistantController::class, 'ask'])->middleware('throttle:20,1');
        Route::get('/librarians', [LibrarianManagementController::class, 'index']);
        Route::post('/librarians', [LibrarianManagementController::class, 'store']);
        Route::get('/permissions', [PermissionManagementController::class, 'permissions']);

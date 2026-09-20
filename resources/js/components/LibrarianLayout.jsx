@@ -18,6 +18,7 @@ import {
     MessageSquare,
     LifeBuoy,
     Activity,
+    Sparkles,
 } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../context/AuthContext";
@@ -98,6 +99,8 @@ const NAV = [
         permission: "voir_signalements",
         hideForAdmin: true,
     },
+    // Le périmètre est limité à la bibliothèque du compte ; l'administrateur a sa propre page.
+    { to: "/bibliothecaire/assistant", label: "Assistant IA", icon: Sparkles, hideForAdmin: true },
     { to: "/bibliothecaire/activites", label: "Mes activités", icon: Activity },
     { to: "/bibliothecaire/messages", label: "Messages", icon: Mail },
     {

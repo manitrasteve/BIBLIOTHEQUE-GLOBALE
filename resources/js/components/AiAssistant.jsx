@@ -186,11 +186,11 @@ export default function AiAssistant({ slug }) {
             className={
                 fullscreen
                     ? "fixed inset-0 z-[60] flex h-screen w-screen flex-col rounded-none border-0 bg-paper p-4 sm:p-6"
-                    : "rounded-xl border border-line bg-paper-dim/40 p-5 flex flex-col h-[80vh]"
+                    : "rounded-xl border border-line bg-paper-dim/40 p-4 flex flex-col reader-panel-height"
             }
         >
             {/* En-tête */}
-            <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                     <p className="flex items-center gap-2 font-display text-lg text-ink">
                         <Sparkles

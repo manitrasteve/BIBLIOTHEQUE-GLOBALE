@@ -122,7 +122,7 @@ export default function PasswordSetupPage() {
     }
 
     return (
-        <div className="mx-auto w-full max-w-lg px-4 py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-lg px-4 py-8">
             <form
                 onSubmit={submit}
                 className="modern-card w-full space-y-5 p-5 sm:p-7"

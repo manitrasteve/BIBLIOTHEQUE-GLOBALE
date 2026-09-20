@@ -22,10 +22,18 @@ export default function DocumentsManagePage() {
   // Recherche pendant la saisie (titre, côté serveur : la liste est paginée) ; champ vidé => liste initiale.
   const searchTerm = useDebouncedValue(query.trim(), 250);
   const latestRequest = useRef(0);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(null); // pagination du serveur
+  const [counts, setCounts] = useState(null); // totaux réels (statuts + types), calculés par le serveur
+
+  // Changer de filtre ou de recherche repart de la première page.
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchTerm]);
 
   useEffect(() => {
     load();
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, searchTerm, page]);
 
   function load() {
     // Seule la réponse à la dernière requête est affichée (frappes rapides).
@@ -33,14 +41,22 @@ export default function DocumentsManagePage() {
     const params = {
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(searchTerm ? { q: searchTerm } : {}),
+      ...(page > 1 ? { page } : {}),
     };
 
     api
       .getManagedDocuments(params)
       .then((res) => {
         if (requestId !== latestRequest.current) return;
+        // Dernière ligne d'une page supprimée / archivée : on revient à la page précédente.
+        if (res.data.length === 0 && page > 1) {
+          setPage(page - 1);
+          return;
+        }
         setError(null);
         setDocuments(res.data);
+        setMeta({ current_page: res.current_page, last_page: res.last_page, total: res.total });
+        setCounts(res.counts || null);
       })
       .catch(() => {
         if (requestId === latestRequest.current) setError('Impossible de charger les documents.');
@@ -102,7 +118,7 @@ export default function DocumentsManagePage() {
               statusFilter === '' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-soft hover:border-brass'
             }`}
           >
-            Tous
+            Tous{counts ? ` (${counts.all})` : ''}
           </button>
           {STATUS_FILTERS.map((key) => (
             <button
@@ -112,7 +128,7 @@ export default function DocumentsManagePage() {
                 statusFilter === key ? 'bg-ink text-paper border-ink' : 'border-line text-ink-soft hover:border-brass'
               }`}
             >
-              {STATUS_LABELS[key]}
+              {STATUS_LABELS[key]}{counts ? ` (${counts[key]})` : ''}
             </button>
           ))}
         </div>
@@ -125,6 +141,22 @@ export default function DocumentsManagePage() {
           Ajouter un document
         </Link>
       </div>
+
+      {/* « Tous » : total général + répartition par type (valeurs calculées par le serveur) */}
+      {statusFilter === '' && counts && counts.all > 0 && (
+        <div className="mb-5 rounded-xl border border-line bg-paper p-4" aria-label="Répartition des documents">
+          <p className="text-sm font-bold text-ink">Total général : {counts.all}</p>
+          {counts.by_type?.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {counts.by_type.map((row) => (
+                <li key={row.type} className="rounded-full border border-line px-3 py-1 text-sm text-ink-soft">
+                  {row.type} : <span className="font-semibold text-ink">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-red-700 mb-4">{error}</p>}
 
@@ -210,6 +242,20 @@ export default function DocumentsManagePage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {meta?.last_page > 1 && (
+        <nav aria-label="Pagination" className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" className="btn-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Précédent
+          </button>
+          <span className="text-sm text-ink-soft">
+            Page {meta.current_page} / {meta.last_page} · {meta.total} document{meta.total > 1 ? 's' : ''}
+          </span>
+          <button type="button" className="btn-secondary" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)}>
+            Suivant
+          </button>
+        </nav>
       )}
     </div>
   );

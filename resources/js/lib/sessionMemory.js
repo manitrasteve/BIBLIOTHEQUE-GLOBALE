@@ -5,6 +5,7 @@
 const readerPages = new Map();
 const readerTotals = new Map();
 const aiChats = new Map();
+const managementChats = new Map();
 
 export const sessionMemory = {
     getReaderPage: (slug) => readerPages.get(slug) ?? null,
@@ -14,7 +15,11 @@ export const sessionMemory = {
     setReaderTotal: (slug, total) => readerTotals.set(slug, total),
     getAiChat: (slug) => aiChats.get(slug) ?? [],
     setAiChat: (slug, exchanges) => aiChats.set(slug, exchanges),
+    // Conversation de l'assistant de gestion (une par espace : « admin », plus tard « librarian »).
+    getManagementChat: (scope) => managementChats.get(scope) ?? [],
+    setManagementChat: (scope, messages) => managementChats.set(scope, messages),
     clear() {
+        managementChats.clear();
         readerPages.clear();
         readerTotals.clear();
         aiChats.clear();

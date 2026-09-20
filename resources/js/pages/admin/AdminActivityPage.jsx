@@ -13,6 +13,12 @@ import {
     HeartOff,
     Search,
     ListFilter,
+    FilePlus2,
+    Pencil,
+    Archive,
+    ArchiveRestore,
+    Trash2,
+    Building2,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { SkeletonList } from "../../components/Skeleton";
@@ -49,7 +55,61 @@ function Pagination({ meta, page, onChange }) {
     );
 }
 
+// Noms lisibles des champs affichés dans « avant → après » (modifications d'un document / d'une bibliothèque).
+const FIELD_LABELS = {
+    title: "Titre",
+    subtitle: "Sous-titre",
+    abstract: "Résumé",
+    type: "Type",
+    niveau: "Niveau",
+    category: "Catégorie",
+    library: "Bibliothèque",
+    year: "Année",
+    publisher: "Éditeur",
+    isbn: "ISBN",
+    language: "Langue",
+    edition: "Édition",
+    keywords: "Mots-clés",
+    access_level: "Niveau d'accès",
+    authors: "Auteur(s)",
+    status: "Statut",
+    fichier: "Fichier PDF",
+    couverture: "Couverture",
+    name: "Nom",
+    description: "Description",
+    address: "Adresse",
+    location: "Localisation",
+    opening_hours: "Horaires",
+    opening_days: "Jours d'ouverture",
+    map_link: "Lien carte",
+    photo: "Photo",
+    utilisateurs: "Comptes",
+    documents: "Documents",
+};
+const VALUE_LABELS = { brouillon: "Brouillon", publie: "Publié", archive: "Archivé" };
+
+function formatChange(value) {
+    if (value === null || value === undefined || value === "") return "—";
+    if (Array.isArray(value)) return value.join(", ");
+    const text = String(value);
+    return VALUE_LABELS[text] || (text.length > 80 ? `${text.slice(0, 80)}…` : text);
+}
+
 const ACTION_CONFIG = {
+    // Gestion des documents, bibliothèques et comptes (audit)
+    creation_document: { label: "Document ajouté", icon: FilePlus2 },
+    modification_document: { label: "Document modifié", icon: Pencil },
+    archivage_document: { label: "Document archivé", icon: Archive },
+    suppression_document: { label: "Document supprimé", icon: Trash2 },
+    restauration_document: { label: "Document restauré", icon: ArchiveRestore },
+    suppression_definitive_document: { label: "Document supprimé définitivement", icon: Trash2 },
+    creation_bibliotheque: { label: "Bibliothèque créée", icon: Building2 },
+    modification_bibliotheque: { label: "Bibliothèque modifiée", icon: Pencil },
+    suppression_bibliotheque: { label: "Bibliothèque supprimée", icon: Trash2 },
+    restauration_utilisateur: { label: "Compte restauré", icon: ArchiveRestore },
+    suppression_definitive_utilisateur: { label: "Compte supprimé définitivement", icon: UserX },
+    vidage_corbeille: { label: "Corbeille vidée", icon: Trash2 },
+
     connexion: {
         label: "Connexion",
         icon: LogIn,
@@ -505,7 +565,21 @@ export default function AdminActivityPage() {
                                     {log.description && (
                                         <p className="mt-0.5 break-words text-xs text-ink-soft">
                                             {log.description}
+                                            {log.library?.name && log.library.name !== log.description ? ` · ${log.library.name}` : ""}
                                         </p>
+                                    )}
+
+                                    {log.changes && Object.keys(log.changes).length > 0 && (
+                                        <ul className="mt-1 space-y-0.5 text-xs text-ink-soft">
+                                            {Object.entries(log.changes).map(([field, change]) => (
+                                                <li key={field} className="break-words">
+                                                    <span className="font-medium text-ink">
+                                                        {FIELD_LABELS[field] || field}
+                                                    </span>{" "}
+                                                    : {formatChange(change?.before)} → {formatChange(change?.after)}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
                                 </div>
 

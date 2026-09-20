@@ -128,7 +128,7 @@ export default function CreateAccountFormPage() {
     if (!library) return <div className="mx-auto max-w-2xl px-6 py-16 text-center text-ink-soft">Chargement…</div>;
 
     return (
-        <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
             <Link to={`/creer-un-compte/${libraryId}`} className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-brass-deep">
                 <ArrowLeft className="h-4 w-4" /> Retour à la présentation
             </Link>

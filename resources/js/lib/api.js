@@ -749,6 +749,23 @@ export const api = {
 
         return request(`/activity-logs${query ? `?${query}` : ""}`);
     },
+
+    // ---------------------------------------------------------
+    // Assistant IA de gestion (administrateur)
+    // ---------------------------------------------------------
+
+    askAdminAssistant: (question, history = []) =>
+        request("/assistant/admin", {
+            method: "POST",
+            body: { question, history },
+        }),
+
+    // Assistant du bibliothécaire : périmètre = sa bibliothèque, imposé par le serveur.
+    askLibrarianAssistant: (question, history = []) =>
+        request("/assistant/librarian", {
+            method: "POST",
+            body: { question, history },
+        }),
 };
 
 export { API_URL };

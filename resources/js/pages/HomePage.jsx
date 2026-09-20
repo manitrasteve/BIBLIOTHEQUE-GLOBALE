@@ -115,6 +115,7 @@ export default function HomePage() {
                             <DocumentCard
                                 key={doc.slug}
                                 document={doc}
+                                showCategory
                                 isLocked={isLoggingOut}
                             />
                         ))}
@@ -123,7 +124,7 @@ export default function HomePage() {
             )}
 
             {!user && (
-                <section className="w-full px-4 sm:px-8 xl:px-10 py-12">
+                <section className="w-full px-4 sm:px-8 xl:px-10 py-8 sm:py-10">
                     <div className="modern-card p-7 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-7">
                         <div>
                             <p className="section-label">

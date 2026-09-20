@@ -43,29 +43,35 @@ class DashboardController extends Controller
     {
         abort_unless($request->user()->hasPermission('voir_statistiques'), 403);
 
-        return response()->json([
-            'total_users' => \App\Models\User::count(),
+        // Le bibliothécaire ne voit que les chiffres de sa bibliothèque (l'administrateur : la plateforme entière).
+        $me = $request->user();
+        $ofMyLibrary = fn ($query) => $me->isAdmin()
+            ? $query
+            : $query->whereHas('document', fn ($d) => $me->restrictToManagedLibrary($d));
 
-            'pending_account_validations' => AccountRequest::where(
+        return response()->json([
+            'total_users' => $me->restrictToManagedLibrary(\App\Models\User::query())->count(),
+
+            'pending_account_validations' => $me->restrictToManagedLibrary(AccountRequest::where(
                 'status',
                 'verifiee'
-            )->count(),
+            ))->count(),
 
-            'total_documents' => \App\Models\Document::where(
+            'total_documents' => $me->restrictToManagedLibrary(\App\Models\Document::where(
                 'status',
                 'publie'
-            )->count(),
+            ))->count(),
 
-            'pending_account_requests' => AccountRequest::where(
+            'pending_account_requests' => $me->restrictToManagedLibrary(AccountRequest::where(
                 'status',
                 'en_attente'
-            )->count(),
+            ))->count(),
 
-            'total_consultations' => Consultation::count(),
+            'total_consultations' => $ofMyLibrary(Consultation::query())->count(),
 
-            'total_ai_queries' => AiQuery::count(),
+            'total_ai_queries' => $ofMyLibrary(AiQuery::query())->count(),
 
-            'total_favorites' => Favorite::count(),
+            'total_favorites' => $ofMyLibrary(Favorite::query())->count(),
         ]);
     }
 }

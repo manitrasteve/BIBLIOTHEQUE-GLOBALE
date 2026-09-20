@@ -14,7 +14,8 @@ function callNumber(doc) {
   return `${prefix}.${doc.year || '----'}`;
 }
 
-export default function DocumentCard({ document }) {
+// showCategory : affiche « Catégorie : … » sous le titre (utilisé par l'accueil uniquement).
+export default function DocumentCard({ document, showCategory = false }) {
   // Le type est saisi librement : un type inconnu s'affiche tel quel (les anciens codes gardent leur libellé).
   const typeCfg =
     TYPE_CONFIG[String(document.type || '').toLowerCase()] ||
@@ -42,6 +43,9 @@ export default function DocumentCard({ document }) {
             </h3>
             <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 group-hover:text-indigo-600" />
           </div>
+          {showCategory && document.category && (
+            <p className="mt-1 text-sm font-medium text-slate-600">Catégorie : {document.category}</p>
+          )}
           {document.subtitle && <p className="mt-1 text-sm italic text-slate-500">{document.subtitle}</p>}
           <p className="mt-3 text-sm font-medium text-slate-600">
             {document.authors?.length ? document.authors.join(', ') : 'Auteur non renseigné'}

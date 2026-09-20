@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Document;
 use App\Models\MemberRegistry;
 use App\Models\AccountRequest;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -23,17 +24,26 @@ class TrashController extends Controller
     {
         $this->guard($request, 'voir_corbeille');
 
+        $me = $request->user();
+
+        // Le bibliothécaire ne voit que la corbeille de sa bibliothèque.
         return response()->json([
-            'users' => User::onlyTrashed()
+            'users' => $me->restrictToManagedLibrary(User::onlyTrashed())
                 ->with('library:id,name')
                 ->orderByDesc('deleted_at')
                 ->get(),
 
-            'documents' => Document::onlyTrashed()
+            'documents' => $me->restrictToManagedLibrary(Document::onlyTrashed())
                 ->with('library:id,name')
                 ->orderByDesc('deleted_at')
                 ->get(),
         ]);
+    }
+
+    // Élément d'une autre bibliothèque : introuvable pour un bibliothécaire (pas de fuite d'existence).
+    private function trashed(Request $request, string $model, int $id)
+    {
+        return $request->user()->restrictToManagedLibrary($model::onlyTrashed())->findOrFail($id);
     }
 
     public function restoreUser(Request $request, int $id)
@@ -41,7 +51,7 @@ class TrashController extends Controller
         $this->guard($request, 'restaurer_corbeille');
 
         // Récupérer le compte supprimé
-        $user = User::onlyTrashed()->findOrFail($id);
+        $user = $this->trashed($request, User::class, $id);
 
         // Restaurer le compte
         $user->restore();
@@ -100,6 +110,8 @@ class TrashController extends Controller
             ]);
         }
 
+        ActivityLogService::log($request->user()->id, 'restauration_utilisateur', $user->name, $user);
+
         return response()->json(
             $user->load('library')
         );
@@ -109,10 +121,19 @@ class TrashController extends Controller
     {
         $this->guard($request, 'restaurer_corbeille');
 
-        $doc = Document::onlyTrashed()->findOrFail($id);
+        $doc = $this->trashed($request, Document::class, $id);
+        $previousStatus = $doc->status;
         $doc->restore();
         // Une restauration depuis la corbeille ne republie jamais le document.
         $doc->update(['status' => 'brouillon', 'published_at' => null]);
+
+        ActivityLogService::log(
+            $request->user()->id,
+            'restauration_document',
+            $doc->title,
+            $doc,
+            ['status' => ['before' => $previousStatus, 'after' => 'brouillon']],
+        );
 
         return response()->json($doc->fresh());
     }
@@ -121,7 +142,7 @@ class TrashController extends Controller
     {
         $this->guard($request, 'supprimer_definitivement_corbeille');
 
-        $user = User::onlyTrashed()->findOrFail($id);
+        $user = $this->trashed($request, User::class, $id);
 
         abort_if(
             $user->role === 'administrateur',
@@ -130,6 +151,8 @@ class TrashController extends Controller
         );
 
         $user->forceDelete();
+
+        ActivityLogService::log($request->user()->id, 'suppression_definitive_utilisateur', $user->name, $user);
 
         return response()->json([
             'message' => 'Compte supprimé définitivement.'
@@ -140,9 +163,10 @@ class TrashController extends Controller
     {
         $this->guard($request, 'supprimer_definitivement_corbeille');
 
-        Document::onlyTrashed()
-            ->findOrFail($id)
-            ->forceDelete();
+        $document = $this->trashed($request, Document::class, $id);
+        $document->forceDelete();
+
+        ActivityLogService::log($request->user()->id, 'suppression_definitive_document', $document->title, $document);
 
         return response()->json([
             'message' => 'Document supprimé définitivement.'
@@ -153,11 +177,24 @@ class TrashController extends Controller
     {
         $this->guard($request, 'supprimer_definitivement_corbeille');
 
-        User::onlyTrashed()
-            ->where('role', '!=', 'administrateur')
-            ->forceDelete();
+        // Le bibliothécaire ne vide que la corbeille de sa bibliothèque.
+        $me = $request->user();
+        $users = $me->restrictToManagedLibrary(User::onlyTrashed())->where('role', '!=', 'administrateur');
+        $documents = $me->restrictToManagedLibrary(Document::onlyTrashed());
+        $counts = ['utilisateurs' => (clone $users)->count(), 'documents' => (clone $documents)->count()];
 
-        Document::onlyTrashed()->forceDelete();
+        $users->forceDelete();
+
+        $documents->forceDelete();
+
+        // Une seule entrée récapitulative : les éléments supprimés ne sont plus consultables individuellement.
+        ActivityLogService::log(
+            $request->user()->id,
+            'vidage_corbeille',
+            "{$counts['utilisateurs']} compte(s) et {$counts['documents']} document(s) supprimés définitivement",
+            null,
+            ['utilisateurs' => ['before' => $counts['utilisateurs'], 'after' => 0], 'documents' => ['before' => $counts['documents'], 'after' => 0]],
+        );
 
         return response()->json([
             'message' => 'La corbeille a été vidée définitivement.'

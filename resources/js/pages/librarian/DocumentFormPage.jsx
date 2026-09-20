@@ -7,6 +7,7 @@ import {
     FilePlus2,
 } from "lucide-react";
 import { api } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
 // Type, niveau, catégorie et langue sont des champs libres. Les anciens documents contiennent
 // des codes (« memoire », « fr ») : on affiche leur libellé à la modification.
@@ -47,7 +48,11 @@ export default function DocumentFormPage() {
         ? "/administrateur/documents"
         : "/bibliothecaire/documents";
 
-    const [form, setForm] = useState(emptyForm);
+    const { user } = useAuth();
+    // Le bibliothécaire ne gère que sa bibliothèque (le serveur l'impose aussi) ; l'administrateur choisit librement.
+    const lockedLibraryId = user?.role === "bibliothecaire" ? user.library_id : null;
+
+    const [form, setForm] = useState(() => ({ ...emptyForm, library_id: lockedLibraryId ?? "" }));
     const [libraries, setLibraries] = useState([]);
     const [authors, setAuthors] = useState([]);
     const [file, setFile] = useState(null);
@@ -297,6 +302,7 @@ export default function DocumentFormPage() {
                         </label>
                         <select
                             required
+                            disabled={lockedLibraryId !== null}
                             value={form.library_id}
                             onChange={(e) =>
                                 setForm({ ...form, library_id: e.target.value })

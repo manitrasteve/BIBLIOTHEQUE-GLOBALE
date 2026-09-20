@@ -47,6 +47,8 @@ import AdminLibrariesPage from "./pages/admin/AdminLibrariesPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminTrashPage from "./pages/admin/AdminTrashPage";
 import AdminActivityPage from "./pages/admin/AdminActivityPage";
+import AdminAssistantPage from "./pages/admin/AdminAssistantPage";
+import LibrarianAssistantPage from "./pages/librarian/LibrarianAssistantPage";
 import AdminEngagementPage from "./pages/admin/AdminEngagementPage";
 import {
     AdminFeedbacksPage,
@@ -236,6 +238,7 @@ export default function App() {
                                     path="documents/:id/modifier"
                                     element={<DocumentFormPage />}
                                 />
+                                <Route path="assistant" element={<RoleRoute roles={["bibliothecaire"]}><LibrarianAssistantPage /></RoleRoute>} />
                                 <Route path="activites" element={<MyActivitiesPage />} />
                                 <Route
                                     path="messages"
@@ -265,6 +268,10 @@ export default function App() {
                                 <Route
                                     path="statistiques"
                                     element={<AdminStatsPage />}
+                                />
+                                <Route
+                                    path="assistant"
+                                    element={<AdminAssistantPage />}
                                 />
                                 <Route
                                     path="notifications"

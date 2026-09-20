@@ -216,6 +216,31 @@ class User extends Authenticatable
         return $this->role === 'bibliothecaire';
     }
 
+    /**
+     * Périmètre de gestion : l'administrateur gère toutes les bibliothèques, le bibliothécaire uniquement la sienne
+     * (users.library_id). Toujours déduit du compte authentifié, jamais d'un paramètre de requête.
+     */
+    public function managesLibrary(?int $libraryId): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return $this->isLibrarian() && $this->library_id !== null && $libraryId !== null && (int) $this->library_id === $libraryId;
+    }
+
+    /** Restreint une requête aux enregistrements de la bibliothèque gérée (sans effet pour l'administrateur). */
+    public function restrictToManagedLibrary($query, string $column = 'library_id')
+    {
+        if ($this->isAdmin()) {
+            return $query;
+        }
+
+        return $this->isLibrarian() && $this->library_id !== null
+            ? $query->where($column, $this->library_id)
+            : $query->whereRaw('1 = 0');
+    }
+
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'user_permissions')->withTimestamps();
