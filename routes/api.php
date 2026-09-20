@@ -166,8 +166,6 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:administrateur')->group(function () {
         Route::post('/account-requests/{accountRequest}/admin-reject', [AccountRequestController::class, 'adminReject']);
-        Route::put('/libraries/{library}', [LibraryController::class, 'update']);
-        Route::post('/libraries/{library}', [LibraryController::class, 'update']); // multipart (photo de couverture)
         Route::delete('/libraries/{library}', [LibraryController::class, 'destroy']);
 
         Route::post('/account-requests/validate-all', [AccountRequestController::class, 'validateAll']);
@@ -203,6 +201,11 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware(['role:administrateur,bibliothecaire', 'permission:ajouter_bibliotheque'])->group(function () {
         Route::post('/libraries', [LibraryController::class, 'store']);
+    });
+    // Modification : administrateur, ou bibliothécaire ayant « modifier_bibliotheque » (la suppression reste admin).
+    Route::middleware(['role:administrateur,bibliothecaire', 'permission:modifier_bibliotheque'])->group(function () {
+        Route::put('/libraries/{library}', [LibraryController::class, 'update']);
+        Route::post('/libraries/{library}', [LibraryController::class, 'update']); // multipart (photo de couverture)
     });
     Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_popularite'])->group(function () {
         Route::get('/engagement-stats', [EngagementController::class, 'stats']);

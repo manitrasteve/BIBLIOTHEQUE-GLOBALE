@@ -54,9 +54,10 @@ const NAV = [
     },
     {
         to: "/bibliothecaire/bibliotheques",
-        label: "Ajouter une bibliothèque",
+        label: "Bibliothèques",
         icon: Building2,
-        permission: "ajouter_bibliotheque",
+        // Visible dès qu'une des trois permissions de la catégorie « Bibliothèques » est accordée.
+        permissions: ["voir_bibliotheques", "ajouter_bibliotheque", "modifier_bibliotheque"],
         // L'administrateur gère les bibliothèques depuis Administration → Bibliothèques.
         hideForAdmin: true,
     },

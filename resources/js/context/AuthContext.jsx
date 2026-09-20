@@ -27,6 +27,25 @@ export function AuthProvider({ children }) {
             .finally(() => setLoading(false));
     }, []);
 
+    // Les permissions peuvent être modifiées par l'administrateur pendant la session :
+    // on relit le profil quand l'onglet redevient actif (sans déconnecter en cas d'échec).
+    useEffect(() => {
+        function refreshUser() {
+            if (document.visibilityState !== "visible") return;
+            if (!localStorage.getItem("bm_token")) return;
+
+            api.me().then(setUser).catch(() => {});
+        }
+
+        document.addEventListener("visibilitychange", refreshUser);
+        window.addEventListener("focus", refreshUser);
+
+        return () => {
+            document.removeEventListener("visibilitychange", refreshUser);
+            window.removeEventListener("focus", refreshUser);
+        };
+    }, []);
+
     async function login(email, password) {
         const { user, token } = await api.login(email, password);
 

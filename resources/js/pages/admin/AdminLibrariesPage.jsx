@@ -26,8 +26,15 @@ const inputClass = 'w-full rounded-lg border border-line bg-white/60 px-3 py-2.5
 
 export default function AdminLibrariesPage() {
   const { user } = useAuth();
-  // Le bibliothécaire disposant de « Ajouter une bibliothèque » peut créer, pas modifier ni supprimer.
+  // Chaque bouton dépend de sa propre permission (l'administrateur les a toutes) :
+  // Ajouter → ajouter_bibliotheque, Voir → voir_bibliotheques, Modifier → modifier_bibliotheque.
+  // Supprimer reste réservé à l'administrateur.
   const isAdmin = user?.role === 'administrateur';
+  const can = (permission) => isAdmin || !!user?.permissions?.includes(permission);
+  const canAdd = can('ajouter_bibliotheque');
+  const canView = can('voir_bibliotheques');
+  const canEdit = can('modifier_bibliotheque');
+  const showActions = canView || canEdit || isAdmin;
   const [libraries, setLibraries] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [photo, setPhoto] = useState(null);
@@ -145,13 +152,15 @@ export default function AdminLibrariesPage() {
           <Building2 className="h-5 w-5 text-brass" strokeWidth={1.75} />
           Bibliothèques
         </h2>
-        <button
-          onClick={startCreate}
-          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2} />
-          Ajouter une bibliothèque
-        </button>
+        {canAdd && (
+          <button
+            onClick={startCreate}
+            className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2} />
+            Ajouter une bibliothèque
+          </button>
+        )}
       </div>
 
       {error && <p className="text-red-700 mb-4">{error}</p>}
@@ -286,7 +295,7 @@ export default function AdminLibrariesPage() {
                   <th className="px-4 py-3">Nom</th>
                   <th className="px-4 py-3">Adresse</th>
                   <th className="px-4 py-3">Horaires</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  {showActions && <th className="px-4 py-3 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -295,16 +304,18 @@ export default function AdminLibrariesPage() {
                     <td className="px-4 py-3 font-medium text-ink">{lib.name}</td>
                     <td className="px-4 py-3 text-ink-soft">{lib.address || '—'}</td>
                     <td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-3">
-                        <ViewButton onClick={() => setViewing(lib)} />
-                        {isAdmin && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
-                        {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
-                      </div>
-                    </td>
+                    {showActions && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-3">
+                          {canView && <ViewButton onClick={() => setViewing(lib)} />}
+                          {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
+                          {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan="4" className="p-8 text-center text-ink-soft">Aucune bibliothèque trouvée.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={showActions ? 4 : 3} className="p-8 text-center text-ink-soft">Aucune bibliothèque trouvée.</td></tr>}
               </tbody>
             </table>
           </div>

@@ -34,6 +34,39 @@ function libraryPayload(array $overrides = []): array
     ], $overrides);
 }
 
+test('modifier une bibliothèque : réservé à l\'admin ou au bibliothécaire ayant modifier_bibliotheque, sans droit d\'ajout ni de suppression', function () {
+    Storage::fake('public');
+    $library = Library::factory()->create(['name' => 'Ancien nom']);
+
+    // Sans permission, ou avec seulement « voir » / « ajouter » : refusé.
+    foreach ([[], ['voir_bibliotheques'], ['ajouter_bibliotheque']] as $permissions) {
+        $this->actingAs(librarianWith($permissions), 'sanctum')->postJson("/api/libraries/{$library->id}", ['name' => 'Piraté'])->assertForbidden();
+    }
+    expect($library->fresh()->name)->toBe('Ancien nom');
+
+    // Avec « modifier » : modification autorisée, mais ni création ni suppression.
+    $editor = librarianWith(['modifier_bibliotheque']);
+    $this->actingAs($editor, 'sanctum')->postJson("/api/libraries/{$library->id}", ['name' => 'Nouveau nom'])->assertOk();
+    $this->actingAs($editor, 'sanctum')->putJson("/api/libraries/{$library->id}", ['name' => 'Nouveau nom 2'])->assertOk();
+    expect($library->fresh()->name)->toBe('Nouveau nom 2');
+    $this->actingAs($editor, 'sanctum')->postJson('/api/libraries', libraryPayload())->assertForbidden();
+    $this->actingAs($editor, 'sanctum')->deleteJson("/api/libraries/{$library->id}")->assertForbidden();
+
+    // L'administrateur garde tous ses droits.
+    $admin = User::factory()->create(['role' => 'administrateur', 'is_active' => true]);
+    $this->actingAs($admin, 'sanctum')->postJson("/api/libraries/{$library->id}", ['name' => 'Par admin'])->assertOk();
+    $this->actingAs($admin, 'sanctum')->deleteJson("/api/libraries/{$library->id}")->assertOk();
+});
+
+test('les trois permissions de la catégorie bibliothèques sont proposées', function () {
+    $admin = User::factory()->create(['role' => 'administrateur', 'is_active' => true]);
+
+    $names = collect($this->actingAs($admin, 'sanctum')->getJson('/api/permissions')->json())
+        ->where('category', 'bibliotheques')->pluck('name')->all();
+
+    expect($names)->toEqualCanonicalizing(['voir_bibliotheques', 'ajouter_bibliotheque', 'modifier_bibliotheque']);
+});
+
 test('les cinq nouvelles permissions sont proposées à l\'administrateur avec leur catégorie', function () {
     $admin = User::factory()->create(['role' => 'administrateur', 'is_active' => true]);
 

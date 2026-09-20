@@ -42,7 +42,7 @@ class LibraryController extends Controller
         return response()->json($library, 201);
     }
 
-    // Admin uniquement
+    // Administrateur, ou bibliothécaire ayant la permission « modifier_bibliotheque » (middleware de route).
     public function update(Request $request, Library $library)
     {
         $data = $request->validate([

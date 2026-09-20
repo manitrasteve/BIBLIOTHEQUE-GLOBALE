@@ -222,7 +222,7 @@ export default function App() {
                                 />
                                 <Route path="documents" element={<DocumentsManagePage />} />
                                 <Route path="corbeille" element={<PermissionRoute permission="voir_corbeille"><AdminTrashPage /></PermissionRoute>} />
-                                <Route path="bibliotheques" element={<PermissionRoute permission="ajouter_bibliotheque"><AdminLibrariesPage /></PermissionRoute>} />
+                                <Route path="bibliotheques" element={<PermissionRoute permissions={["voir_bibliotheques", "ajouter_bibliotheque", "modifier_bibliotheque"]}><AdminLibrariesPage /></PermissionRoute>} />
                                 <Route path="statistiques" element={<PermissionRoute permission="voir_statistiques"><AdminStatsPage /></PermissionRoute>} />
                                 <Route path="popularite" element={<PermissionRoute permission="voir_popularite"><AdminEngagementPage /></PermissionRoute>} />
                                 <Route path="avis" element={<PermissionRoute permission="voir_avis_utilisateurs"><AdminFeedbacksPage /></PermissionRoute>} />
