@@ -15,7 +15,10 @@ function callNumber(doc) {
 }
 
 export default function DocumentCard({ document }) {
-  const typeCfg = TYPE_CONFIG[document.type] || TYPE_CONFIG.autre;
+  // Le type est saisi librement : un type inconnu s'affiche tel quel (les anciens codes gardent leur libellé).
+  const typeCfg =
+    TYPE_CONFIG[String(document.type || '').toLowerCase()] ||
+    { label: document.type || TYPE_CONFIG.autre.label, icon: TYPE_CONFIG.autre.icon };
   const TypeIcon = typeCfg.icon;
   const AccessIcon = document.access_level === 'public' ? Globe : Lock;
 

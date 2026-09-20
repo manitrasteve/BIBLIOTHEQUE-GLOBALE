@@ -8,13 +8,12 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 
-const TYPES = [
-    { value: "livre", label: "Livre" },
-    { value: "memoire", label: "Mémoire" },
-    { value: "these", label: "Thèse" },
-    { value: "rapport", label: "Rapport" },
-    { value: "autre", label: "Autre" },
-];
+// Type, niveau, catégorie et langue sont des champs libres. Les anciens documents contiennent
+// des codes (« memoire », « fr ») : on affiche leur libellé à la modification.
+const LEGACY_TYPE_LABELS = { livre: "Livre", memoire: "Mémoire", these: "Thèse", rapport: "Rapport", autre: "Autre" };
+const LEGACY_LANGUAGE_LABELS = { fr: "Français", mg: "Malgache", en: "Anglais", es: "Espagnol", pt: "Portugais", it: "Italien", ru: "Russe", autre: "Autre" };
+
+const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2.5";
 
 const ACCESS_LEVELS = [
     { value: "public", label: "Public (aucune connexion requise)" },
@@ -26,14 +25,14 @@ const emptyForm = {
     title: "",
     subtitle: "",
     abstract: "",
-    type: "memoire",
+    type: "",
     niveau: "",
-    category_id: "",
+    category: "",
     library_id: "",
     year: "",
     publisher: "",
     isbn: "",
-    language: "fr",
+    language: "",
     edition: "",
     keywords: "",
     access_level: "authentifie",
@@ -49,7 +48,6 @@ export default function DocumentFormPage() {
         : "/bibliothecaire/documents";
 
     const [form, setForm] = useState(emptyForm);
-    const [categories, setCategories] = useState([]);
     const [libraries, setLibraries] = useState([]);
     const [authors, setAuthors] = useState([]);
     const [file, setFile] = useState(null);
@@ -60,9 +58,6 @@ export default function DocumentFormPage() {
     const [authorError, setAuthorError] = useState(null);
 
     useEffect(() => {
-        api.getCategories()
-            .then(setCategories)
-            .catch(() => {});
         api.getLibraries()
             .then(setLibraries)
             .catch(() => {});
@@ -76,14 +71,14 @@ export default function DocumentFormPage() {
                     title: doc.title || "",
                     subtitle: doc.subtitle || "",
                     abstract: doc.abstract || "",
-                    type: doc.type,
+                    type: LEGACY_TYPE_LABELS[doc.type] || doc.type || "",
                     niveau: doc.niveau || "",
-                    category_id: doc.category_id,
+                    category: doc.category?.name || "",
                     library_id: doc.library_id,
                     year: doc.year || "",
                     publisher: doc.publisher || "",
                     isbn: doc.isbn || "",
-                    language: doc.language || "fr",
+                    language: LEGACY_LANGUAGE_LABELS[doc.language] || doc.language || "",
                     edition: doc.edition || "",
                     keywords: doc.keywords || "",
                     access_level: doc.access_level,
@@ -149,7 +144,7 @@ export default function DocumentFormPage() {
                 Object.entries(form).forEach(([key, value]) => {
                     if (key === "author_ids")
                         value.forEach((v) => payload.append("author_ids[]", v));
-                    else if (value !== "") payload.append(key, value);
+                    else payload.append(key, value ?? ""); // les champs vidés sont envoyés (ex. effacer le niveau)
                 });
                 if (file) payload.append("file", file);
                 if (cover) payload.append("cover", cover);
@@ -209,7 +204,7 @@ export default function DocumentFormPage() {
             >
                 <div>
                     <label className="block text-sm text-ink-soft mb-1.5">
-                        Titre
+                        Titre *
                     </label>
                     <input
                         required
@@ -250,75 +245,55 @@ export default function DocumentFormPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Type
+                        <label htmlFor="doc-type" className="block text-sm text-ink-soft mb-1.5">
+                            Type *
                         </label>
-                        <select
+                        <input
+                            id="doc-type"
+                            required
+                            maxLength={100}
                             value={form.type}
                             onChange={(e) =>
                                 setForm({ ...form, type: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
-                        >
-                            {TYPES.map((t) => (
-                                <option key={t.value} value={t.value}>
-                                    {t.label}
-                                </option>
-                            ))}
-                        </select>
+                            className={inputClass}
+                        />
                     </div>
 
-                    {/* NOUVEAU CHAMP NIVEAU */}
                     <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Niveau{" "}
-                            <span className="text-ink-soft">(optionnel)</span>
+                        <label htmlFor="doc-niveau" className="block text-sm text-ink-soft mb-1.5">
+                            Niveau
                         </label>
-
-                        <select
+                        <input
+                            id="doc-niveau"
+                            maxLength={100}
                             value={form.niveau}
                             onChange={(e) =>
                                 setForm({ ...form, niveau: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
-                        >
-                            <option value="">— Aucun niveau —</option>
-                            <option value="L1">L1</option>
-                            <option value="L2">L2</option>
-                            <option value="L3">L3</option>
-                            <option value="M1">M1</option>
-                            <option value="M2">M2</option>
-                                                        <option value="Doctorat">Doctorat</option>
-                        </select>
+                            className={inputClass}
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Catégorie
+                        <label htmlFor="doc-category" className="block text-sm text-ink-soft mb-1.5">
+                            Catégorie *
                         </label>
-                        <select
+                        <input
+                            id="doc-category"
                             required
-                            value={form.category_id}
+                            maxLength={255}
+                            value={form.category}
                             onChange={(e) =>
-                                setForm({
-                                    ...form,
-                                    category_id: e.target.value,
-                                })
+                                setForm({ ...form, category: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
-                        >
-                            <option value="">—</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
+                            className={inputClass}
+                        />
                     </div>
 
                     <div>
                         <label className="block text-sm text-ink-soft mb-1.5">
-                            Bibliothèque
+                            Bibliothèque *
                         </label>
                         <select
                             required
@@ -379,30 +354,24 @@ export default function DocumentFormPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Langue
+                    <label htmlFor="doc-language" className="block text-sm text-ink-soft mb-1.5">
+                        Langue *
                     </label>
-                    <select
+                    <input
+                        id="doc-language"
+                        required
+                        maxLength={50}
                         value={form.language}
                         onChange={(e) =>
                             setForm({ ...form, language: e.target.value })
                         }
-                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
-                    >
-                        <option value="fr">Français</option>
-                        <option value="mg">Malgache</option>
-                        <option value="en">Anglais</option>
-                        <option value="es">Espagnol</option>
-                        <option value="pt">Portugais</option>
-                        <option value="it">Italien</option>
-                        <option value="ru">Russe</option>
-                        <option value="autre">Autre</option>
-                    </select>
+                        className={inputClass}
+                    />
                 </div>
 
                 <div>
                     <label className="block text-sm text-ink-soft mb-1.5">
-                        Niveau d'accès
+                        Niveau d'accès *
                     </label>
                     <select
                         value={form.access_level}
@@ -472,7 +441,7 @@ export default function DocumentFormPage() {
                     <>
                         <div>
                             <label className="block text-sm text-ink-soft mb-1.5">
-                                Fichier PDF
+                                Fichier PDF *
                             </label>
                             <label className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-paper-dim/40 px-4 py-4 cursor-pointer hover:border-brass/60 transition-colors">
                                 <UploadCloud

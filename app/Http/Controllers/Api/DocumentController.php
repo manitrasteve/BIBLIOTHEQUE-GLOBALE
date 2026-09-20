@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Consultation;
 use App\Models\Document;
 use App\Services\ActivityLogService;
@@ -10,10 +11,34 @@ use App\Services\DocumentIngestionService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
+    // Type et langue sont désormais saisis librement ; les filtres du catalogue envoient encore les
+    // anciens codes : on accepte le code OU son libellé pour retrouver aussi les documents saisis en texte.
+    private const TYPE_LABELS = ['livre' => 'Livre', 'memoire' => 'Mémoire', 'these' => 'Thèse', 'rapport' => 'Rapport', 'autre' => 'Autre'];
+    private const LANGUAGE_LABELS = ['fr' => 'Français', 'mg' => 'Malgache', 'en' => 'Anglais', 'es' => 'Espagnol', 'pt' => 'Portugais', 'it' => 'Italien', 'ru' => 'Russe', 'autre' => 'Autre'];
+
+    private function withLabel(string $value, array $labels): array
+    {
+        return array_values(array_unique(array_filter([$value, $labels[mb_strtolower($value)] ?? null])));
+    }
+
+    // Catégorie saisie librement : retrouve la catégorie existante (nom sans casse, ou même slug) ou la crée.
+    private function resolveCategoryId(string $name): int
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $name));
+
+        $category = Category::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->orWhere('slug', Str::slug($name))
+            ->first();
+
+        return ($category ?? Category::create(['name' => $name]))->id;
+    }
+
     public function __construct(
         private readonly DocumentIngestionService $ingestionService,
     ) {
@@ -51,10 +76,10 @@ class DocumentController extends Controller
             $query->where('year', $year);
         }
         if ($type = $request->get('type')) {
-            $query->where('type', $type);
+            $query->whereIn('type', $this->withLabel($type, self::TYPE_LABELS));
         }
         if ($language = $request->get('language')) {
-            $query->where('language', $language);
+            $query->whereIn('language', $this->withLabel($language, self::LANGUAGE_LABELS));
         }
 
         $documents = $query->orderByDesc('published_at')->paginate(15);
@@ -180,14 +205,16 @@ class DocumentController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'abstract' => ['nullable', 'string'],
-            'type' => ['required', 'in:livre,memoire,these,rapport,autre'],
-            'niveau' => ['nullable', 'string', 'in:L1,L2,L3,M1,M2,Doctorat'],
-            'category_id' => ['required', 'exists:categories,id'],
+            'type' => ['required', 'string', 'max:100'],
+            'niveau' => ['nullable', 'string', 'max:100'],
+            // Catégorie : nom saisi librement (créée si elle n'existe pas) ; category_id reste accepté.
+            'category' => ['required_without:category_id', 'nullable', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
+            'category_id' => ['required_without:category', 'nullable', 'exists:categories,id'],
             'library_id' => ['required', 'exists:libraries,id'],
             'year' => ['nullable', 'digits:4'],
             'publisher' => ['nullable', 'string', 'max:255'],
             'isbn' => ['nullable', 'string', 'max:50'],
-            'language' => ['nullable', 'string', 'max:10'],
+            'language' => ['required', 'string', 'max:50'],
             'edition' => ['nullable', 'string', 'max:100'],
             'keywords' => ['nullable', 'string'],
             'access_level' => ['required', 'in:public,authentifie,restreint'],
@@ -196,6 +223,11 @@ class DocumentController extends Controller
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
             'cover' => ['nullable', 'image', 'max:5120'],
         ]);
+
+        if (!empty($data['category'])) {
+            $data['category_id'] = $this->resolveCategoryId($data['category']);
+        }
+        unset($data['category']);
 
         $filePath = $request->file('file')->store('documents', 'local'); // storage/app/private si disk configuré ainsi
         $coverPath = $request->hasFile('cover')
@@ -229,13 +261,16 @@ class DocumentController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'abstract' => ['nullable', 'string'],
-            'niveau' => ['nullable', 'string', 'in:L1,L2,L3,M1,M2,Doctorat'],
+            // Le type était ignoré à la modification ; il est désormais modifiable (texte libre).
+            'type' => ['sometimes', 'required', 'string', 'max:100'],
+            'niveau' => ['nullable', 'string', 'max:100'],
+            'category' => ['sometimes', 'required', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
             'category_id' => ['sometimes', 'exists:categories,id'],
             'library_id' => ['sometimes', 'exists:libraries,id'],
             'year' => ['nullable', 'digits:4'],
             'publisher' => ['nullable','string','max:255'],
             'isbn' => ['nullable','string','max:50'],
-            'language' => ['nullable','string','max:50'],
+            'language' => ['sometimes', 'required', 'string', 'max:50'],
             'edition' => ['nullable','string','max:100'],
             'keywords' => ['nullable','string'],
             'access_level' => ['sometimes', 'in:public,authentifie,restreint'],
@@ -246,7 +281,10 @@ class DocumentController extends Controller
         ]);
         if ($request->hasFile('file')) { $data['file_path']=$request->file('file')->store('documents','local'); }
         if ($request->hasFile('cover')) { $data['cover_path']=$request->file('cover')->store('covers','public'); }
-        unset($data['file'],$data['cover']);
+        if (!empty($data['category'])) {
+            $data['category_id'] = $this->resolveCategoryId($data['category']);
+        }
+        unset($data['file'], $data['cover'], $data['category']);
         $document->update($data);
         if (isset($data['author_ids'])) $document->authors()->sync($data['author_ids']);
         if ($request->hasFile('file')) $this->ingestionService->ingest($document->fresh());
