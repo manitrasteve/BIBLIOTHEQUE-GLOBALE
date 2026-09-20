@@ -17,8 +17,23 @@ import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 
+// Libellés affichés sous le nom (valeurs réelles de users.role).
+const ROLE_LABELS = {
+    administrateur: "Administrateur",
+    admin: "Administrateur",
+    bibliothecaire: "Bibliothécaire",
+    etudiant: "Étudiant",
+    enseignant: "Enseignant",
+    chercheur: "Chercheur",
+    autres: "Autres",
+    autre: "Autres",
+};
+
 // Petit menu déroulant de la photo de profil : Profil + Déconnexion
 function ProfileMenu({ user, pathname, openLogoutModal }) {
+    const roleLabel =
+        ROLE_LABELS[user?.role] ||
+        (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "");
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
@@ -77,6 +92,19 @@ function ProfileMenu({ user, pathname, openLogoutModal }) {
                         aria-hidden="true"
                         className="pointer-events-none absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"
                     />
+                </span>
+
+                {/* Nom + rôle (masqués sur téléphone : la photo seule reste, comme avant) */}
+                <span className="ml-2 mr-1 hidden min-w-0 text-left sm:block">
+                    <span
+                        title={user?.name}
+                        className="block max-w-[9rem] truncate text-sm font-bold leading-tight text-slate-900 lg:max-w-[12rem]"
+                    >
+                        {user?.name}
+                    </span>
+                    <span className="block max-w-[9rem] truncate text-xs leading-tight text-slate-500 lg:max-w-[12rem]">
+                        {roleLabel}
+                    </span>
                 </span>
 
                 {/* Indicateur UX : signale que la photo ouvre un menu */}
