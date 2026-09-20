@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
     UserPlus,
@@ -128,6 +129,11 @@ export default function Header() {
     const location = useLocation();
 
     const isHome = location.pathname === "/";
+
+    // Compte utilisateur (étudiant, enseignant, chercheur…) : son tableau de bord est /tableau-de-bord.
+    // Administrateur et bibliothécaire ont leurs propres entrées (Administration / Gestion).
+    const isMember =
+        !!user && !["bibliothecaire", "administrateur"].includes(user.role);
 
     // Pages publiques qui utilisent le Header public
     const isPublicPage =
@@ -318,6 +324,20 @@ export default function Header() {
                                                 Catalogue
                                             </Link>
 
+                                            {/* Tableau de bord (comptes utilisateur) */}
+                                            {isMember && (
+                                                <Link
+                                                    to="/tableau-de-bord"
+                                                    onClick={() =>
+                                                        setMenuOpen(false)
+                                                    }
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                >
+                                                    <LayoutDashboard className="h-4 w-4" />
+                                                    Tableau de bord
+                                                </Link>
+                                            )}
+
                                             {/* Gestion */}
                                             {[
                                                 "bibliothecaire",
@@ -415,6 +435,20 @@ export default function Header() {
                                                 Catalogue
                                             </Link>
 
+                                            {/* Tableau de bord (comptes utilisateur) */}
+                                            {isMember && (
+                                                <Link
+                                                    to="/tableau-de-bord"
+                                                    onClick={() =>
+                                                        setMenuOpen(false)
+                                                    }
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                >
+                                                    <LayoutDashboard className="h-4 w-4" />
+                                                    Tableau de bord
+                                                </Link>
+                                            )}
+
                                             {/* S'inscrire */}
                                             {!user && (
                                                 <Link
@@ -500,9 +534,11 @@ export default function Header() {
                 MODAL DE CONFIRMATION DE DÉCONNEXION
             ====================================================== */}
 
-            {isLoggingOut && (
+            {/* Rendu dans document.body : la fenêtre reste centrée dans l'écran,
+                sans dépendre de la position de défilement de la page. */}
+            {isLoggingOut && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/60 px-4 backdrop-blur-sm"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="logout-title"
@@ -554,7 +590,8 @@ export default function Header() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Animation des trois points */}
