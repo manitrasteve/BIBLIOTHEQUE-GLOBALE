@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../context/AuthContext";
+import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
 const NAV = [
     {
@@ -110,6 +111,8 @@ export default function LibrarianLayout() {
     const location = useLocation();
     const navigationId = useId();
     const { user } = useAuth();
+
+    useDrawerScrollLock(open);
 
     const nav = NAV.filter((item) => {
         if (item.hideForAdmin && user?.role === "administrateur") return false;

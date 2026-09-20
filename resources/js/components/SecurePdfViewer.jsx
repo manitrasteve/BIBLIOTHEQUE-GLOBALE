@@ -24,10 +24,13 @@ export default function SecurePdfViewer({ slug }) {
     const [pdf, setPdf] = useState(null);
     const [pageNum, setPageNum] = useState(1);
     const [numPages, setNumPages] = useState(0);
-    const [scale, setScale] = useState(1.1);
+    // Zoom relatif à l'ajustement automatique à la largeur disponible (1 = page entière visible).
+    const [zoom, setZoom] = useState(1);
+    const [availableWidth, setAvailableWidth] = useState(0);
 
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
+    const scrollRef = useRef(null);
     const renderTaskRef = useRef(null);
 
     useEffect(() => {
@@ -74,8 +77,28 @@ export default function SecurePdfViewer({ slug }) {
     }, [slug]);
 
     useEffect(() => {
-        if (pdf) sessionMemory.setReaderPage(slug, pageNum);
+        if (pdf) {
+            sessionMemory.setReaderPage(slug, pageNum);
+            sessionMemory.setReaderTotal(slug, pdf.numPages);
+        }
     }, [pdf, pageNum]);
+
+    // Largeur utile de la zone de lecture (hors marges), mise à jour à la rotation / redimensionnement.
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el || typeof ResizeObserver === "undefined") return undefined;
+
+        const measure = () => {
+            const style = getComputedStyle(el);
+            const padding =
+                parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+            setAvailableWidth(Math.max(0, el.clientWidth - padding));
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [loading, error]);
 
     useEffect(() => {
         if (!pdf) return;
@@ -84,13 +107,24 @@ export default function SecurePdfViewer({ slug }) {
         async function render() {
             const page = await pdf.getPage(pageNum);
             if (cancelled) return;
-            const viewport = page.getViewport({ scale });
             const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            // Ajuste la page à la largeur disponible puis applique le zoom ; le canvas est
+            // dessiné en pixels réels de l'écran (netteté) et affiché à la taille CSS voulue.
+            const baseWidth = page.getViewport({ scale: 1 }).width;
+            const fit = availableWidth > 0 ? availableWidth / baseWidth : 1.1;
+            const cssScale = fit * zoom;
+            const pixelRatio = window.devicePixelRatio || 1;
+            const viewport = page.getViewport({ scale: cssScale * pixelRatio });
+
+            if (renderTaskRef.current) renderTaskRef.current.cancel();
             const ctx = canvas.getContext("2d");
             canvas.width = viewport.width;
             canvas.height = viewport.height;
+            canvas.style.width = `${viewport.width / pixelRatio}px`;
+            canvas.style.height = `${viewport.height / pixelRatio}px`;
 
-            if (renderTaskRef.current) renderTaskRef.current.cancel();
             const task = page.render({ canvasContext: ctx, viewport });
             renderTaskRef.current = task;
             try {
@@ -104,7 +138,7 @@ export default function SecurePdfViewer({ slug }) {
         return () => {
             cancelled = true;
         };
-    }, [pdf, pageNum, scale]);
+    }, [pdf, pageNum, zoom, availableWidth]);
 
     function fullscreen() {
         containerRef.current?.requestFullscreen?.();
@@ -120,7 +154,7 @@ export default function SecurePdfViewer({ slug }) {
 
     if (loading) {
         return (
-            <div className="flex h-[70vh] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white">
+            <div className="reader-panel-height flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white">
                 <FileText className="h-6 w-6 text-slate-400" />
                 <p className="text-sm text-slate-500">
                     Chargement du document…
@@ -132,7 +166,7 @@ export default function SecurePdfViewer({ slug }) {
     return (
         <div
             ref={containerRef}
-            className="relative flex h-[82vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+            className="reader-panel-height relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
             onContextMenu={(e) => e.preventDefault()}
             style={{
                 WebkitTouchCallout: "none",
@@ -167,14 +201,14 @@ export default function SecurePdfViewer({ slug }) {
                 <div className="flex items-center gap-1">
                     <button
                         type="button"
-                        onClick={() => setScale((s) => Math.max(0.5, s - 0.15))}
+                        onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
                         className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100"
                     >
                         <ZoomOut className="h-4 w-4" />
                     </button>
                     <button
                         type="button"
-                        onClick={() => setScale((s) => Math.min(3, s + 0.15))}
+                        onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
                         className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100"
                     >
                         <ZoomIn className="h-4 w-4" />
@@ -190,7 +224,7 @@ export default function SecurePdfViewer({ slug }) {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
+            <div ref={scrollRef} className="flex-1 overflow-auto p-2 sm:p-4">
                 <div className="mx-auto w-fit shadow-lg">
                     <canvas
                         ref={canvasRef}
@@ -199,7 +233,7 @@ export default function SecurePdfViewer({ slug }) {
                             if (e.touches.length > 1) e.preventDefault();
                         }}
                         style={{
-                            touchAction: "pan-y pinch-zoom",
+                            touchAction: "pan-x pan-y pinch-zoom",
                             display: "block",
                         }}
                     />

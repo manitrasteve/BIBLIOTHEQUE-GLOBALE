@@ -2,11 +2,14 @@ import { useEffect, useId, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import Footer from "./Footer";
+import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
 export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav }) {
     const [open, setOpen] = useState(false);
     const location = useLocation();
     const navigationId = useId();
+
+    useDrawerScrollLock(open);
 
     useEffect(() => setOpen(false), [location.pathname]);
     useEffect(() => {

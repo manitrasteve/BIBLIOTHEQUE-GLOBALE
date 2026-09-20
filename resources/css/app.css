@@ -73,10 +73,12 @@
     z-index: 50;
     width: var(--app-sidebar-width);
     height: calc(100vh - var(--app-header-height));
+    /* dvh : sur Android, 100vh inclut la barre d'adresse et coupait le bas du menu. */
+    height: calc(100dvh - var(--app-header-height));
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.75rem max(1rem, env(safe-area-inset-bottom));
     overflow-y: auto;
     background: #ffffff;
     border-right: 1px solid var(--border);
@@ -102,10 +104,22 @@
     .connected-sidebar {
         top: var(--app-header-height);
         width: min(82vw, 18rem);
-        transform: translateX(-105%);
-        transition: transform 0.2s ease;
+        /*
+         * Ouverture / fermeture : uniquement via les classes Tailwind (propriété
+         * `translate` : -translate-x-full / translate-x-0). Un `transform` ici se
+         * cumulait avec elle et laissait le tiroir hors de l'écran, même « ouvert ».
+         */
+        transition: translate 0.2s ease;
         box-shadow: none;
         border-right: 0;
+    }
+
+    /* Tiroir fermé : hors focus clavier / lecteur d'écran (visibilité retardée après l'animation). */
+    .connected-sidebar.-translate-x-full {
+        visibility: hidden;
+        transition:
+            translate 0.2s ease,
+            visibility 0s linear 0.2s;
     }
 
     .connected-main {
@@ -113,6 +127,24 @@
         margin-left: 0;
         min-height: auto;
         overflow: visible;
+    }
+}
+
+/*
+ * Hauteur des zones de lecture PDF et Assistant IA : elles tiennent dans
+ * l'écran (sous le Header) au lieu d'obliger à faire défiler la page.
+ * Sur grand écran, elles remplissent l'espace laissé par la page.
+ */
+.reader-panel-height {
+    height: calc(100vh - var(--app-header-height) - 10.5rem);
+    height: calc(100dvh - var(--app-header-height) - 10.5rem);
+    min-height: 26rem;
+}
+
+@media (min-width: 1280px) {
+    .reader-panel-height {
+        height: 100%;
+        min-height: 0;
     }
 }
 
@@ -558,6 +590,17 @@ html.dark .bg-rose-100 {
 }
 html.dark .border-rose-200 {
     border-color: #7f1d3f !important;
+}
+
+/* Cartes de statistiques (StatCard) : anneaux et pastille décorative adaptés au mode sombre. */
+html.dark .ring-indigo-100,
+html.dark .ring-amber-100,
+html.dark .ring-rose-100,
+html.dark .ring-emerald-100 {
+    --tw-ring-color: #111827;
+}
+html.dark .bg-indigo-50\/70 {
+    background: #162033 !important;
 }
 
 /*
