@@ -20,6 +20,47 @@ test('un bibliothécaire sans aucune permission accède à la liste des document
     $this->getJson('/api/documents-manage')->assertOk();
 });
 
+test('la recherche de documents est partielle, insensible à la casse et couvre toutes les pages', function (string $role) {
+    Sanctum::actingAs($role === 'administrateur'
+        ? User::factory()->create(['role' => 'administrateur', 'is_active' => true])
+        : documentModuleLibrarian());
+
+    foreach (['Analyse', 'Bibliothèque', 'Structure', 'Support', 'Stéphanie'] as $title) {
+        Document::factory()->create(['title' => $title, 'status' => 'publie']);
+    }
+    // Plus de 20 documents récents : « Steve » est relégué hors de la première page.
+    Document::factory()->create(['title' => 'Steve', 'status' => 'brouillon', 'created_at' => now()->subDays(5)]);
+    Document::factory()->count(22)->create(['status' => 'publie', 'created_at' => now()]);
+
+    $titles = fn (string $q) => collect($this->getJson('/api/documents-manage?' . http_build_query(['q' => $q]))->assertOk()->json('data'))->pluck('title')->all();
+
+    // Un seul caractère, minuscule ou majuscule : mêmes résultats.
+    expect($titles('s'))->toEqualCanonicalizing($titles('S'))->and($titles('s'))->toContain('Steve', 'Structure', 'Support', 'Stéphanie');
+    // (« Stéphanie » contient un s : pas concerné par l'accent)
+    // Affinage à mesure de la saisie, quelle que soit la casse.
+    expect($titles('St'))->toContain('Steve', 'Structure')->not->toContain('Support', 'Analyse');
+    expect($titles('ste'))->toEqualCanonicalizing($titles('STE'))->toContain('Steve')->not->toContain('Structure');
+    // Accents : gérés par la collation utf8mb4_unicode_ci de MySQL (production), pas par SQLite (tests).
+    if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+        expect($titles('stephanie'))->toBe(['Stéphanie'])->and($titles('ste'))->toContain('Stéphanie');
+    }
+    // Aucun résultat.
+    expect($titles('zzzqqq'))->toBe([]);
+    // Champ vidé : liste initiale (première page, 20 documents), sans « Steve » relégué.
+    $initial = $this->getJson('/api/documents-manage')->assertOk()->json();
+    expect($initial['data'])->toHaveCount(20)->and($initial['total'])->toBe(28);
+})->with(['administrateur', 'bibliothecaire']);
+
+test('la recherche se combine avec le filtre de statut', function () {
+    Sanctum::actingAs(documentModuleLibrarian());
+    Document::factory()->create(['title' => 'Structure publiée', 'status' => 'publie']);
+    Document::factory()->create(['title' => 'Structure brouillon', 'status' => 'brouillon']);
+
+    $titles = collect($this->getJson('/api/documents-manage?q=structure&status=brouillon')->json('data'))->pluck('title')->all();
+
+    expect($titles)->toBe(['Structure brouillon']);
+});
+
 test('un bibliothécaire peut ajouter un document sans permission (la validation répond, pas un 403)', function () {
     Sanctum::actingAs(documentModuleLibrarian());
 

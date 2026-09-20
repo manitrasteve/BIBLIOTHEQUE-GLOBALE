@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles } from 'lucide-react';
+import { FileText, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useDebouncedValue } from '../../lib/search';
 import { useAuth } from '../../context/AuthContext';
 import StatusBadge from '../../components/StatusBadge';
 import { SkeletonTable } from '../../components/Skeleton';
@@ -17,16 +18,33 @@ export default function DocumentsManagePage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState(null);
   const [busySlug, setBusySlug] = useState(null);
+  const [query, setQuery] = useState('');
+  // Recherche pendant la saisie (titre, côté serveur : la liste est paginée) ; champ vidé => liste initiale.
+  const searchTerm = useDebouncedValue(query.trim(), 250);
+  const latestRequest = useRef(0);
 
   useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [statusFilter, searchTerm]);
 
   function load() {
+    // Seule la réponse à la dernière requête est affichée (frappes rapides).
+    const requestId = ++latestRequest.current;
+    const params = {
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(searchTerm ? { q: searchTerm } : {}),
+    };
+
     api
-      .getManagedDocuments(statusFilter ? { status: statusFilter } : {})
-      .then((res) => setDocuments(res.data))
-      .catch(() => setError('Impossible de charger les documents.'));
+      .getManagedDocuments(params)
+      .then((res) => {
+        if (requestId !== latestRequest.current) return;
+        setError(null);
+        setDocuments(res.data);
+      })
+      .catch(() => {
+        if (requestId === latestRequest.current) setError('Impossible de charger les documents.');
+      });
   }
 
   async function publish(doc) {
@@ -64,6 +82,18 @@ export default function DocumentsManagePage() {
 
   return (
     <div>
+      <div className="relative mb-5 w-full sm:max-w-[600px]">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un document…"
+          aria-label="Rechercher un document"
+          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm"
+        />
+      </div>
+
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div className="flex flex-wrap gap-2">
           <button
@@ -103,7 +133,9 @@ export default function DocumentsManagePage() {
       ) : documents.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line p-10 text-center">
           <Inbox className="h-6 w-6 mx-auto text-ink-soft/50 mb-2" strokeWidth={1.5} />
-          <p className="text-ink-soft text-sm">Aucun document dans cette catégorie.</p>
+          <p className="text-ink-soft text-sm">
+            {searchTerm ? 'Aucun document trouvé.' : 'Aucun document dans cette catégorie.'}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-paper">
