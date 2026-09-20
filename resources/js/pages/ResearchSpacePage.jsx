@@ -139,9 +139,9 @@ export default function ResearchSpacePage() {
                         }}
                         placeholder="Mots-clés, titre, auteur…"
                         aria-label="Mots-clés"
-                        className={`${inputClass} flex-1`}
+                        className={`${inputClass} min-w-0 sm:max-w-[600px] sm:flex-1`}
                     />
-                    <button type="submit" className="btn-primary justify-center" disabled={!q.trim()}>
+                    <button type="submit" className="btn-primary justify-center sm:shrink-0" disabled={!q.trim()}>
                         <Search className="h-4 w-4" />
                         Rechercher
                     </button>

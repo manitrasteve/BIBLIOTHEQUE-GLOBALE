@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
                 </button>
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary"><Users className="h-4 w-4"/> Rechercher</button></form>
+            <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
 
             {users === null ? (
                 <p>Chargement…</p>

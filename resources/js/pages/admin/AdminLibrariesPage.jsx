@@ -275,9 +275,9 @@ export default function AdminLibrariesPage() {
         <SkeletonList count={4} />
       ) : (
         <>
-          <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex gap-2">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm" />
-            <button className="rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper"><Building2 className="mr-2 inline h-4 w-4" />Rechercher</button>
+          <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm" />
+            <button className="w-full sm:w-auto sm:shrink-0 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper"><Building2 className="mr-2 inline h-4 w-4" />Rechercher</button>
           </form>
           <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
             <table className="min-w-full text-sm">
