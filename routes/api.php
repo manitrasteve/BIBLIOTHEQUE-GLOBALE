@@ -31,7 +31,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+// Limité : la réponse indique si une adresse a un compte (limite l'énumération d'adresses).
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:10,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/site-updates', [SiteUpdateController::class, 'index']);
 Route::get('/site-updates/{uuid}', [SiteUpdateController::class, 'show']);

@@ -104,54 +104,75 @@ class AuthController extends Controller
 
         $email = mb_strtolower(trim($data['email']));
 
+        // Les comptes supprimés (Corbeille = soft delete) sont exclus par défaut, et les comptes
+        // supprimés définitivement n'existent plus : les deux sont donc traités comme inexistants,
+        // avec exactement le même message.
         $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        /*
-         * Toujours retourner le même message afin de ne pas révéler si
-         * une adresse e-mail possède un compte.
-         */
-        if ($user && $user->is_active) {
-            $token = Str::random(64);
+        if (!$user) {
+            return response()->json([
+                'status' => 'not_found',
+                'message' => 'Cette adresse e-mail n’a pas de compte.',
+            ], 404);
+        }
 
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $user->email],
+        // Compte désactivé (is_active = false) : aucun lien, sinon la désactivation serait contournable.
+        if (!$user->is_active) {
+            return response()->json([
+                'status' => 'disabled',
+                'message' => 'Votre compte est désactivé.',
+            ], 403);
+        }
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ],
+        );
+
+        $url = rtrim(config('app.url'), '/') .
+            '/reinitialiser-mot-de-passe?token=' .
+            urlencode($token) .
+            '&email=' .
+            urlencode($user->email);
+
+        try {
+            Mail::send(
+                'emails.notice',
                 [
-                    'token' => Hash::make($token),
-                    'created_at' => now(),
-                ],
-            );
-
-            $url = rtrim(config('app.url'), '/') .
-                '/reinitialiser-mot-de-passe?token=' .
-                urlencode($token) .
-                '&email=' .
-                urlencode($user->email);
-
-            try {
-                Mail::send(
-                    'emails.notice',
-                    [
-                        'heading' => 'Réinitialisation de votre mot de passe',
-                        'paragraphs' => [
-                            "Bonjour {$user->name},",
-                            'Vous avez demandé à réinitialiser votre mot de passe.',
-                        ],
-                        'buttonLabel' => 'Réinitialiser mon mot de passe',
-                        'buttonUrl' => $url,
-                        'note' => 'Ce lien est valable pendant 60 minutes.',
-                        'footerNote' => "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet e-mail.",
+                    'heading' => 'Réinitialisation de votre mot de passe',
+                    'paragraphs' => [
+                        "Bonjour {$user->name},",
+                        'Vous avez demandé à réinitialiser votre mot de passe.',
                     ],
-                    fn ($message) => $message
-                        ->to($user->email)
-                        ->subject('Réinitialisation de votre mot de passe'),
-                );
-            } catch (\Throwable $e) {
-                report($e);
-            }
+                    'buttonLabel' => 'Réinitialiser mon mot de passe',
+                    'buttonUrl' => $url,
+                    'note' => 'Ce lien est valable pendant 60 minutes.',
+                    'footerNote' => "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet e-mail.",
+                ],
+                fn ($message) => $message
+                    ->to($user->email)
+                    ->subject('Réinitialisation de votre mot de passe'),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            // Le lien n'a pas pu être envoyé : on n'annonce pas un envoi qui n'a pas eu lieu.
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            return response()->json([
+                'status' => 'mail_failed',
+                'message' => 'L’e-mail n’a pas pu être envoyé pour le moment. Veuillez réessayer plus tard.',
+            ], 503);
         }
 
         return response()->json([
-            'message' => 'Si cette adresse existe, un lien de réinitialisation a été envoyé.',
+            'status' => 'sent',
+            'message' => 'Un lien de réinitialisation de votre mot de passe a été envoyé à cette adresse e-mail.',
         ]);
     }
 
@@ -195,6 +216,17 @@ class AuthController extends Controller
         if (!$user) {
             throw ValidationException::withMessages([
                 'token' => ['Lien invalide ou expiré.'],
+            ]);
+        }
+
+        // Un compte désactivé après avoir défini son mot de passe ne peut pas se réactiver avec un ancien
+        // lien « mot de passe oublié ». Les liens d'invitation / de réactivation ne sont pas concernés :
+        // ils concernent des comptes dont password_set_at est vide.
+        if (!$user->is_active && $user->password_set_at !== null) {
+            DB::table('password_reset_tokens')->where('email', $row->email)->delete();
+
+            throw ValidationException::withMessages([
+                'token' => ['Votre compte est désactivé.'],
             ]);
         }
 

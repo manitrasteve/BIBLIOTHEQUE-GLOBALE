@@ -74,6 +74,8 @@ class UserController extends Controller
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
 
         $user->update(['is_active' => false]);
+        // Un lien de réinitialisation encore valide ne doit pas survivre à la désactivation.
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         \App\Services\NotificationService::send($user, 'compte_desactive', 'Compte désactivé', "Votre compte a été désactivé. Raison : {$data['reason']}", $user);
 
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {
