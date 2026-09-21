@@ -8,6 +8,8 @@ const EXAMPLES = [
     "Combien de documents avons-nous ?",
     "Combien de documents sont en brouillon ?",
     "Quels documents ont été archivés aujourd'hui ?",
+    "Combien de bibliothécaires y a-t-il dans ma bibliothèque ?",
+    "Quel est mon historique complet ?",
     "Quelles actions ai-je effectuées aujourd'hui ?",
     "Qui a modifié le dernier document publié ?",
     "Avons-nous des livres d'informatique ?",

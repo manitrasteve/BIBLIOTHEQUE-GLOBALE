@@ -248,7 +248,7 @@ test('les outils sont en lecture seule : aucune donnée n\'est modifiée ni jour
     $documents = Document::withTrashed()->count();
     $tools = toolsFor($w->admin);
 
-    foreach (['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'aucune_donnee_necessaire'] as $tool) {
+    foreach (['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'lister_bibliothecaires', 'mon_historique', 'aucune_donnee_necessaire'] as $tool) {
         $tools->run($tool, ['par' => 'type', 'titre' => 'Algo']);
     }
 
@@ -260,7 +260,7 @@ test('les déclarations d\'outils dépendent du rôle : le bibliothécaire ne pe
     $adminNames = collect(toolsFor($w->admin)->declarations())->pluck('name')->all();
     $librarianDeclarations = collect(toolsFor($w->librarianA)->declarations());
 
-    expect($adminNames)->toBe(['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'aucune_donnee_necessaire']);
+    expect($adminNames)->toBe(['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'lister_bibliothecaires', 'mon_historique', 'aucune_donnee_necessaire']);
     expect(json_encode(toolsFor($w->admin)->declarations()))->toContain('"bibliotheque"')->toContain('permissions_modifiees');
     expect(json_encode($librarianDeclarations->all()))->not->toContain('"bibliotheque":')->not->toContain('permissions_modifiees')->not->toContain('vidage_corbeille');
     // Aucun paramètre ne permet de fournir un identifiant.

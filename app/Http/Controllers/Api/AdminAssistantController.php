@@ -18,6 +18,8 @@ class AdminAssistantController extends Controller
         'historique_document' => "Historique d'un document",
         'rechercher_actions' => 'Journal des actions de gestion',
         'rechercher_bibliotheques' => 'Bibliothèques',
+        'lister_bibliothecaires' => 'Liste des bibliothécaires',
+        'mon_historique' => 'Mon historique',
     ];
 
     public function ask(Request $request, ManagementAssistantService $assistant)

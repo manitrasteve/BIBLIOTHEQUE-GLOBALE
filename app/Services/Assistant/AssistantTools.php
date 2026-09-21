@@ -50,6 +50,14 @@ class AssistantTools
 
     private const ELEMENT_TYPES = ['document' => Document::class, 'bibliotheque' => Library::class, 'compte' => User::class];
 
+    private const STAFF_LIMIT = 30;
+
+    // Libellés des actions propres à l'historique PERSONNEL (les autres codes sont affichés sous une forme lisible).
+    private const OWN_ACTION_LABELS = [
+        'connexion' => 'Connexion', 'consultation_document' => "Consultation d'un document", 'question_ia' => "Question à l'assistant IA",
+        'ajout_favori' => 'Ajout aux favoris', 'retrait_favori' => 'Retrait des favoris',
+    ];
+
     public function __construct(private readonly AssistantScope $scope)
     {
     }
@@ -113,6 +121,19 @@ class AssistantTools
                 'parameters' => ['type' => 'OBJECT', 'properties' => $admin ? ['nom' => $string('Nom ou partie du nom.')] : new \stdClass()],
             ],
             [
+                'name' => 'lister_bibliothecaires',
+                'description' => 'Donne le nombre de bibliothécaires (membres du Service Numérique)' . ($admin ? '' : ' de votre bibliothèque') . ', avec le nom de chacun et la date de création de son compte. À utiliser pour « combien de bibliothécaires », « qui sont les bibliothécaires ».',
+                // « properties » doit être un OBJET JSON, même vide.
+                'parameters' => ['type' => 'OBJECT', 'properties' => $admin ? $library : new \stdClass()],
+            ],
+            [
+                'name' => 'mon_historique',
+                'description' => 'Historique des actions du compte connecté LUI-MÊME (« mon historique », « mes actions », « qu\'ai-je fait ») : tout l\'historique, celui d\'aujourd\'hui ou celui d\'un jour précis. Ne renvoie jamais les actions d\'une autre personne.',
+                'parameters' => ['type' => 'OBJECT', 'properties' => [
+                    'periode' => $enum('« tout » = tout l\'historique (par défaut) ; « aujourdhui » = les actions du jour.', ['tout', 'aujourdhui']),
+                ] + $dates],
+            ],
+            [
                 'name' => 'aucune_donnee_necessaire',
                 'description' => 'À utiliser UNIQUEMENT pour une salutation, un remerciement ou une question sur ce que l\'assistant sait faire. Interdit dès que la question porte sur des documents, bibliothèques, actions ou utilisateurs.',
                 'parameters' => ['type' => 'OBJECT', 'properties' => ['motif' => $string('Pourquoi aucune donnée n\'est nécessaire.')]],
@@ -132,6 +153,8 @@ class AssistantTools
                 'historique_document' => $this->historiqueDocument($args),
                 'rechercher_actions' => $this->rechercherActions($args),
                 'rechercher_bibliotheques' => $this->rechercherBibliotheques($args),
+                'lister_bibliothecaires' => $this->listerBibliothecaires($args),
+                'mon_historique' => $this->monHistorique($args),
                 'aucune_donnee_necessaire' => $this->aucuneDonnee(),
                 default => ['erreur' => "Outil inconnu : {$name}."],
             };
@@ -310,11 +333,92 @@ class AssistantTools
         ];
     }
 
+    /**
+     * Bibliothécaires du périmètre : total, noms et date de création du compte (ni e-mail, ni téléphone, ni identifiant).
+     * Un bibliothécaire ne voit que ceux de SA bibliothèque : le filtre vient de libraryIds(), pas du prompt.
+     */
+    private function listerBibliothecaires(array $args): array
+    {
+        [$ids, $error] = $this->libraryIds($this->text($args, 'bibliotheque'));
+        if ($error) {
+            return $error;
+        }
+
+        $query = User::query()->where('role', 'bibliothecaire')->when($ids !== null, fn ($q) => $q->whereIn('library_id', $ids)); // comptes supprimés (corbeille) exclus
+        $total = (clone $query)->count();
+
+        if ($total === 0) {
+            return ['trouve' => false, 'total' => 0, 'message' => 'Aucun bibliothécaire trouvé dans les données disponibles.', 'perimetre' => $this->perimeter($ids)];
+        }
+
+        $active = (clone $query)->where('is_active', true)->count();
+        $people = $query->with('library:id,name')->orderBy('created_at')->orderBy('id')->limit(self::STAFF_LIMIT)->get();
+
+        return [
+            'trouve' => true,
+            'total' => $total,
+            'comptes_actifs' => $active,
+            'comptes_inactifs' => $total - $active,
+            'affiches' => $people->count(),
+            'bibliothecaires' => $people->map(fn (User $u) => [
+                'nom' => $u->name,
+                'compte_cree_le' => $this->local($u->created_at, 'Y-m-d'),
+                'compte' => $u->is_active ? 'actif' : 'inactif (désactivé ou en attente d\'activation)',
+                'bibliotheque' => $u->library?->name,
+            ])->all(),
+            'perimetre' => $this->perimeter($ids),
+        ];
+    }
+
+    /** Historique du compte connecté uniquement : le filtre user_id vient de l'utilisateur authentifié, jamais des arguments. */
+    private function monHistorique(array $args): array
+    {
+        if ($this->choice($args, 'periode', ['tout', 'aujourdhui']) === 'aujourdhui') {
+            $args['date'] = CarbonImmutable::now($this->timezone())->format('Y-m-d');
+        }
+
+        $query = ActivityLog::query()->where('user_id', $this->scope->userId);
+        $filters = [];
+
+        if ($range = $this->dateRange($args)) {
+            $query->whereBetween('created_at', $range);
+            $filters['entre'] = [$this->local($range[0]), $this->local($range[1])];
+        } else {
+            $filters['periode'] = 'tout';
+        }
+
+        $total = (clone $query)->count();
+
+        if ($total === 0) {
+            return ['trouve' => false, 'total' => 0, 'filtres' => $filters, 'message' => "Aucune action trouvée dans votre historique pour cette période."];
+        }
+
+        $label = fn (string $action) => self::OWN_ACTION_LABELS[$action] ?? self::ACTION_LABELS[$action] ?? Str::ucfirst(str_replace('_', ' ', $action));
+        $byAction = (clone $query)->selectRaw('action, COUNT(*) as total')->groupBy('action')->orderByDesc('total')->pluck('total', 'action');
+        $logs = $query->orderByDesc('created_at')->orderByDesc('id')->limit(self::LOG_LIMIT)->get();
+
+        return [
+            'trouve' => true,
+            'total' => $total,
+            'affiches' => $logs->count(),
+            'par_type_action' => $byAction->mapWithKeys(fn ($n, $a) => [$label($a) => (int) $n])->all(),
+            'actions' => $logs->map(fn (ActivityLog $l) => [
+                'action' => $label($l->action),
+                'element' => $l->subject_label ?? ($l->description ? mb_substr($l->description, 0, 120) : null),
+                'date' => $this->local($l->created_at, 'Y-m-d'),
+                'heure' => $this->local($l->created_at, 'H:i'),
+                'modifications' => $this->compactChanges($l->changes),
+            ])->all(),
+            'filtres' => $filters,
+            'perimetre' => 'Votre propre historique',
+        ];
+    }
+
     private function aucuneDonnee(): array
     {
         return [
             'info' => "Aucune donnée n'a été consultée. Réponds seulement à une salutation ou présente ce que tu sais faire ; toute question sur les données doit passer par un outil.",
-            'capacites' => ['compter et répartir les documents', 'rechercher des documents', "consulter l'historique d'un document", 'rechercher les actions de gestion (documents, bibliothèques, comptes)', 'lister les bibliothèques'],
+            'capacites' => ['compter et répartir les documents', 'rechercher des documents', "consulter l'historique d'un document", 'rechercher les actions de gestion (documents, bibliothèques, comptes)', 'lister les bibliothèques', 'lister les bibliothécaires (nombre, noms, date de création des comptes)', 'consulter votre propre historique (tout, aujourd\'hui ou une date)'],
         ];
     }
 
