@@ -77,7 +77,7 @@ class LibrarianManagementController extends Controller
             ['email' => $user->email],
             ['token' => Hash::make($token), 'created_at' => now()]
         );
-        $url = rtrim(config('app.url'), '/') . '/reinitialiser-mot-de-passe?token=' . urlencode($token) . '&email=' . urlencode($user->email);
+        $url = rtrim(config('app.url'), '/') . '/reinitialiser-mot-de-passe?token=' . urlencode($token) . '&email=' . urlencode($user->email) . '&type=creation'; // même page que la réinitialisation, avec le vocabulaire « créer »
 
         $content = [
             'heading' => 'Votre compte Bibliothécaire a été créé',

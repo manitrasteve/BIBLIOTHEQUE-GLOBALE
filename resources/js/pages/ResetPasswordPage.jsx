@@ -8,6 +8,8 @@ export default function ResetPasswordPage() {
 
     const token = params.get("token") || "";
     const email = params.get("email") || "";
+    // Lien envoyé à la création (ou réactivation) d'un compte : mêmes champs, mais vocabulaire « créer » et non « réinitialiser ».
+    const creation = params.get("type") === "creation";
 
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
@@ -20,7 +22,7 @@ export default function ResetPasswordPage() {
         setError(null);
 
         if (!token || !email) {
-            setError("Ce lien de réinitialisation est incomplet.");
+            setError(creation ? "Ce lien de création de mot de passe est incomplet." : "Ce lien de réinitialisation est incomplet.");
             return;
         }
 
@@ -67,11 +69,13 @@ export default function ResetPasswordPage() {
                 className="modern-card space-y-5 p-7"
             >
                 <h1 className="font-display text-2xl font-extrabold">
-                    Réinitialiser le mot de passe
+                    {creation ? "Créer votre mot de passe" : "Réinitialiser le mot de passe"}
                 </h1>
 
                 <p className="text-sm text-slate-500">
-                    Choisissez un nouveau mot de passe pour votre compte.
+                    {creation
+                        ? "Votre compte a été créé. Choisissez maintenant votre mot de passe."
+                        : "Choisissez un nouveau mot de passe pour votre compte."}
                 </p>
 
                 {error && (
@@ -82,7 +86,7 @@ export default function ResetPasswordPage() {
 
                 {ok && (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
-                        Mot de passe réinitialisé avec succès. Redirection vers
+                        {creation ? "Mot de passe créé avec succès." : "Mot de passe réinitialisé avec succès."} Redirection vers
                         la connexion…
                     </div>
                 )}
@@ -114,7 +118,7 @@ export default function ResetPasswordPage() {
                     disabled={submitting || ok}
                     className="btn-primary w-full disabled:opacity-50"
                 >
-                    {submitting ? "Enregistrement…" : "Enregistrer"}
+                    {submitting ? "Enregistrement…" : creation ? "Créer mon mot de passe" : "Enregistrer"}
                 </button>
             </form>
         </div>
