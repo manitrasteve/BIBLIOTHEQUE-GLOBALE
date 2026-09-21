@@ -89,7 +89,7 @@ export default function DocumentFormPage() {
                     access_level: doc.access_level,
                     author_ids: doc.authors?.map((a) => a.id) || [],
                 });
-            });
+            }).catch((e) => setError(e.data?.message || "Impossible de charger ce document."));
         }
     }, [id]);
 
@@ -179,7 +179,9 @@ export default function DocumentFormPage() {
             setError(
                 err.data?.errors
                     ? Object.values(err.data.errors)[0][0]
-                    : "L'enregistrement a échoué.",
+                    : err.status === 403
+                      ? err.data?.message || "Action non autorisée."
+                      : "L'enregistrement a échoué.",
             );
         } finally {
             setSubmitting(false);
