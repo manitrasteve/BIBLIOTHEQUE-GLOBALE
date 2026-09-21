@@ -1,4 +1,4 @@
-import { Sparkles, ShieldCheck } from 'lucide-react';
+import { Sparkles, ShieldCheck, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -28,7 +28,17 @@ export default function Footer() {
           </div>
           <div className="md:text-right">
             <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Informations</p>
-            <p className="mt-3 text-sm text-slate-500">© {new Date().getFullYear()} Université de Mahajanga</p>
+            <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <p className="flex items-center gap-2 md:justify-end">
+                <Mail className="h-4 w-4 shrink-0 text-indigo-500" />
+                <a href="mailto:bibliothequenumeriquemahajanga@gmail.com" className="break-all hover:underline">bibliothequenumeriquemahajanga@gmail.com</a>
+              </p>
+              <p className="flex items-center gap-2 md:justify-end">
+                <Phone className="h-4 w-4 shrink-0 text-emerald-500" />
+                <a href="tel:+261324208362" className="hover:underline">+261 32 42 083 62</a>
+              </p>
+            </div>
+            <p className="mt-4 text-xs italic text-slate-400">by Steve</p>
           </div>
         </div>
       </div>
