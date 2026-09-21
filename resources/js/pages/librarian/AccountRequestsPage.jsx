@@ -14,6 +14,8 @@ import StatusBadge from "../../components/StatusBadge";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
 import { requestSections } from "../../lib/detailSections";
 import { useAuth } from "../../context/AuthContext";
+import CounterBar from "../../components/CounterBar";
+import Pager from "../../components/Pager";
 
 const FILTERS = [
     "en_attente",
@@ -38,6 +40,8 @@ export default function AccountRequestsPage() {
     const [searchParams] = useSearchParams();
 
     const [rows, setRows] = useState(null);
+    // Compteurs du périmètre autorisé (mêmes demandes que la liste, tous statuts confondus).
+    const [counts, setCounts] = useState(null);
     const [error, setError] = useState(null);
     const [query, setQuery] = useState("");
     const [viewing, setViewing] = useState(null);
@@ -58,16 +62,27 @@ export default function AccountRequestsPage() {
         return user?.role === "administrateur" ? "verifiee" : "en_attente";
     });
 
-    async function load() {
+    // Le serveur pagine (20 par page) : on garde la page courante pour qu'une action ne renvoie pas au début.
+    const [meta, setMeta] = useState(null);
+
+    async function load(page = meta?.current_page || 1) {
         try {
             setError(null);
             setRows(null);
 
             const response = await api.getAccountRequests({
                 status: filter,
+                page,
             });
 
+            // Dernier élément d'une page retiré (rejet, validation) : on revient à la page précédente.
+            if (!(response.data || []).length && page > 1) {
+                return load(page - 1);
+            }
+
             setRows(response.data || []);
+            setCounts(response.counts || null);
+            setMeta({ current_page: response.current_page, last_page: response.last_page, total: response.total });
         } catch (e) {
             setError(e.data?.message || "Impossible de charger les demandes.");
             setRows([]);
@@ -75,7 +90,7 @@ export default function AccountRequestsPage() {
     }
 
     useEffect(() => {
-        load();
+        load(1); // changement de filtre : première page
     }, [filter]);
 
     async function verify(id) {
@@ -176,6 +191,11 @@ export default function AccountRequestsPage() {
                 </button>
             </form>
 
+            <CounterBar
+                total={counts?.total}
+                items={counts?.traitee > 0 ? [{ label: "Traitées", value: counts.traitee }] : []}
+            />
+
             {/* Filtres */}
             <div className="mb-6 flex flex-wrap gap-2">
                 {FILTERS.map((key) => (
@@ -189,6 +209,7 @@ export default function AccountRequestsPage() {
                         }`}
                     >
                         {LABELS[key]}
+                        {counts && <span className="ml-1.5 font-semibold">({counts[key] ?? 0})</span>}
                     </button>
                 ))}
             </div>
@@ -333,7 +354,12 @@ export default function AccountRequestsPage() {
                                                             </button>
                                                         </>
                                                     )}
-                                                {r.status === "validee" && (
+                                                {r.status === "validee" && filter === "compte_active" ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        Compte activé
+                                                    </span>
+                                                ) : r.status === "validee" && (
                                                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
                                                         <Clock3 className="h-4 w-4" />
                                                         Lien envoyé
@@ -347,6 +373,8 @@ export default function AccountRequestsPage() {
                     </table>
                 </div>
             )}
+
+            <Pager meta={meta} onChange={(p) => load(p)} />
 
             {viewing && (
                 <DetailModal

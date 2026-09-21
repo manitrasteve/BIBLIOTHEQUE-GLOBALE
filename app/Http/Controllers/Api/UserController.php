@@ -19,6 +19,16 @@ class UserController extends Controller
     {
         $query = User::with('library:id,name')->whereIn('role', ['etudiant','enseignant','chercheur'])->orderByDesc('created_at');
 
+        // Compteurs : mêmes comptes que la liste (étudiants, enseignants, chercheurs ; corbeille exclue) et même
+        // recherche, mais sans les filtres de rôle / d'état, pour que chaque compteur garde son propre nombre.
+        $counted = clone $query;
+        if ($search = $request->get('search')) {
+            $counted->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
+            });
+        }
+        $counts = $this->userCounts($counted);
+
         if ($request->has('is_active')) {
             $query->where('is_active', filter_var($request->get('is_active'), FILTER_VALIDATE_BOOLEAN));
         }
@@ -31,7 +41,30 @@ class UserController extends Controller
             });
         }
 
-        return response()->json($query->paginate(20));
+        return response()->json([...$query->paginate(20)->toArray(), 'counts' => $counts]);
+    }
+
+    private function userCounts($scoped): array
+    {
+        $byRole = $scoped->reorder()->toBase()->selectRaw('role, COUNT(*) AS total')->groupBy('role')->pluck('total', 'role');
+        $active = (clone $scoped)->reorder()->where('is_active', true)->count();
+        $total = (int) $byRole->sum();
+
+        // Comptes gérés sur leurs propres pages : affichés à titre indicatif, hors du total de cette liste.
+        $others = User::query()->whereIn('role', ['bibliothecaire', 'administrateur'])->selectRaw('role, COUNT(*) AS total')->groupBy('role')->pluck('total', 'role');
+
+        return [
+            'total' => $total,
+            'etudiant' => (int) ($byRole['etudiant'] ?? 0),
+            'enseignant' => (int) ($byRole['enseignant'] ?? 0),
+            'chercheur' => (int) ($byRole['chercheur'] ?? 0),
+            'actifs' => $active,
+            'inactifs' => $total - $active,
+            'hors_total' => [
+                'bibliothecaire' => (int) ($others['bibliothecaire'] ?? 0),
+                'administrateur' => (int) ($others['administrateur'] ?? 0),
+            ],
+        ];
     }
 
     public function reactivate(Request $request, User $user)
@@ -46,7 +79,7 @@ class UserController extends Controller
             ['email' => $user->email],
             ['token' => \Illuminate\Support\Facades\Hash::make($token), 'created_at' => now()]
         );
-        $url = rtrim(config('app.url'), '/').'/reinitialiser-mot-de-passe?token='.urlencode($token).'&email='.urlencode($user->email);
+        $url = rtrim(config('app.url'), '/').'/reinitialiser-mot-de-passe?token='.urlencode($token).'&email='.urlencode($user->email).'&type=creation'; // même page que la réinitialisation, avec le vocabulaire « créer »
 
         ActivityLogService::log($request->user()->id, 'reactivation_compte', $user->name, $user);
 

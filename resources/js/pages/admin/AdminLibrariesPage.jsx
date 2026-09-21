@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import DetailModal, { ViewButton } from '../../components/DetailModal';
 import LibraryCover from '../../components/LibraryCover';
 import { librarySections } from '../../lib/detailSections';
+import CounterBar from '../../components/CounterBar';
 
 const emptyForm = {
   name: '',
@@ -162,6 +163,9 @@ export default function AdminLibrariesPage() {
           </button>
         )}
       </div>
+
+      {/* Une bibliothèque n'a pas d'état (actif / inactif) : seul le total existe. */}
+      <CounterBar total={libraries ? libraries.length : null} />
 
       {error && <p className="text-red-700 mb-4">{error}</p>}
 

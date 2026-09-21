@@ -49,13 +49,39 @@ class AccountRequestController extends Controller
         // Le bibliothécaire ne voit que les demandes de sa bibliothèque.
         $request->user()->restrictToManagedLibrary($query);
 
+        // Compteurs : même périmètre que la liste, calculés avant d'appliquer le filtre de statut.
+        $counts = $this->requestCounts(clone $query);
+
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            // « validee » ne change jamais après la création du mot de passe : seul l'effacement du jeton
+            // d'initialisation distingue « en attente de mot de passe » de « compte activé ».
+            match ($request->status) {
+                'validee' => $query->where('status', 'validee')->whereNotNull('setup_token_hash'),
+                'compte_active' => $query->where('status', 'validee')->whereNull('setup_token_hash'),
+                default => $query->where('status', $request->status),
+            };
         }
 
-        return response()->json(
-            $query->latest()->paginate(20)
-        );
+        return response()->json([
+            ...$query->latest()->paginate(20)->toArray(),
+            'counts' => $counts,
+        ]);
+    }
+
+    /** Total et nombre par statut dans le périmètre autorisé (une seule requête GROUP BY, aucune ligne chargée). */
+    private function requestCounts($scoped): array
+    {
+        $rows = $scoped->reorder()->toBase()
+            ->selectRaw("CASE WHEN status = 'validee' AND setup_token_hash IS NULL THEN 'compte_active' ELSE status END AS bucket, COUNT(*) AS total")
+            ->groupBy('bucket')
+            ->pluck('total', 'bucket');
+
+        $counts = ['total' => (int) $rows->sum()];
+        foreach (['en_attente', 'verifiee', 'validee', 'compte_active', 'rejetee', 'expiree', 'traitee'] as $status) {
+            $counts[$status] = (int) ($rows[$status] ?? 0);
+        }
+
+        return $counts;
     }
 
     /**

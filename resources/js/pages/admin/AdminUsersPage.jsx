@@ -11,6 +11,8 @@ import {
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import CreateUserForm from "../../components/CreateUserForm";
+import CounterBar from "../../components/CounterBar";
+import Pager from "../../components/Pager";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
 import { userSections } from "../../lib/detailSections";
 
@@ -96,10 +98,20 @@ export default function AdminUsersPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [query, setQuery] = useState("");
     const [viewing, setViewing] = useState(null);
+    const [counts, setCounts] = useState(null);
 
-    function load() {
-        api.getUsers()
-            .then((r) => setUsers(r.data || []))
+    const [meta, setMeta] = useState(null);
+
+    // Le serveur pagine (20 par page) : les actions rechargent la page courante.
+    function load(page = meta?.current_page || 1) {
+        api.getUsers({ page })
+            .then((r) => {
+                // Dernier utilisateur d'une page supprimé : retour à la page précédente.
+                if (!(r.data || []).length && page > 1) return load(page - 1);
+                setUsers(r.data || []);
+                setCounts(r.counts || null);
+                setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
+            })
             .catch(() => {});
     }
 
@@ -115,6 +127,7 @@ export default function AdminUsersPage() {
             await api.deleteUser(modal.user.id, reason);
             setUsers((list) => list.filter((u) => u.id !== modal.user.id));
             setModal(null);
+            load(); // compteurs à jour
         } catch (err) {
             alert(err?.message || "Suppression impossible.");
             setModal(null);
@@ -128,6 +141,7 @@ export default function AdminUsersPage() {
                 list.map((u) => (u.id === modal.user.id ? updated : u)),
             );
             setModal(null);
+            load(); // compteurs à jour
         } catch (err) {
             alert(err?.message || "Désactivation impossible.");
             setModal(null);
@@ -146,6 +160,7 @@ export default function AdminUsersPage() {
             setUsers((list) =>
                 list.map((u) => (u.id === user.id ? updated : u)),
             );
+            load(); // compteurs à jour
         } catch (err) {
             alert(err?.message || "Réactivation impossible.");
         }
@@ -163,6 +178,7 @@ export default function AdminUsersPage() {
                 onCreated={(res) => {
                     setUsers((list) => [res.user, ...(list || [])]);
                     setShowCreate(false);
+                    load(); // compteurs à jour
                 }}
             />
         );
@@ -181,6 +197,18 @@ export default function AdminUsersPage() {
                     <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
                 </button>
             </div>
+
+            <CounterBar
+                total={counts?.total}
+                items={counts ? [
+                    { label: "Étudiants", value: counts.etudiant },
+                    { label: "Enseignants", value: counts.enseignant },
+                    { label: "Chercheurs", value: counts.chercheur },
+                    { label: "Actifs", value: counts.actifs },
+                    { label: "En attente / désactivés", value: counts.inactifs },
+                ] : []}
+                note={counts ? `Hors total (gérés dans leurs propres pages) : Bibliothécaires ${counts.hors_total?.bibliothecaire ?? 0} · Administrateurs ${counts.hors_total?.administrateur ?? 0}` : null}
+            />
 
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
 
@@ -205,6 +233,8 @@ export default function AdminUsersPage() {
                     </table>
                 </div>
             )}
+
+            <Pager meta={meta} onChange={(p) => load(p)} />
 
             {viewing && (
                 <DetailModal

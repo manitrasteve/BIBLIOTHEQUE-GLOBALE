@@ -2,22 +2,35 @@ import { useEffect, useState } from "react";
 import { MessageSquare, LifeBuoy, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import CounterBar from "../../components/CounterBar";
+import Pager from "../../components/Pager";
 
 function Inbox({ kind }) {
     // Consultation seule pour le bibliothécaire : répondre / supprimer restent réservés à l'administrateur.
     const { user } = useAuth();
     const isAdmin = user?.role === "administrateur";
     const [rows, setRows] = useState(null);
+    const [counts, setCounts] = useState(null);
+    const [meta, setMeta] = useState(null);
     const isFeedback = kind === "feedback";
 
-    function load() {
-        (isFeedback ? api.getFeedbacks() : api.getProblemReports())
-            .then((r) => setRows(r.data || []))
+    // Le serveur pagine (20 par page) : les actions rechargent la page courante.
+    function load(page = meta?.current_page || 1) {
+        (isFeedback ? api.getFeedbacks({ page }) : api.getProblemReports({ page }))
+            .then((r) => {
+                // Dernier élément d'une page supprimé : retour à la page précédente.
+                if (!(r.data || []).length && page > 1) return load(page - 1);
+                setRows(r.data || []);
+                setCounts(r.counts || null);
+                setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
+            })
             .catch(() => {});
     }
 
     useEffect(() => {
-        load();
+        setCounts(null);
+        setMeta(null);
+        load(1);
     }, [kind]);
 
     async function reply(row) {
@@ -41,6 +54,7 @@ function Inbox({ kind }) {
                         : r,
                 ),
             );
+            load(); // compteurs à jour
         } catch {}
     }
 
@@ -57,6 +71,7 @@ function Inbox({ kind }) {
             if (isFeedback) await api.deleteFeedback(row.id);
             else await api.deleteProblemReport(row.id);
             setRows((x) => x.filter((r) => r.id !== row.id));
+            load(); // compteurs à jour
         } catch {}
     }
 
@@ -73,6 +88,7 @@ function Inbox({ kind }) {
             if (isFeedback) await api.clearFeedbacks();
             else await api.clearProblemReports();
             setRows([]);
+            load(1); // tout est effacé : retour à la première page
         } catch {}
     }
 
@@ -97,6 +113,25 @@ function Inbox({ kind }) {
                     </button>
                 )}
             </div>
+
+            <CounterBar
+                total={counts?.total}
+                items={
+                    counts
+                        ? isFeedback
+                            ? [
+                                  { label: "Nouveaux", value: counts.nouveau },
+                                  { label: "Lus", value: counts.lu },
+                                  { label: "Traités", value: counts.traite },
+                              ]
+                            : [
+                                  { label: "Nouveaux", value: counts.nouveau },
+                                  { label: "En cours", value: counts.en_cours },
+                                  { label: "Traités", value: counts.traite },
+                              ]
+                        : []
+                }
+            />
 
             {rows?.length ? (
                 rows.map((r) => (
@@ -150,6 +185,8 @@ function Inbox({ kind }) {
             ) : (
                 <p>Chargement…</p>
             )}
+
+            <Pager meta={meta} onChange={(p) => load(p)} />
         </div>
     );
 }

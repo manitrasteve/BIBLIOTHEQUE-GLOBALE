@@ -513,7 +513,11 @@ export const api = {
 
     getEngagementStats: () => request("/engagement-stats"),
 
-    getFeedbacks: () => request("/feedbacks"),
+    getFeedbacks: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/feedbacks${query ? `?${query}` : ""}`);
+    },
 
     replyFeedback: (id, data) =>
         request(`/feedbacks/${id}/reply`, {
@@ -531,7 +535,11 @@ export const api = {
             method: "DELETE",
         }),
 
-    getProblemReports: () => request("/problem-reports"),
+    getProblemReports: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/problem-reports${query ? `?${query}` : ""}`);
+    },
 
     replyProblemReport: (id, data) =>
         request(`/problem-reports/${id}/reply`, {
