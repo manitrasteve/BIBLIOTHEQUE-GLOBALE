@@ -47,6 +47,10 @@ const NAV_BY_ROLE = {
         "watch",
         ...COMMON_END,
     ],
+    // Administrateur / Service Numérique consultant « Mon profil » (espace membre) :
+    // même module « Mes lectures » que sur le compte Enseignant.
+    administrateur: ["dashboard", "catalogue", "readings", ...COMMON_END],
+    bibliothecaire: ["dashboard", "catalogue", "readings", ...COMMON_END],
 };
 
 const DEFAULT_NAV = ["dashboard", "catalogue", ...COMMON_END];

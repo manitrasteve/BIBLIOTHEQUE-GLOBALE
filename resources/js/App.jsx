@@ -144,7 +144,7 @@ export default function App() {
                                 />
                                 <Route
                                     path="/mes-lectures"
-                                    element={<RoleRoute roles={MEMBER_ROLES}><MyReadingsPage /></RoleRoute>}
+                                    element={<RoleRoute roles={[...MEMBER_ROLES, "administrateur", "bibliothecaire"]}><MyReadingsPage /></RoleRoute>}
                                 />
                                 <Route
                                     path="/mes-activites"

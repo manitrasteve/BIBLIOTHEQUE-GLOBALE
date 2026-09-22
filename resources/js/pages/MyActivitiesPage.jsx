@@ -26,6 +26,7 @@ const ACTION_CONFIG = {
     publication_document: { label: "Document publié", icon: Upload },
     creation_compte: { label: "Compte créé", icon: UserPlus },
     validation_compte: { label: "Compte validé", icon: UserCheck },
+    renvoi_lien_creation_mot_de_passe: { label: "Lien de création du mot de passe renvoyé", icon: UserCheck },
     desactivation_compte: { label: "Compte désactivé", icon: UserX },
     reactivation_compte: { label: "Compte réactivé", icon: UserCheck },
     suppression_utilisateur: { label: "Compte supprimé", icon: UserX },

@@ -37,7 +37,7 @@ export default function RichTextEditor({ value, onChange }) {
         content: value || "",
         editorProps: {
             attributes: {
-                class: "rich-text rte-content min-h-[8rem] px-3 py-2.5 text-ink focus:outline-none",
+                class: "rich-text rte-content min-h-[6rem] px-3 py-2 text-sm text-ink focus:outline-none",
             },
         },
         onUpdate: ({ editor }) => onChange(editor.getHTML()),

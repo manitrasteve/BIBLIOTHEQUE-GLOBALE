@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-    FileText,
-    UploadCloud,
-    Image as ImageIcon,
-    FilePlus2,
-} from "lucide-react";
+import { UploadCloud, Image as ImageIcon } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import RichTextEditor from "../../components/RichTextEditor";
@@ -15,7 +10,7 @@ import RichTextEditor from "../../components/RichTextEditor";
 const LEGACY_TYPE_LABELS = { livre: "Livre", memoire: "Mémoire", these: "Thèse", rapport: "Rapport", autre: "Autre" };
 const LEGACY_LANGUAGE_LABELS = { fr: "Français", mg: "Malgache", en: "Anglais", es: "Espagnol", pt: "Portugais", it: "Italien", ru: "Russe", autre: "Autre" };
 
-const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2.5";
+const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm";
 
 const ACCESS_LEVELS = [
     { value: "public", label: "Public (aucune connexion requise)" },
@@ -191,50 +186,37 @@ export default function DocumentFormPage() {
 
     return (
         <div>
-            <h2 className="flex items-center gap-2 font-display text-xl text-ink mb-6">
-                {isEditing ? (
-                    <FileText
-                        className="h-5 w-5 text-brass"
-                        strokeWidth={1.75}
-                    />
-                ) : (
-                    <FilePlus2
-                        className="h-5 w-5 text-brass"
-                        strokeWidth={1.75}
-                    />
-                )}
-                {isEditing ? "Modifier le document" : "Ajouter un document"}
-            </h2>
-
             <form
                 onSubmit={handleSubmit}
-                className="w-full space-y-4 rounded-xl border border-line bg-paper p-5"
+                className="mx-auto w-full max-w-5xl space-y-2.5 rounded-xl border border-line bg-paper p-3.5"
             >
-                <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Titre *
-                    </label>
-                    <input
-                        required
-                        value={form.title}
-                        onChange={(e) =>
-                            setForm({ ...form, title: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
-                    />
-                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Titre *
+                        </label>
+                        <input
+                            required
+                            value={form.title}
+                            onChange={(e) =>
+                                setForm({ ...form, title: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                        />
+                    </div>
 
-                <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Sous-titre
-                    </label>
-                    <input
-                        value={form.subtitle}
-                        onChange={(e) =>
-                            setForm({ ...form, subtitle: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
-                    />
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Sous-titre
+                        </label>
+                        <input
+                            value={form.subtitle}
+                            onChange={(e) =>
+                                setForm({ ...form, subtitle: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                        />
+                    </div>
                 </div>
 
                 <div>
@@ -249,7 +231,7 @@ export default function DocumentFormPage() {
                     />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
                     <div>
                         <label htmlFor="doc-type" className="block text-sm text-ink-soft mb-1.5">
                             Type *
@@ -308,7 +290,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, library_id: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm"
                         >
                             <option value="">—</option>
                             {libraries.map((l) => (
@@ -320,7 +302,7 @@ export default function DocumentFormPage() {
                     </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid gap-3 sm:grid-cols-3">
                     <div>
                         <label className="block text-sm text-ink-soft mb-1.5">
                             Année
@@ -330,7 +312,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, year: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                            className={inputClass}
                         />
                     </div>
                     <div>
@@ -342,7 +324,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, publisher: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                            className={inputClass}
                         />
                     </div>
                     <div>
@@ -354,46 +336,46 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, isbn: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
+                            className={inputClass}
                         />
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label htmlFor="doc-language" className="block text-sm text-ink-soft mb-1.5">
-                        Langue *
-                    </label>
-                    <input
-                        id="doc-language"
-                        required
-                        maxLength={50}
-                        value={form.language}
-                        onChange={(e) =>
-                            setForm({ ...form, language: e.target.value })
-                        }
-                        className={inputClass}
-                    />
-                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label htmlFor="doc-language" className="block text-sm text-ink-soft mb-1.5">
+                            Langue *
+                        </label>
+                        <input
+                            id="doc-language"
+                            required
+                            maxLength={50}
+                            value={form.language}
+                            onChange={(e) =>
+                                setForm({ ...form, language: e.target.value })
+                            }
+                            className={inputClass}
+                        />
+                    </div>
 
-                <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Niveau d'accès *
-                    </label>
-                    <select
-                        value={form.access_level}
-                        onChange={(e) =>
-                            setForm({ ...form, access_level: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5"
-                    >
-                        {ACCESS_LEVELS.map((a) => (
-                            <option key={a.value} value={a.value}>
-                                {a.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                    <div>
+                        <label className="block text-sm text-ink-soft mb-1.5">
+                            Niveau d'accès *
+                        </label>
+                        <select
+                            value={form.access_level}
+                            onChange={(e) =>
+                                setForm({ ...form, access_level: e.target.value })
+                            }
+                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm"
+                        >
+                            {ACCESS_LEVELS.map((a) => (
+                                <option key={a.value} value={a.value}>
+                                    {a.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -445,12 +427,12 @@ export default function DocumentFormPage() {
                 </div>
 
                 {!isEditing && (
-                    <>
+                    <div className="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm text-ink-soft mb-1.5">
                                 Fichier PDF *
                             </label>
-                            <label className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-paper-dim/40 px-4 py-4 cursor-pointer hover:border-brass/60 transition-colors">
+                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim/40 px-3 py-3 cursor-pointer hover:border-brass/60 transition-colors">
                                 <UploadCloud
                                     className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
                                     strokeWidth={1.5}
@@ -458,7 +440,7 @@ export default function DocumentFormPage() {
                                 <span className="text-sm text-ink-soft">
                                     {file
                                         ? file.name
-                                        : "Cliquer pour choisir un fichier PDF (obligatoire, 50 Mo max)"}
+                                        : "PDF (obligatoire, 50 Mo max)"}
                                 </span>
                                 <input
                                     type="file"
@@ -473,7 +455,7 @@ export default function DocumentFormPage() {
                             <label className="block text-sm text-ink-soft mb-1.5">
                                 Couverture (optionnel)
                             </label>
-                            <label className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-paper-dim/40 px-4 py-4 cursor-pointer hover:border-brass/60 transition-colors">
+                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim/40 px-3 py-3 cursor-pointer hover:border-brass/60 transition-colors">
                                 <ImageIcon
                                     className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
                                     strokeWidth={1.5}
@@ -481,7 +463,7 @@ export default function DocumentFormPage() {
                                 <span className="text-sm text-ink-soft">
                                     {cover
                                         ? cover.name
-                                        : "Cliquer pour choisir une image de couverture"}
+                                        : "Choisir une image"}
                                 </span>
                                 <input
                                     type="file"
@@ -493,11 +475,11 @@ export default function DocumentFormPage() {
                                 />
                             </label>
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {isEditing && (
-                    <>
+                    <div className="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm text-ink-soft mb-1.5">
                                 Remplacer le PDF (optionnel)
@@ -508,6 +490,7 @@ export default function DocumentFormPage() {
                                 onChange={(e) =>
                                     setFile(e.target.files?.[0] || null)
                                 }
+                                className="w-full text-sm"
                             />
                         </div>
                         <div>
@@ -520,24 +503,27 @@ export default function DocumentFormPage() {
                                 onChange={(e) =>
                                     setCover(e.target.files?.[0] || null)
                                 }
+                                className="w-full text-sm"
                             />
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {error && <p className="text-sm text-red-700">{error}</p>}
 
-                <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded-full bg-ink px-6 py-2.5 text-paper font-medium hover:bg-brass-deep transition-colors disabled:opacity-50"
-                >
-                    {submitting
-                        ? "Enregistrement…"
-                        : isEditing
-                          ? "Enregistrer les modifications"
-                          : "Créer le document (brouillon)"}
-                </button>
+                <div className="flex justify-center">
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        className="btn-primary disabled:opacity-50"
+                    >
+                        {submitting
+                            ? "Enregistrement…"
+                            : isEditing
+                              ? "Enregistrer les modifications"
+                              : "Créer le document (brouillon)"}
+                    </button>
+                </div>
             </form>
         </div>
     );

@@ -176,6 +176,10 @@ const ACTION_CONFIG = {
         label: "Recherche",
         icon: Search,
     },
+    renvoi_lien_creation_mot_de_passe: {
+        label: "Lien de création du mot de passe renvoyé",
+        icon: UserCheck,
+    },
 };
 
 export default function AdminActivityPage() {

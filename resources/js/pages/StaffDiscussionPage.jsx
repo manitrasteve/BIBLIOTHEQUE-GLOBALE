@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Send, Trash2, UserRound } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { ArrowLeft, MessageCircle, Send, Trash2, UserRound } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -66,7 +66,17 @@ export default function StaffDiscussionPage() {
         <div className="w-full">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div><h2 className="flex items-center gap-2 font-display text-xl font-extrabold"><MessageCircle className="h-5 w-5 text-indigo-600" /> Échange de discussion entre admin et bibliothécaire</h2><p className="mt-1 text-sm text-slate-500">Discussion privée, séparée des messages envoyés aux membres.</p></div>
-                {conversation && <button onClick={clearHistory} className="flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Supprimer mon historique</button>}
+                <div className="flex items-center gap-2">
+                    <Link
+                        to={isAdmin ? "/administrateur/messages" : "/bibliothecaire/messages"}
+                        title="Retour aux messages"
+                        aria-label="Retour aux messages"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                    {conversation && <button onClick={clearHistory} className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Supprimer mon historique</button>}
+                </div>
             </div>
             {isAdmin && <div className="mb-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">{librarians.map((l) => <button key={l.id} onClick={() => setSelectedId(String(l.id))} className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold ${String(l.id) === String(selectedId) ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-indigo-50"}`}><UserRound className="mr-1 inline h-4 w-4" />{l.name}</button>)}</div>}
             {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}

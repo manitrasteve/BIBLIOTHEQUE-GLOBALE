@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Mail, Send, Trash2, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Mail, MessageCircle, Send, Trash2, Users } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -51,12 +52,20 @@ export default function AdminMessagesPage() {
 
     return (
         <div className="w-full space-y-5">
-            <div>
-                <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
-                    <Mail className="h-5 w-5 text-indigo-600" />
-                    Messages aux utilisateurs
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">{isLibrarian ? "Envoyez une information aux membres de la Bibliothèque." : "Envoyez une information aux membres et, lors d’un envoi général, informez également les bibliothécaires."}</p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
+                        <Mail className="h-5 w-5 text-indigo-600" />
+                        Messages aux utilisateurs
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">{isLibrarian ? "Envoyez une information aux membres de la Bibliothèque." : "Envoyez une information aux membres et, lors d’un envoi général, informez également les bibliothécaires."}</p>
+                </div>
+                <Link
+                    to={isLibrarian ? "/bibliothecaire/discussions" : "/administrateur/discussions"}
+                    className="btn-secondary"
+                >
+                    <MessageCircle className="h-4 w-4" /> Échange avec {isLibrarian ? "l'administrateur" : "les bibliothécaires"}
+                </Link>
             </div>
 
             <form onSubmit={send} className="modern-card space-y-4 p-4">
