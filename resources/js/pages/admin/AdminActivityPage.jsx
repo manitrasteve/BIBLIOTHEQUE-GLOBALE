@@ -265,7 +265,7 @@ export default function AdminActivityPage() {
                 {logs === null ? (
                     <SkeletonList />
                 ) : logs.length === 0 ? (
-                    <div className="modern-card p-8 text-center text-ink-soft">
+                    <div className="modern-card p-5 text-center text-ink-soft">
                         Aucune consultation enregistrée.
                     </div>
                 ) : (
@@ -345,7 +345,7 @@ export default function AdminActivityPage() {
                 {logs === null ? (
                     <SkeletonList />
                 ) : logs.length === 0 ? (
-                    <div className="modern-card p-8 text-center text-ink-soft">
+                    <div className="modern-card p-5 text-center text-ink-soft">
                         Aucune question IA enregistrée.
                     </div>
                 ) : (
@@ -426,7 +426,7 @@ export default function AdminActivityPage() {
                 {logs === null ? (
                     <SkeletonList />
                 ) : logs.length === 0 ? (
-                    <div className="modern-card p-8 text-center text-ink-soft">
+                    <div className="modern-card p-5 text-center text-ink-soft">
                         Aucun favori enregistré.
                     </div>
                 ) : (

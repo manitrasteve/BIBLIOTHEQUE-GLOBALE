@@ -73,7 +73,7 @@ export default function FeedbackPage() {
 
             <form
                 onSubmit={submit}
-                className="modern-card space-y-5 p-6"
+                className="modern-card space-y-5 p-4"
             >
                 <select
                     value={form.type}

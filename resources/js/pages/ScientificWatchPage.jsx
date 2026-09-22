@@ -212,7 +212,7 @@ export default function ScientificWatchPage() {
                     {documents === null ? (
                         <p className="text-slate-500">Chargement…</p>
                     ) : documents.data.length === 0 ? (
-                        <div className="modern-card p-8 text-center text-slate-500">
+                        <div className="modern-card p-5 text-center text-slate-500">
                             Aucun document ne correspond à ce thème pour l'instant.
                         </div>
                     ) : (

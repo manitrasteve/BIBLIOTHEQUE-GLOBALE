@@ -133,12 +133,12 @@ export default function CreateAccountFormPage() {
                 <ArrowLeft className="h-4 w-4" /> Retour à la présentation
             </Link>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brass">Demande pour {library.name}</p>
-            <h1 className="mt-2 font-display text-3xl text-ink">Créer un compte étudiant</h1>
+            <h1 className="mt-2 font-display text-2xl text-ink">Créer un compte étudiant</h1>
             <p className="mt-3 text-sm text-ink-soft">Étape {step} sur 2</p>
 
             {error && <p className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-            <form onSubmit={submit} className="mt-8 rounded-xl border border-line bg-paper p-5 sm:p-8">
+            <form onSubmit={submit} className="mt-8 rounded-xl border border-line bg-paper p-5 sm:p-5">
                 {step === 1 ? (
                     <div className="grid gap-5 md:grid-cols-2">
                         <div className="md:col-span-2"><Field label="Bibliothèque" value={library.name} onChange={() => {}} readOnly /></div>

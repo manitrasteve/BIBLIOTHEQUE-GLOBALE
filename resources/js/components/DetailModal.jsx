@@ -41,7 +41,7 @@ export default function DetailModal({ title, subtitle, media, sections, onClose 
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
-                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 sm:p-6"
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 sm:p-4"
             >
                 <div className="mb-5 flex items-start justify-between gap-4">
                     <div className="min-w-0">

@@ -3,12 +3,20 @@ import { Link, useLocation } from 'react-router-dom';
 import { FileText, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/search';
+import { sortRows } from '../../lib/sort';
 import { useAuth } from '../../context/AuthContext';
 import StatusBadge from '../../components/StatusBadge';
+import SortTh from '../../components/SortTh';
 import { SkeletonTable } from '../../components/Skeleton';
 
 const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
 const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Archivé' };
+
+function getDocVal(row, key) {
+  if (key === 'category') return row.category?.name;
+  if (key === 'library') return row.library?.name;
+  return row[key];
+}
 
 export default function DocumentsManagePage() {
   const { user } = useAuth();
@@ -25,6 +33,8 @@ export default function DocumentsManagePage() {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState(null); // pagination du serveur
   const [counts, setCounts] = useState(null); // totaux réels (statuts + types), calculés par le serveur
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  const sortedDocuments = documents ? sortRows(documents, sort, getDocVal) : documents;
 
   // Changer de filtre ou de recherche repart de la première page.
   useEffect(() => {
@@ -174,16 +184,16 @@ export default function DocumentsManagePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-ink-soft/70 text-xs uppercase tracking-wide">
-                <th className="px-4 py-3">Titre</th>
-                <th className="px-4 py-3">Catégorie</th>
-                <th className="px-4 py-3">Année</th>
-                <th className="px-4 py-3">Bibliothèque</th>
-                <th className="px-4 py-3">Statut</th>
+                <SortTh label="Titre" sortKey="title" sort={sort} setSort={setSort} />
+                <SortTh label="Catégorie" sortKey="category" sort={sort} setSort={setSort} />
+                <SortTh label="Année" sortKey="year" sort={sort} setSort={setSort} />
+                <SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort} />
+                <SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort} />
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {documents.map((doc) => (
+              {sortedDocuments.map((doc) => (
                 <tr key={doc.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 text-ink font-medium">
                     <span className="flex items-center gap-2">

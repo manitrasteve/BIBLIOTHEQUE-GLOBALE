@@ -46,7 +46,7 @@ export default function TicketReceiptPage() {
     if (error) {
         return (
             <main className="min-h-screen bg-paper px-4 py-10">
-                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-8 text-center">
+                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-5 text-center">
                     <h1 className="text-2xl font-bold text-ink">
                         Demande introuvable
                     </h1>
@@ -67,7 +67,7 @@ export default function TicketReceiptPage() {
     if (!ticket) {
         return (
             <main className="min-h-screen bg-paper px-4 py-10">
-                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-8 text-center">
+                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-5 text-center">
                     <p className="text-sm text-ink-soft">
                         Chargement de votre demande...
                     </p>
@@ -127,7 +127,7 @@ export default function TicketReceiptPage() {
                         <CheckCircle2 className="h-8 w-8 text-green-600" />
                     </div>
 
-                    <h1 className="mt-5 text-2xl font-bold text-ink md:text-3xl">
+                    <h1 className="mt-5 text-2xl font-bold text-ink md:text-2xl">
                         Demande enregistrée
                     </h1>
 
@@ -138,7 +138,7 @@ export default function TicketReceiptPage() {
                 </div>
 
                 {/* CARTE PRINCIPALE */}
-                <div className="mt-8 rounded-2xl border border-line bg-white p-5 md:p-8">
+                <div className="mt-8 rounded-2xl border border-line bg-white p-5 md:p-5">
                     {/* INFORMATIONS DE LA DEMANDE */}
                     <div className="grid gap-4 md:grid-cols-3">
                         {/* N° DEMANDE */}

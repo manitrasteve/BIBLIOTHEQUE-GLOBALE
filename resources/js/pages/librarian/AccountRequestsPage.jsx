@@ -6,12 +6,15 @@ import {
     ShieldCheck,
     Ticket,
     Clock3,
+    RefreshCw,
 } from "lucide-react";
 
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
+import { sortRows } from "../../lib/sort";
 import StatusBadge from "../../components/StatusBadge";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
+import SortTh from "../../components/SortTh";
 import { requestSections } from "../../lib/detailSections";
 import { useAuth } from "../../context/AuthContext";
 import CounterBar from "../../components/CounterBar";
@@ -25,6 +28,16 @@ const FILTERS = [
     "rejetee",
     "expiree",
 ];
+
+function getRequestVal(row, key) {
+    if (key === "name") return `${row.first_name || ""} ${row.last_name || ""}`;
+    if (key === "reference") return row.request_number;
+    return row[key];
+}
+
+function isSetupLinkExpired(r) {
+    return !!r.setup_expires_at && new Date(r.setup_expires_at) < new Date();
+}
 
 const LABELS = {
     en_attente: "En attente",
@@ -46,11 +59,13 @@ export default function AccountRequestsPage() {
     const [query, setQuery] = useState("");
     const [viewing, setViewing] = useState(null);
     const [busyId, setBusyId] = useState(null);
+    const [sort, setSort] = useState({ key: null, dir: "asc" });
     const matchRow = (r) =>
         matchesSearch(
             `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`,
             query,
         );
+    const visibleRows = rows ? sortRows(rows.filter(matchRow), sort, getRequestVal) : [];
 
     const [filter, setFilter] = useState(() => {
         const fromUrl = searchParams.get("status");
@@ -138,6 +153,22 @@ export default function AccountRequestsPage() {
             await load();
         } catch (e) {
             setError(e.data?.message || "Validation impossible.");
+        }
+    }
+
+    async function resendLink(id) {
+        if (busyId) return;
+        setBusyId(id);
+        try {
+            setError(null);
+
+            await api.resendSetupLink(id);
+
+            await load();
+        } catch (e) {
+            setError(e.data?.message || "Envoi impossible.");
+        } finally {
+            setBusyId(null);
         }
     }
 
@@ -233,32 +264,27 @@ export default function AccountRequestsPage() {
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-4 py-3 text-left">
-                                    Demandeur
-                                </th>
-                                <th className="px-4 py-3 text-left">
-                                    Référence
-                                </th>
-                                <th className="px-4 py-3 text-left">Rôle</th>
-                                <th className="px-4 py-3 text-left">Statut</th>
+                                <SortTh label="Demandeur" sortKey="name" sort={sort} setSort={setSort} />
+                                <SortTh label="Référence" sortKey="reference" sort={sort} setSort={setSort} />
+                                <SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort} />
+                                <SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort} />
                                 <th className="px-4 py-3 text-right">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.filter(matchRow).length === 0 && (
+                            {visibleRows.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan="5"
-                                        className="p-8 text-center text-slate-500"
+                                        className="p-5 text-center text-slate-500"
                                     >
                                         Aucun résultat.
                                     </td>
                                 </tr>
                             )}
-                            {rows
-                                .filter(matchRow)
+                            {visibleRows
                                 .map((r) => (
                                     <tr
                                         key={r.id}
@@ -359,6 +385,21 @@ export default function AccountRequestsPage() {
                                                         <CheckCircle2 className="h-4 w-4" />
                                                         Compte activé
                                                     </span>
+                                                ) : r.status === "validee" && isSetupLinkExpired(r) ? (
+                                                    <>
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
+                                                            <Clock3 className="h-4 w-4" />
+                                                            Lien expiré
+                                                        </span>
+                                                        <button
+                                                            onClick={() => resendLink(r.id)}
+                                                            disabled={busyId !== null}
+                                                            className="btn-secondary disabled:opacity-50"
+                                                        >
+                                                            <RefreshCw className="h-4 w-4" />
+                                                            {busyId === r.id ? "Envoi…" : "Renvoyer le lien"}
+                                                        </button>
+                                                    </>
                                                 ) : r.status === "validee" && (
                                                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
                                                         <Clock3 className="h-4 w-4" />

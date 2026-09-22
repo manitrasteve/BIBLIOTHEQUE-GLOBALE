@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, GraduationCap, ScrollText, ClipboardList, FileText, Globe, Lock, ArrowUpRight } from 'lucide-react';
+import { stripHtml } from '../lib/utils';
 
 const TYPE_CONFIG = {
   livre: { label: 'Livre', icon: BookOpen },
@@ -51,11 +52,11 @@ export default function DocumentCard({ document, showCategory = false }) {
             {document.authors?.length ? document.authors.join(', ') : 'Auteur non renseigné'}
             {document.year ? ` · ${document.year}` : ''}
           </p>
-          {document.abstract && <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{document.abstract}</p>}
+          {document.abstract && <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{stripHtml(document.abstract)}</p>}
         </div>
 
         {document.cover_url ? (
-          <img src={document.cover_url} alt="" className="hidden h-28 w-20 shrink-0 rounded-xl border border-slate-200 object-cover shadow-sm sm:block" />
+          <img src={document.cover_url} alt="" className="hidden h-28 w-20 shrink-0 rounded-xl border border-slate-200 object-cover  sm:block" />
         ) : (
           <span className="hidden h-28 w-20 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-indigo-400 sm:flex">
             <BookOpen className="h-8 w-8" />

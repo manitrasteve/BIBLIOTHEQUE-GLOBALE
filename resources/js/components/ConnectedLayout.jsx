@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import Footer from "./Footer";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
 export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav }) {
@@ -80,7 +79,7 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                             <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-indigo-600">
                                 {eyebrow}
                             </p>
-                            <h1 className="font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                            <h1 className="font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
                                 {title}
                             </h1>
                         </div>
@@ -101,7 +100,6 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
 
                     <Outlet />
                 </div>
-                <Footer />
             </section>
         </div>
     );

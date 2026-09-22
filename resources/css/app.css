@@ -52,11 +52,8 @@
     --warning: #b26a00;
     --danger: #c62828;
 
-    --shadow-sm: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --app-sidebar-width: 16rem;
-    --app-header-height: 4.75rem;
+    --app-sidebar-width: 15rem;
+    --app-header-height: 4.25rem;
 }
 
 .connected-layout {
@@ -77,8 +74,8 @@
     height: calc(100dvh - var(--app-header-height));
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1rem 0.75rem max(1rem, env(safe-area-inset-bottom));
+    gap: 0.125rem;
+    padding: 0.75rem 0.625rem max(0.75rem, env(safe-area-inset-bottom));
     overflow-y: auto;
     background: #ffffff;
     border-right: 1px solid var(--border);
@@ -110,7 +107,6 @@
          * cumulait avec elle et laissait le tiroir hors de l'écran, même « ouvert ».
          */
         transition: translate 0.2s ease;
-        box-shadow: none;
         border-right: 0;
     }
 
@@ -168,7 +164,7 @@ a {
         background-color 0.2s ease,
         border-color 0.2s ease,
         transform 0.2s ease,
-        box-shadow 0.2s ease;
+        border-color 0.2s ease;
 }
 button,
 a,
@@ -188,14 +184,13 @@ textarea {
     color: var(--navy);
     transition:
         border-color 0.2s,
-        box-shadow 0.2s,
         transform 0.2s;
 }
 input:focus,
 select:focus,
 textarea:focus {
     border-color: #1f3a5f !important;
-    box-shadow: none !important;
+
     outline: none !important;
 }
 button:not([disabled]):hover {
@@ -207,23 +202,20 @@ button:active {
 .surface-card {
     background: #ffffff;
     border: 1px solid var(--border);
-    box-shadow: none;
+
     border-radius: 10px;
 }
 .modern-card {
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--shadow-sm);
+    border-radius: 12px;
     transition:
         transform 0.25s ease,
-        box-shadow 0.25s ease,
         border-color 0.25s ease;
 }
 .modern-card:hover {
     transform: translateY(-2px);
     border-color: #bfdbfe;
-    box-shadow: var(--shadow-md);
 }
 .btn-primary {
     display: inline-flex;
@@ -232,7 +224,7 @@ button:active {
     gap: 0.5rem;
     border: 0 !important;
     border-radius: 8px !important;
-    padding: 0.7rem 1rem;
+    padding: 0.5rem 0.8rem;
     color: #ffffff !important;
     background: #1f3a5f !important;
     font-weight: 700;
@@ -260,8 +252,8 @@ button:active {
     justify-content: center;
     gap: 0.5rem;
     border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-    padding: 0.65rem 1rem;
+    border-radius: 8px !important;
+    padding: 0.5rem 0.8rem;
     color: var(--navy) !important;
     background: #fff !important;
     font-weight: 600;
@@ -275,7 +267,7 @@ button:active {
     align-items: center;
     gap: 0.35rem;
     border-radius: 999px;
-    padding: 0.3rem 0.65rem;
+    padding: 0.2rem 0.5rem;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.01em;
@@ -292,7 +284,7 @@ button:active {
     border-radius: 12px;
     background: #1f3a5f;
     color: #ffffff;
-    box-shadow: none;
+
 }
 .hero-glow::after {
     content: "";
@@ -303,9 +295,6 @@ button:active {
     bottom: -8rem;
     border: 1px solid #ffffff24;
     border-radius: 50%;
-    box-shadow:
-        0 0 0 2rem #ffffff06,
-        0 0 0 4rem #ffffff04;
 }
 .section-label {
     display: inline-flex;
@@ -410,7 +399,7 @@ html.dark .btn-secondary {
     border-color: #334155 !important;
 }
 html.dark header {
-    background: rgba(15, 23, 42, 0.92) !important;
+    background: #0f172a !important;
     border-color: #263244 !important;
 }
 html.dark footer {
@@ -590,6 +579,54 @@ html.dark .bg-rose-100 {
 }
 html.dark .border-rose-200 {
     border-color: #7f1d3f !important;
+}
+
+/* Éditeur de texte enrichi (RichTextEditor) : bg-white/60 n'est pas ciblé par les
+   règles "html.dark input/textarea" puisque la zone éditable est un <div>, pas un champ natif. */
+html.dark .rte-shell {
+    background: #111827;
+}
+html.dark .rte-shell:focus-within {
+    border-color: #5b9bd5;
+}
+
+/*
+ * Rendu du contenu riche (résumé de document, etc.) : la même classe habille
+ * la zone éditable (RichTextEditor) et l'affichage public (dangerouslySetInnerHTML),
+ * pour un rendu identique. Nécessaire car le "preflight" Tailwind neutralise les
+ * puces/numéros des listes par défaut.
+ */
+.rich-text {
+    line-height: 1.6;
+}
+.rich-text p {
+    margin: 0 0 0.5em;
+}
+.rich-text p:last-child {
+    margin-bottom: 0;
+}
+.rich-text ul,
+.rich-text ol {
+    margin: 0.4em 0 0.6em 1.25em;
+}
+.rich-text ul {
+    list-style: disc;
+}
+.rich-text ol {
+    list-style: decimal;
+}
+.rich-text li {
+    margin: 0.15em 0;
+}
+.rich-text strong {
+    font-weight: 700;
+}
+.rich-text em {
+    font-style: italic;
+}
+.rich-text a {
+    color: var(--color-brass);
+    text-decoration: underline;
 }
 
 /* Cartes de statistiques (StatCard) : anneaux et pastille décorative adaptés au mode sombre. */

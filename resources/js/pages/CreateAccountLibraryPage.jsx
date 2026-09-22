@@ -37,10 +37,10 @@ export default function CreateAccountLibraryPage() {
                 <ArrowLeft className="h-4 w-4" /> Choisir une autre bibliothèque
             </button>
 
-            <div className="rounded-xl border border-line bg-paper p-6 sm:p-10">
+            <div className="rounded-xl border border-line bg-paper p-4 sm:p-10">
                 <LibraryCover library={library} className="mb-6" />
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-brass">Bibliothèque sélectionnée</p>
-                <h1 className="font-display text-3xl text-ink">{library.name}</h1>
+                <h1 className="font-display text-2xl text-ink">{library.name}</h1>
                 {library.description && <p className="mt-5 leading-7 text-ink-soft">{library.description}</p>}
 
                 <div className="mt-8 grid gap-4 border-t border-line pt-6 text-sm text-ink-soft sm:grid-cols-2">

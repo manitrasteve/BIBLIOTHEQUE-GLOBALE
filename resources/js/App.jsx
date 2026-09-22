@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -35,6 +35,11 @@ import MySearchesPage from "./pages/MySearchesPage";
 import ScientificWatchPage from "./pages/ScientificWatchPage";
 
 const MEMBER_ROLES = ["etudiant", "enseignant", "chercheur"];
+
+function HomeOnlyFooter() {
+    const location = useLocation();
+    return location.pathname === "/" ? <Footer /> : null;
+}
 
 import AccountRequestsPage from "./pages/librarian/AccountRequestsPage";
 import DocumentsManagePage from "./pages/librarian/DocumentsManagePage";
@@ -332,7 +337,7 @@ export default function App() {
                             <Route path="*" element={<NotFoundPage />} />
                         </Routes>
                     </main>
-                    <Footer />
+                    <HomeOnlyFooter />
                 </div>
             </BrowserRouter>
         </AuthProvider>

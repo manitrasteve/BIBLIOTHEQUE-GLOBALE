@@ -1266,10 +1266,19 @@ class AccountRequestController extends Controller
     }
 
     /**
-     * Envoi manuel d'un e-mail de configuration.
+     * Renvoi manuel du lien de création du mot de passe (notamment lorsque le lien précédent a expiré).
+     * Génère un nouveau jeton, prolonge le délai de 24h et renvoie l'e-mail.
      */
-    public function sendSetupMail(AccountRequest $accountRequest)
+    public function sendSetupMail(Request $request, AccountRequest $accountRequest)
     {
+        $admin = $request->user();
+
+        if (!$admin || !in_array($admin->role, ['administrateur', 'bibliothecaire'], true)) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
+        $this->authorizeRequestLibrary($admin, $accountRequest);
+
         if (
             $accountRequest->status !== 'validee' ||
             !$accountRequest->created_user_id
@@ -1279,6 +1288,7 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
+        $createdUser = $accountRequest->createdUser;
         $token = Str::random(64);
 
         $accountRequest->update([
@@ -1286,23 +1296,42 @@ class AccountRequestController extends Controller
             'setup_expires_at' => now()->addHours(24),
         ]);
 
-        Mail::send(
-            'emails.account-setup',
-            [
-                'user' => $accountRequest->createdUser,
-                'request' => $accountRequest,
-                'token' => $token,
-                'variant' => 'new_link',
-            ],
-            function ($message) use ($accountRequest) {
-                $message
-                    ->to($accountRequest->email)
-                    ->subject('Création de votre mot de passe');
+        $this->queueMail(function () use ($accountRequest, $createdUser, $token) {
+            try {
+                Mail::send(
+                    'emails.account-setup',
+                    [
+                        'user' => $createdUser,
+                        'request' => $accountRequest,
+                        'token' => $token,
+                        'variant' => 'new_link',
+                    ],
+                    function ($message) use ($accountRequest) {
+                        $message
+                            ->to($accountRequest->email)
+                            ->subject('Création de votre mot de passe');
+                    }
+                );
+            } catch (\Throwable $e) {
+                report($e);
             }
+        });
+
+        ActivityLogService::log(
+            $admin->id,
+            'renvoi_lien_creation_mot_de_passe',
+            $createdUser->name ?? $accountRequest->email,
+            $createdUser
         );
 
         return response()->json([
-            'message' => 'Le lien de configuration a été envoyé.',
+            'message' => 'Le lien de création du mot de passe a été renvoyé.',
+            'request' => $accountRequest->fresh()->load([
+                'library',
+                'createdUser',
+                'createdBy',
+                'processedBy',
+            ]),
         ]);
     }
 

@@ -230,7 +230,7 @@ export default function Header() {
         <>
             {/* ================= HEADER ================= */}
             <header
-                className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl shadow-sm ${
+                className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl  ${
                     isLoggingOut ? "pointer-events-none" : ""
                 }`}
             >
@@ -340,7 +340,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to="/"
@@ -451,7 +451,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to="/"
@@ -572,7 +572,7 @@ export default function Header() {
                     aria-labelledby="logout-title"
                 >
                     <div
-                        className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
+                        className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-4 "
                         onClick={(event) => event.stopPropagation()}
                     >
                         {/* Icône */}
@@ -605,7 +605,7 @@ export default function Header() {
                                 type="button"
                                 onClick={confirmLogout}
                                 disabled={isConfirmingLogout}
-                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-80"
+                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white  shadow-rose-600/20 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-80"
                             >
                                 {isConfirmingLogout ? (
                                     <span>

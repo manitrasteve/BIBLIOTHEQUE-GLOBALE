@@ -185,7 +185,7 @@ export default function AiAssistant({ slug }) {
             ref={rootRef}
             className={
                 fullscreen
-                    ? "fixed inset-0 z-[60] flex h-screen w-screen flex-col rounded-none border-0 bg-paper p-4 sm:p-6"
+                    ? "fixed inset-0 z-[60] flex h-screen w-screen flex-col rounded-none border-0 bg-paper p-4 sm:p-4"
                     : "rounded-xl border border-line bg-paper-dim/40 p-4 flex flex-col reader-panel-height"
             }
         >
@@ -263,7 +263,7 @@ export default function AiAssistant({ slug }) {
                             {/* Question de l'utilisateur */}
                             <div className="flex justify-end">
                                 <div className="max-w-[80%]">
-                                    <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                                    <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 ">
                                         <p className="text-sm whitespace-pre-wrap">
                                             {ex.question}
                                         </p>
@@ -274,7 +274,7 @@ export default function AiAssistant({ slug }) {
                             {/* Réponse de l'IA */}
                             <div className="flex justify-start">
                                 <div className="max-w-[85%] w-fit min-w-0">
-                                    <div className="bg-white text-black border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600">
+                                    <div className="bg-white text-black border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3  dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600">
                                         {/* Icône IA */}
                                         <div className="flex items-center gap-2 mb-2">
                                             <Sparkles
@@ -354,7 +354,7 @@ export default function AiAssistant({ slug }) {
                     <div className="space-y-3">
                         <div className="flex justify-end">
                             <div className="max-w-[80%]">
-                                <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                                <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 ">
                                     <p className="text-sm whitespace-pre-wrap">
                                         {pending}
                                     </p>
@@ -364,7 +364,7 @@ export default function AiAssistant({ slug }) {
 
                         <div className="flex justify-start">
                             <div className="max-w-[85%] w-fit min-w-0">
-                                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100">
+                                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3  dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100">
                                     <div className="flex items-center gap-2">
                                         <Sparkles
                                             className="h-3.5 w-3.5 text-brass/70"

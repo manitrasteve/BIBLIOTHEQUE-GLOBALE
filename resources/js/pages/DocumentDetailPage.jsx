@@ -15,6 +15,7 @@ import {
     GraduationCap,
     Library,
 } from "lucide-react";
+import DOMPurify from "dompurify";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import SecurePdfViewer from "../components/SecurePdfViewer";
@@ -338,9 +339,15 @@ export default function DocumentDetailPage() {
                                         Résumé
                                     </h2>
 
-                                    <p className="text-xs text-ink-soft leading-5">
-                                        {doc.abstract}
-                                    </p>
+                                    <div
+                                        className="rich-text text-xs text-ink-soft leading-5"
+                                        dangerouslySetInnerHTML={{
+                                            __html: DOMPurify.sanitize(doc.abstract, {
+                                                ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li"],
+                                                ALLOWED_ATTR: [],
+                                            }),
+                                        }}
+                                    />
                                 </div>
                             )}
 

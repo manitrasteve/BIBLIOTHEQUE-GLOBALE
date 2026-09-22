@@ -10,11 +10,19 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
+import { sortRows } from "../../lib/sort";
 import CreateUserForm from "../../components/CreateUserForm";
 import CounterBar from "../../components/CounterBar";
 import Pager from "../../components/Pager";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
+import SortTh from "../../components/SortTh";
 import { userSections } from "../../lib/detailSections";
+
+function getUserVal(row, key) {
+    if (key === "library") return row.library?.name;
+    if (key === "status") return row.is_active ? 1 : 0;
+    return row[key];
+}
 
 // Petite modale de confirmation + saisie de raison, réutilisée pour
 // la suppression et la désactivation.
@@ -25,7 +33,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 ">
                 {step === "confirm" ? (
                     <>
                         <p className="mb-6 text-sm font-medium text-slate-800">
@@ -101,6 +109,7 @@ export default function AdminUsersPage() {
     const [counts, setCounts] = useState(null);
 
     const [meta, setMeta] = useState(null);
+    const [sort, setSort] = useState({ key: null, dir: "asc" });
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
@@ -166,8 +175,12 @@ export default function AdminUsersPage() {
         }
     }
 
-    const filteredUsers = (users || []).filter((u) =>
-        matchesSearch(`${u.name} ${u.email} ${u.role} ${u.library?.name || ""}`, query),
+    const filteredUsers = sortRows(
+        (users || []).filter((u) =>
+            matchesSearch(`${u.name} ${u.email} ${u.role} ${u.library?.name || ""}`, query),
+        ),
+        sort,
+        getUserVal,
     );
 
     if (showCreate) {
@@ -221,8 +234,8 @@ export default function AdminUsersPage() {
             ) : (
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Utilisateur</th><th className="px-4 py-3 text-left">Rôle</th><th className="px-4 py-3 text-left">Bibliothèque</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
-                        <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-8 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
+                        <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort}/><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-right">Actions</th></tr></thead>
+                        <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
                                 <td className="px-4 py-3">{u.role}</td><td className="px-4 py-3">{u.library?.name || "—"}</td>

@@ -480,6 +480,12 @@ export const api = {
             method: "POST",
         }),
 
+    // Renvoi du lien de création du mot de passe (ex : lien expiré)
+    resendSetupLink: (id) =>
+        request(`/account-requests/${id}/resend-setup-link`, {
+            method: "POST",
+        }),
+
     getTrash: () => request("/trash"),
 
     restoreTrashUser: (id) =>

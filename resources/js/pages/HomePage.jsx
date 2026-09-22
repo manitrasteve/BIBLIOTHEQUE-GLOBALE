@@ -33,13 +33,13 @@ export default function HomePage() {
     return (
         <div>
             <section className="w-full px-4 pt-6 sm:px-8 xl:px-10">
-                <div className="grid overflow-hidden rounded-[30px] bg-indigo-600 shadow-xl lg:grid-cols-[1.05fr_.95fr]">
+                <div className="grid overflow-hidden rounded-[30px] bg-indigo-600  lg:grid-cols-[1.05fr_.95fr]">
                     <div className="flex flex-col justify-center p-7 text-white sm:p-10 lg:p-12">
                         <span className="badge-modern w-fit bg-white text-indigo-700">
                             <LibraryBig className="h-3.5 w-3.5" />
                             Bibliothèque Globale · Université de Mahajanga
                         </span>
-                        <h1 className="mt-6 font-display text-4xl font-extrabold leading-[1.04] tracking-tight sm:text-5xl">
+                        <h1 className="mt-6 font-display text-2xl font-extrabold leading-[1.04] tracking-tight sm:text-5xl">
                             Lire, rechercher et <span className="text-indigo-100">analyser</span> vos ressources.
                         </h1>
                         <p className="mt-5 max-w-2xl text-base leading-7 text-indigo-50 sm:text-lg">
@@ -68,7 +68,7 @@ export default function HomePage() {
                                 <BookOpen className="h-3.5 w-3.5" />
                                 Domaines
                             </p>
-                            <h2 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold">
+                            <h2 className="mt-1 font-display text-2xl sm:text-2xl font-extrabold">
                                 Les domaines représentés
                             </h2>
                         </div>
@@ -79,7 +79,7 @@ export default function HomePage() {
                             <Link
                                 key={c.id}
                                 to={`/recherche?category_id=${c.id}`}
-                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 hover:shadow-sm"
+                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 hover:"
                             >
                                 {c.name}
                             </Link>
@@ -96,7 +96,7 @@ export default function HomePage() {
                                 <Sparkles className="h-3.5 w-3.5" />
                                 Bibliothèque Globale
                             </p>
-                            <h2 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold">
+                            <h2 className="mt-1 font-display text-2xl sm:text-2xl font-extrabold">
                                 Dernières publications
                             </h2>
                         </div>
@@ -131,7 +131,7 @@ export default function HomePage() {
                                 <UserPlus className="h-3.5 w-3.5" />
                                 Accès membre
                             </p>
-                            <h2 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold">
+                            <h2 className="mt-2 font-display text-2xl sm:text-2xl font-extrabold">
                                 S’inscrire
                             </h2>
                             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">

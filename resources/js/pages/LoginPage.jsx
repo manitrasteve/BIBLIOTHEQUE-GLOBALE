@@ -56,7 +56,7 @@ export default function LoginPage() {
                             className="h-full w-full object-contain"
                         />
                     </span>
-                    <h1 className="mt-7 font-display text-4xl font-extrabold leading-tight">
+                    <h1 className="mt-7 font-display text-2xl font-extrabold leading-tight">
                         Bienvenue dans votre espace documentaire.
                     </h1>
                     <p className="mt-4 text-sm leading-6 text-indigo-100">
@@ -70,11 +70,11 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            <div className="modern-card p-6 sm:p-8">
+            <div className="modern-card p-4 sm:p-5">
                 <p className="section-label">
                     <Lock className="h-3.5 w-3.5" /> Accès membre
                 </p>
-                <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-slate-900">
+                <h2 className="mt-2 font-display text-2xl font-extrabold tracking-tight text-slate-900">
                     Connexion
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">

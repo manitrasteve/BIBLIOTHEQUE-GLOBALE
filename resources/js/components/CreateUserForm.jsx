@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Mail, Phone, User, Home as HomeIcon, Send } from "lucide-react";
 import { api } from "../lib/api";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 const STUDENT_CENTERS = [
     "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",
@@ -31,13 +33,9 @@ function Field({
 }) {
     return (
         <div>
-            <label
-                htmlFor={id}
-                className="mb-2 block text-sm font-semibold text-slate-700"
-            >
-                {label}
-                {required ? " *" : ""}
-            </label>
+            <Label htmlFor={id} className="mb-1.5 block text-xs">
+                {label}{required ? " *" : ""}
+            </Label>
 
             <div className="relative">
                 <Icon
@@ -45,7 +43,7 @@ function Field({
                     strokeWidth={1.8}
                 />
 
-                <input
+                <Input
                     id={id}
                     name={id}
                     type={type}
@@ -53,7 +51,7 @@ function Field({
                     value={form[id]}
                     onChange={update(id)}
                     placeholder={placeholder}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+                    className="h-9 pl-10"
                 />
             </div>
         </div>
@@ -193,7 +191,7 @@ export default function CreateUserForm({
                     <p className="mb-2 text-xs font-extrabold uppercase tracking-[.2em] text-violet-600">
                         {eyebrow}
                     </p>
-                    <h1 className="font-display text-3xl font-extrabold text-slate-900">
+                    <h1 className="font-display text-2xl font-extrabold text-slate-900">
                         Ajouter un utilisateur
                     </h1>
                     <p className="mt-3 text-sm text-slate-600">
@@ -202,7 +200,7 @@ export default function CreateUserForm({
                 </div>
                 <form
                     onSubmit={submit}
-                    className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 sm:p-8"
+                    className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 sm:p-5"
                 >
                     {notice && (
                         <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

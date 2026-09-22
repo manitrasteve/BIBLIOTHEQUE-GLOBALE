@@ -17,6 +17,10 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@tiptap/pm": "^3.31.3",
+        "@tiptap/react": "^3.31.3",
+        "@tiptap/starter-kit": "^3.31.3",
+        "dompurify": "^3.4.15",
         "katex": "^0.18.7",
         "lucide-react": "^0.469.0",
         "pdfjs-dist": "^6.3.289",

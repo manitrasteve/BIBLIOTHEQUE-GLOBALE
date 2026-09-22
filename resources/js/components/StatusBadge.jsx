@@ -1,4 +1,5 @@
 import { Clock3, CheckCircle2, XCircle, AlertTriangle, FileEdit, Archive, Send } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 // Registre central des statuts utilisés dans l'app, avec icône + couleur
 // cohérentes, pour que le même statut ait toujours la même signature
@@ -22,9 +23,9 @@ export default function StatusBadge({ status, label, icon: IconOverride }) {
   const Icon = IconOverride || cfg.icon;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+    <Badge variant="secondary" className={`gap-1 border-0 ${cfg.cls}`}>
       <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       {label || cfg.label}
-    </span>
+    </Badge>
   );
 }

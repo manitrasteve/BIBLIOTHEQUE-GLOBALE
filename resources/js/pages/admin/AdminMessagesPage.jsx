@@ -59,7 +59,7 @@ export default function AdminMessagesPage() {
                 <p className="mt-1 text-sm text-slate-500">{isLibrarian ? "Envoyez une information aux membres de la Bibliothèque." : "Envoyez une information aux membres et, lors d’un envoi général, informez également les bibliothécaires."}</p>
             </div>
 
-            <form onSubmit={send} className="modern-card space-y-4 p-6">
+            <form onSubmit={send} className="modern-card space-y-4 p-4">
                 <input required placeholder="Objet" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="w-full rounded-xl" />
                 <textarea required rows="8" placeholder="Votre message" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full rounded-xl" />
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -87,7 +87,7 @@ export default function AdminMessagesPage() {
                             <button onClick={() => remove(item.id)} title="Supprimer" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                         </div>
                     ))}
-                    {history.length === 0 && <div className="modern-card p-8 text-center text-sm text-slate-500">Aucun message envoyé.</div>}
+                    {history.length === 0 && <div className="modern-card p-5 text-center text-sm text-slate-500">Aucun message envoyé.</div>}
                 </div>
             </section>
         </div>

@@ -137,7 +137,7 @@ export default function ProfilePage() {
             {/* Carte principale */}
             <div className="modern-card overflow-hidden">
                 {/* En-tête du profil */}
-                <div className="border-b border-slate-100 bg-slate-50/70 p-6">
+                <div className="border-b border-slate-100 bg-slate-50/70 p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         {/* Avatar */}
                         <div className="relative shrink-0">
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Informations personnelles */}
-                <div className="p-6">
+                <div className="p-4">
                     <div className="mb-5">
                         <h3 className="text-lg font-extrabold text-slate-900">
                             Informations personnelles

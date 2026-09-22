@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
     return (
         <div className="w-full px-0 py-0">
-            <section className="hero-glow p-6 sm:p-9">
+            <section className="hero-glow p-4 sm:p-9">
                 <div className="relative z-10">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
@@ -46,7 +46,7 @@ export default function DashboardPage() {
                                 <LayoutDashboard className="h-3.5 w-3.5" />
                                 {ROLE_LABELS[user?.role] || "Compte"}
                             </span>
-                            <h1 className="mt-4 font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
+                            <h1 className="mt-4 font-display text-2xl sm:text-2xl font-extrabold tracking-tight">
                                 Bonjour, {user?.name?.split(" ")[0]}
                             </h1>
                             <p className="mt-2 max-w-2xl text-sm sm:text-base leading-6 text-indigo-100">
@@ -56,7 +56,7 @@ export default function DashboardPage() {
                         </div>
                         <Link
                             to="/recherche"
-                            className="btn-primary !bg-white/95 !text-indigo-700 !shadow-none"
+                            className="btn-primary !bg-white/95 !text-indigo-700 "
                         >
                             Parcourir le catalogue{" "}
                             <ArrowRight className="h-4 w-4" />

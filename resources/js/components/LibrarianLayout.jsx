@@ -20,7 +20,6 @@ import {
     Activity,
     Sparkles,
 } from "lucide-react";
-import Footer from "./Footer";
 import { useAuth } from "../context/AuthContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
@@ -188,14 +187,14 @@ export default function LibrarianLayout() {
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
-                        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+                        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white  shadow-indigo-500/20">
                             <Landmark className="h-5 w-5" strokeWidth={1.75} />
                         </span>
                         <div>
                             <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-indigo-600">
                                 Espace Service Numérique
                             </p>
-                            <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                            <h1 className="font-display text-2xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
                                 Gestion de la Bibliothèque Globale
                             </h1>
                         </div>
@@ -220,7 +219,6 @@ export default function LibrarianLayout() {
 
                     <Outlet />
                 </div>
-                <Footer />
             </section>
         </div>
     );

@@ -160,6 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/account-requests/{accountRequest}/verify', [AccountRequestController::class, 'verify']);
         Route::post('/account-requests/{accountRequest}/reject', [AccountRequestController::class, 'reject']);
         Route::post('/account-requests/{accountRequest}/validate', [AccountRequestController::class, 'validateRequest'])->middleware('permission:valider_demande_compte');
+        Route::post('/account-requests/{accountRequest}/resend-setup-link', [AccountRequestController::class, 'sendSetupMail']);
 
     });
 

@@ -96,7 +96,7 @@ export default function NotificationsPage() {
     return (
         <div className="w-full">
             <div className="flex items-baseline justify-between mb-8">
-                <h1 className="flex items-center gap-2 font-display text-3xl  text-brass hover:text-brass-deep">
+                <h1 className="flex items-center gap-2 font-display text-2xl  text-brass hover:text-brass-deep">
                     <Bell
                         className="h-6 w-6  text-brass hover:text-brass-deep"
                         strokeWidth={1.75}

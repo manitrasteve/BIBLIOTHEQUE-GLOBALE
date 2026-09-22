@@ -109,7 +109,7 @@ export default function AdminStatsPage() {
             {canSeePopularity && <div className="mt-6">
                 <Link
                     to={isAdmin ? "/administrateur/popularite" : "/bibliothecaire/popularite"}
-                    className="modern-card flex items-center justify-between gap-4 p-5 transition hover:border-indigo-300 hover:shadow-md"
+                    className="modern-card flex items-center justify-between gap-4 p-5 transition hover:border-indigo-300 hover:"
                 >
                     <div>
                         <p className="font-bold text-slate-900">

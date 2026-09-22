@@ -146,7 +146,7 @@ export default function SecurePdfViewer({ slug }) {
 
     if (error) {
         return (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                 {error}
             </div>
         );
@@ -225,7 +225,7 @@ export default function SecurePdfViewer({ slug }) {
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-auto p-2 sm:p-4">
-                <div className="mx-auto w-fit shadow-lg">
+                <div className="mx-auto w-fit ">
                     <canvas
                         ref={canvasRef}
                         onContextMenu={(e) => e.preventDefault()}

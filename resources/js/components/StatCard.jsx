@@ -38,28 +38,28 @@ export default function StatCard({
     return (
         <Wrapper
             {...wrapperProps}
-            className={`modern-card group relative overflow-hidden p-5 ${to ? "block transition hover:-translate-y-0.5 hover:shadow-md cursor-pointer" : ""}`}
+            className={`group relative block overflow-hidden rounded-xl border border-slate-200 bg-white p-4 ${to ? "transition hover:border-indigo-300 cursor-pointer" : ""}`}
         >
             <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-50/70 transition-transform duration-300 group-hover:scale-125" />
             <div className="relative flex items-start justify-between gap-4">
                 <div className="min-w-0">
                     <p
-                        className={`font-display text-3xl font-extrabold tracking-tight ${styles.value}`}
+                        className={`font-display text-2xl font-extrabold tracking-tight ${styles.value}`}
                     >
                         {value}
                     </p>
-                    <p className="mt-1 text-sm font-semibold leading-5 text-slate-600">
+                    <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
                         {label}
                     </p>
                     {hint && (
-                        <p className="mt-1.5 text-xs font-medium text-indigo-600">
+                        <p className="mt-1 text-[11px] font-medium text-indigo-600">
                             {hint}
                         </p>
                     )}
                 </div>
                 {Icon && (
                     <span
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${styles.icon} ring-8 ${styles.ring}`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${styles.icon} ring-8 ${styles.ring}`}
                     >
                         <Icon className="h-5 w-5" strokeWidth={2} />
                     </span>

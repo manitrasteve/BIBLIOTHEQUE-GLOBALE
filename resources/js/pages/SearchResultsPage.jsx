@@ -37,7 +37,7 @@ export default function SearchResultsPage() {
 
   return (
     <div className={`w-full ${inLayout ? '' : 'px-4 sm:px-6 xl:px-8 py-5'}`}>
-      <h1 className="font-display text-3xl text-ink mb-6">
+      <h1 className="font-display text-2xl text-ink mb-6">
         {q ? (
           <>
             Résultats pour <span className="text-brass">« {q} »</span>

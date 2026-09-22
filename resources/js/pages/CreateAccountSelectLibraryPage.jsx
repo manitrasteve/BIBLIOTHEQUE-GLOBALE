@@ -21,7 +21,7 @@ export default function CreateAccountSelectLibraryPage() {
             <p className="text-xs uppercase tracking-[0.25em] text-brass font-semibold mb-3">
                 Étape 1 sur 2
             </p>
-            <h1 className="font-display text-3xl text-ink mb-3">
+            <h1 className="font-display text-2xl text-ink mb-3">
                 Créer un compte
             </h1>
             <p className="text-ink-soft max-w-xl mb-10">

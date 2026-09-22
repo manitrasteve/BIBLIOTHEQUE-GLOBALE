@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import RichTextEditor from "../../components/RichTextEditor";
 
 // Type, niveau, catégorie et langue sont des champs libres. Les anciens documents contiennent
 // des codes (« memoire », « fr ») : on affiche leur libellé à la modification.
@@ -240,13 +241,11 @@ export default function DocumentFormPage() {
                     <label className="block text-sm text-ink-soft mb-1.5">
                         Résumé
                     </label>
-                    <textarea
-                        rows={3}
+                    <RichTextEditor
                         value={form.abstract}
-                        onChange={(e) =>
-                            setForm({ ...form, abstract: e.target.value })
+                        onChange={(html) =>
+                            setForm((prev) => ({ ...prev, abstract: html }))
                         }
-                        className="w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brass/40"
                     />
                 </div>
 
