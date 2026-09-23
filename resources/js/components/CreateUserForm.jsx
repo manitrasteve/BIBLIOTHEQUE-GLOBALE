@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Mail, Phone, User, Home as HomeIcon, Send } from "lucide-react";
 import { api } from "../lib/api";
+import { isAdult, isCompleteBirthDate } from "../lib/age";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
@@ -59,17 +60,34 @@ function Field({
 }
 
 function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
+    // La CIN n'est demandée (et obligatoire) qu'à partir de 18 ans ; en dessous, elle est effacée.
+    const adult = isAdult(form.date_of_birth);
+    const updateBirthDate = (event) => {
+        const value = event.target.value;
+        setForm((current) => ({
+            ...current,
+            date_of_birth: value,
+            ...(isAdult(value) ? {} : { cin_number: "", cin_issued_at: "" }),
+        }));
+    };
+
     const inputClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100";
     const labelClass = "block text-sm font-semibold text-slate-700 dark:text-slate-200";
 
     if (step === 1) return <div className="grid gap-5 md:grid-cols-2">
         <label className={labelClass}>Nom *<input required value={form.last_name} onChange={update("last_name")} className={inputClass} /></label>
         <label className={labelClass}>Prénom<input value={form.first_name} onChange={update("first_name")} className={inputClass} /></label>
-        <label className={labelClass}>Né(e), le *<input required type="date" value={form.date_of_birth} onChange={update("date_of_birth")} className={inputClass} /></label>
+        <label className={labelClass}>Né(e), le *<input required type="date" value={form.date_of_birth} onChange={updateBirthDate} className={inputClass} /></label>
         <label className={labelClass}>Lieu de naissance *<input required value={form.birth_place} onChange={update("birth_place")} className={inputClass} /></label>
         <fieldset className="rounded-xl border border-slate-200 p-3 dark:border-slate-600"><legend className="px-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Genre *</legend><div className="flex gap-5 pt-1">{[["masculin", "Masculin"], ["feminin", "Féminin"]].map(([value, label]) => <label key={value} className="flex items-center gap-2 text-sm dark:text-slate-200"><input required type="radio" name="admin-gender" value={value} checked={form.gender === value} onChange={update("gender")} />{label}</label>)}</div></fieldset>
-        <label className={labelClass}>CIN n° *<input required inputMode="numeric" pattern="[0-9]{12}" maxLength={12} placeholder="Taper le n° de CIN à 12 chiffres" value={form.cin_number} onChange={(event) => setForm((current) => ({ ...current, cin_number: event.target.value.replace(/\D/g, "").slice(0, 12) }))} className={inputClass} /></label>
-        <label className={labelClass}>Délivré le *<input required type="date" value={form.cin_issued_at} onChange={update("cin_issued_at")} className={inputClass} /></label>
+        {adult ? <>
+            <label className={labelClass}>CIN n° *<input required inputMode="numeric" pattern="[0-9]{12}" maxLength={12} placeholder="Taper le n° de CIN à 12 chiffres" value={form.cin_number} onChange={(event) => setForm((current) => ({ ...current, cin_number: event.target.value.replace(/\D/g, "").slice(0, 12) }))} className={inputClass} /></label>
+            <label className={labelClass}>Délivré le *<input required type="date" value={form.cin_issued_at} onChange={update("cin_issued_at")} className={inputClass} /></label>
+        </> : isCompleteBirthDate(form.date_of_birth) && (
+            <p className="self-end rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                Moins de 18 ans : la CIN n'est pas demandée.
+            </p>
+        )}
         <label className={labelClass}>Adresse *<input required value={form.address} onChange={update("address")} className={inputClass} /></label>
         <label className={labelClass}>Téléphone *<input required type="tel" value={form.phone} onChange={update("phone")} className={inputClass} /></label>
         <label className={`${labelClass} md:col-span-2`}>Adresse E-mail *<input required type="email" value={form.email} onChange={update("email")} className={inputClass} /></label>
@@ -127,8 +145,9 @@ export default function CreateUserForm({
     const [studentStep, setStudentStep] = useState(1);
     const studentStepOneValid = Boolean(
         form.last_name.trim() && form.date_of_birth &&
-        form.birth_place.trim() && form.gender && /^\d{12}$/.test(form.cin_number) &&
-        form.cin_issued_at && form.address.trim() && form.phone.trim() &&
+        form.birth_place.trim() && form.gender &&
+        (!isAdult(form.date_of_birth) || (/^\d{12}$/.test(form.cin_number) && form.cin_issued_at)) &&
+        form.address.trim() && form.phone.trim() &&
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
     );
     const studentStepTwoValid = Boolean(

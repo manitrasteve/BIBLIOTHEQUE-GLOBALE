@@ -24,6 +24,48 @@ class AccountRequestController extends Controller
         abort_unless($user->managesLibrary($accountRequest->library_id), 403, 'Cette demande appartient à une autre bibliothèque.');
     }
 
+    /** Majeur : 18 ans révolus aujourd'hui. La CIN n'est demandée à un étudiant qu'à partir de cet âge. */
+    private static function isAdult(mixed $dateOfBirth): bool
+    {
+        if (!is_string($dateOfBirth) || $dateOfBirth === '') {
+            return false;
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($dateOfBirth)->addYears(18)->lte(today());
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    // CIN d'un étudiant : obligatoire s'il est majeur, sinon facultative (et ignorée, voir withoutMinorCin).
+    private static function studentCinRules(Request $request, bool $isStudent = true): array
+    {
+        $required = $isStudent && self::isAdult($request->input('date_of_birth'));
+
+        return [
+            'cin_number' => [Rule::requiredIf($required), 'nullable', 'digits:12'],
+            'cin_issued_at' => [Rule::requiredIf($required), 'nullable', 'date', 'before_or_equal:today'],
+        ];
+    }
+
+    private const CIN_MESSAGES = [
+        'cin_number.required' => 'Le n° de CIN est obligatoire à partir de 18 ans.',
+        'cin_issued_at.required' => 'La date de délivrance de la CIN est obligatoire à partir de 18 ans.',
+        'date_of_birth.before' => 'La date de naissance doit être antérieure à la date du jour.',
+    ];
+
+    // Étudiant mineur : aucune CIN n'est enregistrée, même si elle a été envoyée.
+    private static function withoutMinorCin(array $validated): array
+    {
+        if (!self::isAdult($validated['date_of_birth'] ?? null)) {
+            $validated['cin_number'] = null;
+            $validated['cin_issued_at'] = null;
+        }
+
+        return $validated;
+    }
+
     /**
      * Liste des demandes de création de compte.
      */
@@ -108,10 +150,9 @@ class AccountRequestController extends Controller
             $rules['role'] = ['sometimes', Rule::in(['etudiant'])];
         } else {
             $rules += [
-                'date_of_birth' => ['required', 'date'],
+                'date_of_birth' => ['required', 'date', 'before:today'],
                 'birth_place' => ['required', 'string', 'max:255'],
-                'cin_number' => ['required', 'digits:12'],
-                'cin_issued_at' => ['required', 'date'],
+                ...self::studentCinRules($request),
                 'role' => ['required', Rule::in(['etudiant'])],
                 'school' => ['required', Rule::in([
                     'IOSTM',
@@ -133,7 +174,10 @@ class AccountRequestController extends Controller
             ];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, self::CIN_MESSAGES);
+        if (!$legacyRequest) {
+            $validated = self::withoutMinorCin($validated);
+        }
 
         $validated['first_name'] = $validated['first_name'] ?? '';
         $validated['role'] = $validated['role'] ?? 'etudiant';
@@ -238,10 +282,9 @@ class AccountRequestController extends Controller
              * Étudiant : mêmes champs et mêmes règles que le formulaire
              * d'ajout d'utilisateur de l'administrateur.
              */
-            'date_of_birth' => ['required', 'date'],
+            'date_of_birth' => ['required', 'date', 'before:today'],
             'birth_place' => ['required', 'string', 'max:255'],
-            'cin_number' => ['required', 'digits:12'],
-            'cin_issued_at' => ['required', 'date'],
+            ...self::studentCinRules($request),
             'student_card_number' => ['required', 'string', 'max:255'],
             'school' => ['required', Rule::in([
                 'IOSTM',
@@ -292,7 +335,8 @@ class AccountRequestController extends Controller
             'diploma' => ['nullable', 'string', 'max:255'],
             'workplace' => ['nullable', 'string', 'max:255'],
             'experience' => ['nullable', 'string', 'max:255'],
-        ]);
+        ], self::CIN_MESSAGES);
+        $validated = self::withoutMinorCin($validated);
 
         /**
          * Vérification du compte existant.
@@ -1381,10 +1425,9 @@ class AccountRequestController extends Controller
             // L'adresse est facultative pour un chercheur, obligatoire pour les autres rôles.
             'address' => [Rule::requiredIf($request->input('role') !== 'chercheur'), 'nullable', 'string', 'max:255'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
-            'date_of_birth' => ['required', 'date'],
+            'date_of_birth' => ['required', 'date', 'before:today'],
             'birth_place' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
-            'cin_number' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'digits:12'],
-            'cin_issued_at' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'date'],
+            ...self::studentCinRules($request, $request->input('role') === 'etudiant'),
             'student_card_number' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
 
             'role' => [
@@ -1434,7 +1477,11 @@ class AccountRequestController extends Controller
             'researcher_field' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
             'specialty' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],
-        ]);
+        ], self::CIN_MESSAGES);
+
+        if ($validated['role'] === 'etudiant') {
+            $validated = self::withoutMinorCin($validated);
+        }
 
         /**
          * Pour un étudiant :

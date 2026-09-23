@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 import { api } from "../lib/api";
+import { isAdult, isCompleteBirthDate } from "../lib/age";
 
 const CENTERS = [
     "IOSTM",
@@ -73,19 +74,28 @@ export default function CreateAccountFormPage() {
     const [error, setError] = useState(null);
 
     function update(field, value) {
-        setForm((current) => ({ ...current, [field]: value }));
+        setForm((current) => {
+            const next = { ...current, [field]: value };
+            // Moins de 18 ans : pas de CIN, les valeurs déjà saisies sont effacées.
+            if (field === "date_of_birth" && !isAdult(value)) {
+                next.cin_number = "";
+                next.cin_issued_at = "";
+            }
+            return next;
+        });
         if (step === 2 && STEP_ONE_FIELDS.has(field)) setStep(1);
     }
 
+    // La CIN n'est demandée (et obligatoire) qu'à partir de 18 ans.
+    const adult = isAdult(form.date_of_birth);
     const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-    const validCin = /^\d{12}$/.test(form.cin_number);
+    const validCin = !adult || (/^\d{12}$/.test(form.cin_number) && Boolean(form.cin_issued_at));
     const stepOneValid = Boolean(
         form.last_name.trim() &&
             form.date_of_birth &&
             form.birth_place.trim() &&
             form.gender &&
             validCin &&
-            form.cin_issued_at &&
             form.address.trim() &&
             form.phone.trim() &&
             validEmail,
@@ -145,8 +155,18 @@ export default function CreateAccountFormPage() {
                                 ))}
                             </div>
                         </fieldset>
-                        <Field label="CIN n°" value={form.cin_number} onChange={(value) => update("cin_number", value.replace(/\D/g, "").slice(0, 12))} required placeholder="Taper le n° de CIN à 12 chiffres" />
-                        <Field label="Délivré le" type="date" value={form.cin_issued_at} onChange={(value) => update("cin_issued_at", value)} required />
+                        {adult ? (
+                            <>
+                                <Field label="CIN n°" value={form.cin_number} onChange={(value) => update("cin_number", value.replace(/\D/g, "").slice(0, 12))} required placeholder="Taper le n° de CIN à 12 chiffres" />
+                                <Field label="Délivré le" type="date" value={form.cin_issued_at} onChange={(value) => update("cin_issued_at", value)} required />
+                            </>
+                        ) : (
+                            isCompleteBirthDate(form.date_of_birth) && (
+                                <p className="self-end rounded-lg border border-line bg-paper-dim/40 px-4 py-3 text-sm text-ink-soft md:col-span-2">
+                                    Moins de 18 ans : la CIN n'est pas demandée.
+                                </p>
+                            )
+                        )}
                         <Field label="Adresse" value={form.address} onChange={(value) => update("address", value)} required />
                         <Field label="Téléphone" type="tel" value={form.phone} onChange={(value) => update("phone", value)} required />
                         <div className="md:col-span-2"><Field label="Adresse E-mail" type="email" value={form.email} onChange={(value) => update("email", value)} required /></div>
