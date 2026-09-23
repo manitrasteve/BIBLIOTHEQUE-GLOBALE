@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendAdminBroadcastJob;
 use App\Models\AdminMessage;
-use App\Models\AdminMessageRecipient;
 use App\Models\User;
-use App\Services\NotificationService;
+use App\Support\QueueKicker;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class AdminMessageController extends Controller
 {
@@ -68,48 +67,11 @@ class AdminMessageController extends Controller
             'recipient_count' => $users->count(),
         ]);
 
-        $ok = 0;
-        $fail = 0;
-        foreach ($users as $user) {
-            $status = 'envoye';
-            $error = null;
-            try {
-                Mail::send('emails.notice', [
-                    'heading' => $message->subject,
-                    'paragraphs' => array_merge(
-                        ['Bonjour ' . $user->name . ','],
-                        preg_split('/\R{2,}/', trim($message->message))
-                    ),
-                ], fn ($mail) => $mail
-                    ->to($user->email)
-                    ->subject($message->subject));
-                $ok++;
-            } catch (\Throwable $e) {
-                $status = 'echec';
-                $error = $e->getMessage();
-                $fail++;
-            }
+        // Envoi (SMTP + notifications) en tâche de fond : un envoi à de
+        // nombreux destinataires rendrait sinon le bouton "Envoyer" très lent.
+        QueueKicker::dispatch(new SendAdminBroadcastJob($message, $users->pluck('id')->all()));
 
-            AdminMessageRecipient::create([
-                'admin_message_id' => $message->id,
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'status' => $status,
-                'error' => $error,
-            ]);
-
-            NotificationService::send(
-                $user,
-                'message_admin',
-                $message->subject,
-                $message->message,
-                $message
-            );
-        }
-
-        $message->update(['success_count' => $ok, 'failure_count' => $fail]);
-
-        return response()->json($message->load('recipients'), 201);
+        return response()->json($message, 201);
     }
 
     public function destroy(Request $request, AdminMessage $adminMessage)

@@ -565,7 +565,8 @@ html.dark .text-indigo-500,
 html.dark .text-indigo-600,
 html.dark .text-indigo-700,
 html.dark .text-indigo-800,
-html.dark .text-indigo-900 {
+html.dark .text-indigo-900,
+html.dark .text-indigo-950 {
     color: #93c5fd !important;
 }
 html.dark .border-indigo-200,

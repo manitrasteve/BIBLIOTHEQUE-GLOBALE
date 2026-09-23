@@ -20,12 +20,29 @@ class PdfTextExtractor
 
         $pages = [];
         foreach ($pdf->getPages() as $index => $page) {
-            $text = trim($page->getText());
+            $text = trim($this->sanitizeUtf8($page->getText()));
             if ($text !== '') {
                 $pages[$index + 1] = $text;
             }
         }
 
         return $pages;
+    }
+
+    /**
+     * Certains PDF (police CID corrompue, ligature mal mappée…) font
+     * ressortir des octets UTF-8 invalides du parseur. Non nettoyés, ils
+     * cassent le json_encode des appels Gemini (embeddings, RAG) bien plus
+     * tard, avec un message d'erreur qui ne pointe plus vers le PDF en cause.
+     */
+    private function sanitizeUtf8(string $text): string
+    {
+        if ($text === '' || mb_check_encoding($text, 'UTF-8')) {
+            return $text;
+        }
+
+        $clean = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+
+        return $clean !== false ? $clean : mb_convert_encoding($text, 'UTF-8', 'UTF-8');
     }
 }

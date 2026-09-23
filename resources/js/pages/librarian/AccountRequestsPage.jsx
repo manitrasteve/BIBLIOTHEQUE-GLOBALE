@@ -190,6 +190,78 @@ export default function AccountRequestsPage() {
         }
     }
 
+    function renderActions(r) {
+        return (
+            <>
+                <ViewButton onClick={() => setViewing(r)} />
+                {user?.role === "bibliothecaire" && r.status === "en_attente" && (
+                    <>
+                        <button
+                            onClick={() => verify(r.id)}
+                            disabled={busyId !== null}
+                            className="btn-secondary disabled:opacity-50"
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            {busyId === r.id ? "Vérification…" : "Vérifier"}
+                        </button>
+                        <button
+                            onClick={() => reject(r.id)}
+                            className="text-sm font-bold text-rose-600"
+                        >
+                            <XCircle className="mr-1 inline h-4 w-4" />
+                            Rejeter
+                        </button>
+                    </>
+                )}
+                {user?.role === "administrateur" && r.status === "verifiee" && (
+                    <>
+                        <button
+                            onClick={() => validate(r.id)}
+                            disabled={busyId !== null}
+                            className="btn-primary disabled:opacity-50"
+                        >
+                            <ShieldCheck className="h-4 w-4" />
+                            {busyId === r.id ? "Validation…" : "Valider"}
+                        </button>
+                        <button
+                            onClick={() => reject(r.id)}
+                            className="text-sm font-bold text-rose-600"
+                        >
+                            <XCircle className="mr-1 inline h-4 w-4" />
+                            Rejeter
+                        </button>
+                    </>
+                )}
+                {r.status === "validee" && filter === "compte_active" ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Compte activé
+                    </span>
+                ) : r.status === "validee" && isSetupLinkExpired(r) ? (
+                    <>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
+                            <Clock3 className="h-4 w-4" />
+                            Lien expiré
+                        </span>
+                        <button
+                            onClick={() => resendLink(r.id)}
+                            disabled={busyId !== null}
+                            className="btn-secondary disabled:opacity-50"
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                            {busyId === r.id ? "Envoi…" : "Renvoyer le lien"}
+                        </button>
+                    </>
+                ) : r.status === "validee" && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                        <Clock3 className="h-4 w-4" />
+                        Lien envoyé
+                    </span>
+                )}
+            </>
+        );
+    }
+
     return (
         <div>
             {/* En-tête */}
@@ -260,7 +332,8 @@ export default function AccountRequestsPage() {
                     Aucune demande dans cette catégorie.
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                <>
+                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white sm:block">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50">
                             <tr>
@@ -322,90 +395,7 @@ export default function AccountRequestsPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end flex-wrap gap-2">
-                                                <ViewButton
-                                                    onClick={() =>
-                                                        setViewing(r)
-                                                    }
-                                                />
-                                                {user?.role ===
-                                                    "bibliothecaire" &&
-                                                    r.status ===
-                                                        "en_attente" && (
-                                                        <>
-                                                            <button
-                                                                onClick={() =>
-                                                                    verify(r.id)
-                                                                }
-                                                                disabled={busyId !== null}
-                                                                className="btn-secondary disabled:opacity-50"
-                                                            >
-                                                                <CheckCircle2 className="h-4 w-4" />
-                                                                {busyId === r.id ? "Vérification…" : "Vérifier"}
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    reject(r.id)
-                                                                }
-                                                                className="text-sm font-bold text-rose-600"
-                                                            >
-                                                                <XCircle className="mr-1 inline h-4 w-4" />
-                                                                Rejeter
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                {user?.role ===
-                                                    "administrateur" &&
-                                                    r.status === "verifiee" && (
-                                                        <>
-                                                            <button
-                                                                onClick={() =>
-                                                                    validate(
-                                                                        r.id,
-                                                                    )
-                                                                }
-                                                                disabled={busyId !== null}
-                                                                className="btn-primary disabled:opacity-50"
-                                                            >
-                                                                <ShieldCheck className="h-4 w-4" />
-                                                                {busyId === r.id ? "Validation…" : "Valider"}
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    reject(r.id)
-                                                                }
-                                                                className="text-sm font-bold text-rose-600"
-                                                            >
-                                                                <XCircle className="mr-1 inline h-4 w-4" />
-                                                                Rejeter
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                {r.status === "validee" && filter === "compte_active" ? (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
-                                                        <CheckCircle2 className="h-4 w-4" />
-                                                        Compte activé
-                                                    </span>
-                                                ) : r.status === "validee" && isSetupLinkExpired(r) ? (
-                                                    <>
-                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
-                                                            <Clock3 className="h-4 w-4" />
-                                                            Lien expiré
-                                                        </span>
-                                                        <button
-                                                            onClick={() => resendLink(r.id)}
-                                                            disabled={busyId !== null}
-                                                            className="btn-secondary disabled:opacity-50"
-                                                        >
-                                                            <RefreshCw className="h-4 w-4" />
-                                                            {busyId === r.id ? "Envoi…" : "Renvoyer le lien"}
-                                                        </button>
-                                                    </>
-                                                ) : r.status === "validee" && (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-                                                        <Clock3 className="h-4 w-4" />
-                                                        Lien envoyé
-                                                    </span>
-                                                )}
+                                                {renderActions(r)}
                                             </div>
                                         </td>
                                     </tr>
@@ -413,6 +403,36 @@ export default function AccountRequestsPage() {
                         </tbody>
                     </table>
                 </div>
+                <div className="space-y-3 sm:hidden">
+                    {visibleRows.length === 0 && (
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-500">
+                            Aucun résultat.
+                        </div>
+                    )}
+                    {visibleRows.map((r) => (
+                        <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <p className="font-semibold break-words">{r.first_name} {r.last_name}</p>
+                                    <p className="text-xs text-slate-500 break-words">{r.email} · {r.phone}</p>
+                                </div>
+                                <StatusBadge status={r.status} label={LABELS[r.status] || r.status} />
+                            </div>
+                            <p className="mt-2 font-mono text-xs text-slate-500 break-words">
+                                {r.request_number}
+                                <br />
+                                Numéro de compte : {r.matricule || "—"}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                                Rôle : {{ etudiant: "Étudiant", enseignant: "Enseignant", chercheur: "Chercheur" }[r.role] || r.role || "—"}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {renderActions(r)}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                </>
             )}
 
             <Pager meta={meta} onChange={(p) => load(p)} />

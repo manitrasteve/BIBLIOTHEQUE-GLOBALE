@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\IngestDocumentJob;
+use App\Jobs\NotifyDocumentPublishedJob;
 use App\Models\Category;
 use App\Models\Consultation;
 use App\Models\Document;
 use App\Services\ActivityLogService;
-use App\Services\DocumentIngestionService;
-use App\Services\NotificationService;
 use App\Services\StaffNotifier;
+use App\Support\QueueKicker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -38,11 +39,6 @@ class DocumentController extends Controller
             ->first();
 
         return ($category ?? Category::create(['name' => $name]))->id;
-    }
-
-    public function __construct(
-        private readonly DocumentIngestionService $ingestionService,
-    ) {
     }
 
     // Recherche publique : titre, auteur, catégorie, année, bibliothèque, mot-clé.
@@ -186,9 +182,9 @@ class DocumentController extends Controller
         if ($search = $request->get('q')) {
             $query->where('title', 'like', "%{$search}%");
         }
-        // Le bibliothécaire ne voit que sa bibliothèque, quel que soit le library_id demandé.
+        // Bibliothèque Numérique Globale : administrateur et bibliothécaire peuvent filtrer sur une bibliothèque précise.
         $request->user()->restrictToManagedLibrary($query);
-        if ($request->user()->isAdmin() && $library = $request->get('library_id')) {
+        if (($request->user()->isAdmin() || $request->user()->isLibrarian()) && $library = $request->get('library_id')) {
             $query->where('library_id', $library);
         }
 
@@ -207,7 +203,7 @@ class DocumentController extends Controller
         $user = $request->user();
         $base = fn () => $user->restrictToManagedLibrary(Document::query())
             ->when($request->get('q'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
-            ->when($user->isAdmin() ? $request->get('library_id') : null, fn ($q, $library) => $q->where('library_id', $library));
+            ->when(($user->isAdmin() || $user->isLibrarian()) ? $request->get('library_id') : null, fn ($q, $library) => $q->where('library_id', $library));
 
         $byStatus = $base()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
 
@@ -300,10 +296,13 @@ class DocumentController extends Controller
         StaffNotifier::documentEvent($request->user(), $document, 'ajoute');
 
         // Extraction du texte + découpage + embeddings Gemini, pour que le
-        // module IA (question-réponse) puisse répondre sur ce document dès
-        // sa mise en ligne. Ne bloque pas la création si Gemini échoue
-        // (ex: clé API absente) : la faute est simplement journalisée.
-        $this->ingestionService->ingest($document);
+        // module IA (question-réponse) puisse répondre sur ce document. En
+        // tâche de fond : un gros mémoire représente des dizaines d'appels
+        // Gemini séquentiels, bien trop long pour faire attendre l'utilisateur
+        // sur la création (le document est déjà "brouillon" et utilisable).
+        // Un worker de file n'est pas garanti actif en permanence : on en
+        // relance un éphémère à chaque dispatch (voir QueueKicker).
+        QueueKicker::dispatch(new IngestDocumentJob($document));
 
         return response()->json($document, 201);
     }
@@ -358,7 +357,7 @@ class DocumentController extends Controller
             StaffNotifier::documentEvent($request->user(), $document, 'modifie', array_keys($changes), [$previousLibraryId]);
         }
 
-        if ($request->hasFile('file')) $this->ingestionService->ingest($document->fresh());
+        if ($request->hasFile('file')) QueueKicker::dispatch(new IngestDocumentJob($document->fresh()));
         return response()->json($document->fresh()->load('authors'));
     }
 
@@ -402,9 +401,9 @@ class DocumentController extends Controller
             ['status' => ['before' => $previousStatus, 'after' => 'publie']],
         );
 
-        \App\Models\User::where('is_active', true)->whereKeyNot($request->user()->id)->get()->each(fn ($user) =>
-            NotificationService::send($user, 'document_publie', 'Nouveau document publié', "« {$document->title} » vient d'être publié.", $document)
-        );
+        // Notifie tous les utilisateurs actifs en tâche de fond : une base
+        // d'utilisateurs nombreuse rendrait sinon le bouton "Publier" très lent.
+        QueueKicker::dispatch(new NotifyDocumentPublishedJob($document, $request->user()->id));
 
         return response()->json($document);
     }
@@ -413,8 +412,8 @@ class DocumentController extends Controller
     {
         $this->authorizeLibrary($request, $document->library_id);
 
-        $this->ingestionService->ingest($document);
-        return response()->json(['message'=>'Indexation RAG relancée.','chunks'=>$document->chunks()->count()]);
+        QueueKicker::dispatch(new IngestDocumentJob($document));
+        return response()->json(['message' => 'Indexation RAG relancée.']);
     }
 
     public function archive(Request $request, Document $document)

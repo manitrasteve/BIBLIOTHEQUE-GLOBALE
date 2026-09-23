@@ -132,7 +132,7 @@ function p10Text(string $text): array
     return ['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => $text]]]]]];
 }
 
-test('les questions représentatives du bibliothécaire sont résolues avec les seules données de sa bibliothèque', function () {
+test('les questions représentatives du bibliothécaire sont désormais résolues avec les données de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     config(['services.gemini.key' => 'test-key']);
     $a = Library::factory()->create(['name' => 'Bibliothèque Centrale']);
     $b = Library::factory()->create(['name' => 'Bibliothèque Nord']);
@@ -150,15 +150,16 @@ test('les questions représentatives du bibliothécaire sont résolues avec les 
     ActivityLogService::log($paul->id, 'modification_document', $nord->title, $nord, ['title' => ['before' => 'x', 'after' => 'Manuel du Nord']]);
 
     $cases = [
-        // Statistiques
-        ['Combien de documents avons-nous ?', 'compter_documents', [], ['"total":2', 'Bibliothèque « Bibliothèque Centrale »'], ['Nord']],
-        ['Combien de brouillons ?', 'compter_documents', ['statut' => 'brouillon'], ['"total":1'], ['Brouillon Nord']],
-        ['Répartition par statut ?', 'repartition_documents', ['par' => 'statut'], ['"libelle":"brouillon","nombre":1', '"libelle":"publie","nombre":1'], ['Nord']],
-        // Recherche
-        ["Avons-nous des livres d'informatique ?", 'rechercher_documents', ['type' => 'livre', 'categorie' => 'Informatique'], ['Algorithmique avancée', '"total":1'], ['Manuel du Nord']],
+        // Statistiques (désormais globales, toutes bibliothèques confondues)
+        ['Combien de documents avons-nous ?', 'compter_documents', [], ['"total":4', 'Toutes les bibliothèques'], []],
+        ['Combien de brouillons ?', 'compter_documents', ['statut' => 'brouillon'], ['"total":2'], []],
+        ['Répartition par statut ?', 'repartition_documents', ['par' => 'statut'], ['"libelle":"brouillon","nombre":2', '"libelle":"publie","nombre":2'], []],
+        // Recherche : trouve désormais aussi les documents de l'autre bibliothèque.
+        ["Avons-nous des livres d'informatique ?", 'rechercher_documents', ['type' => 'livre', 'categorie' => 'Informatique'], ['Algorithmique avancée', 'Manuel du Nord', '"total":2'], []],
         // Historique
         ['Qui a publié Algorithmique ?', 'historique_document', ['titre' => 'Algorithmique', 'action' => 'publication_document'], ['Jean Dupont', '2026-09-20', 'Document publié'], []],
-        ["Quelles actions ont été faites aujourd'hui ?", 'rechercher_actions', ['date' => '2026-09-20'], ['Jean Dupont', 'Algorithmique avancée'], ['Paul Nord', 'Manuel du Nord']],
+        // Le journal du jour inclut désormais aussi les actions de l'autre bibliothèque.
+        ["Quelles actions ont été faites aujourd'hui ?", 'rechercher_actions', ['date' => '2026-09-20'], ['Jean Dupont', 'Algorithmique avancée', 'Paul Nord', 'Manuel du Nord'], []],
     ];
 
     Sanctum::actingAs($jean);
@@ -176,10 +177,10 @@ test('les questions représentatives du bibliothécaire sont résolues avec les 
         }
     }
 
-    // Refus d'accès à une autre bibliothèque : aucun chiffre ni nom.
+    // Bibliothèque Numérique Globale : cibler une autre bibliothèque renvoie désormais ses vraies données.
     Http::swap(new \Illuminate\Http\Client\Factory());
-    Http::fake(['generativelanguage.googleapis.com/*' => Http::sequence()->push(p10Call('compter_documents', ['bibliotheque' => 'Nord']))->push(p10Text('Hors périmètre.'))]);
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::sequence()->push(p10Call('compter_documents', ['bibliotheque' => 'Nord']))->push(p10Text('2 documents à Nord.'))]);
     $response = $this->postJson('/api/assistant/librarian', ['question' => 'Combien de documents à Nord ?'])->assertOk();
-    expect($response->json('sources.0.hors_perimetre'))->toBeTrue()
-        ->and(json_encode(Http::recorded()[1][0]->data()['contents'][2], JSON_UNESCAPED_UNICODE))->not->toContain('Manuel du Nord')->not->toContain('"total":2');
+    expect($response->json('sources.0.hors_perimetre') ?? false)->toBeFalse()
+        ->and(json_encode(Http::recorded()[1][0]->data()['contents'][2], JSON_UNESCAPED_UNICODE))->toContain('"total":2');
 });

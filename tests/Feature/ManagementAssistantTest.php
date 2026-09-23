@@ -77,30 +77,30 @@ test('le flux complet : Gemini choisit un outil, Laravel interroge MySQL, Gemini
         ->and($second)->not->toHaveKey('toolConfig');
 });
 
-test('un bibliothécaire qui demande une autre bibliothèque n\'obtient aucune donnée de celle-ci', function () {
+test('un bibliothécaire obtient désormais les données d\'une autre bibliothèque (Bibliothèque Numérique Globale)', function () {
     $w = assistantSetup();
-    stubGeminiReplies(geminiCall('compter_documents', ['bibliotheque' => 'Bibliothèque Nord', 'library_id' => $w->b->id]), geminiText('Cette bibliothèque est hors de mon périmètre.'));
+    stubGeminiReplies(geminiCall('compter_documents', ['bibliotheque' => 'Bibliothèque Nord']), geminiText('Il y a 5 documents dans la bibliothèque Nord.'));
 
     $result = assistant()->ask($w->librarian, 'Combien de documents dans la bibliothèque Nord ?');
 
     $sentBack = json_encode(Http::recorded()[1][0]->data()['contents'][2]);
-    expect($sentBack)->toContain('hors_perimetre')
-        ->and($sentBack)->not->toContain('"total"')->not->toContain('Secret nord')
-        ->and($result['data'][0]['resultat']['hors_perimetre'])->toBeTrue();
+    expect($sentBack)->not->toContain('hors_perimetre')
+        ->and($sentBack)->toContain('"total":5')
+        ->and($result['data'][0]['resultat']['total'])->toBe(5);
 
-    // Le prompt et les outils du bibliothécaire ne mentionnent que sa bibliothèque.
+    // Le prompt et les outils du bibliothécaire sont désormais globaux, comme l'admin.
     $first = Http::recorded()[0][0]->data();
-    expect($first['systemInstruction']['parts'][0]['text'])->toContain('BIBLIOTHÉCAIRE')->toContain('Bibliothèque Centrale')
-        ->and(json_encode($first['tools']))->not->toContain('"bibliotheque":');
+    expect($first['systemInstruction']['parts'][0]['text'])->toContain('BIBLIOTHÉCAIRE')->toContain('Bibliothèque Numérique Globale')
+        ->and(json_encode($first['tools']))->toContain('"bibliotheque":');
 });
 
-test('même sans demande explicite, le bibliothécaire ne reçoit que les données de sa bibliothèque', function () {
+test('même sans demande explicite, le bibliothécaire reçoit désormais les données de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     $w = assistantSetup();
-    stubGeminiReplies(geminiCall('compter_documents', []), geminiText('2 documents.'));
+    stubGeminiReplies(geminiCall('compter_documents', []), geminiText('7 documents.'));
 
     $result = assistant()->ask($w->librarian, 'Combien de documents ?');
 
-    expect($result['data'][0]['resultat']['total'])->toBe(2); // pas 7
+    expect($result['data'][0]['resultat']['total'])->toBe(7); // 2 + 5, comme l'admin
 });
 
 test('une information absente est signalée comme telle : l\'outil renvoie « non trouvé » à Gemini', function () {
@@ -160,20 +160,20 @@ test('une boucle qui continue à réclamer des outils au dernier tour renvoie un
     expect($result['ok'])->toBeFalse()->and($result['answer'])->toContain('réponse fiable')->and(Http::recorded())->toHaveCount(4);
 });
 
-test('le JSON réellement envoyé à Gemini est valide : objets vides conservés (args, properties)', function () {
+test('le JSON réellement envoyé à Gemini est valide : objets vides conservés (args)', function () {
     $w = assistantSetup();
     // Gemini appelle un outil sans argument : « args: {} » doit être renvoyé tel quel, pas transformé en « [] ».
     Http::fake(['generativelanguage.googleapis.com/*' => Http::sequence()
         ->push('{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"compter_documents","args":{},"id":"c1"},"thoughtSignature":"SIG"}]}}]}', 200, ['Content-Type' => 'application/json'])
-        ->push(geminiText('2 documents.'))]);
+        ->push(geminiText('7 documents.'))]);
 
     assistant()->ask($w->librarian, 'Combien de documents ?');
 
     $first = Http::recorded()[0][0]->body();
     $second = Http::recorded()[1][0]->body();
-    // Déclarations : aucun « properties » ne doit être une liste vide (cas de l'outil sans paramètre du bibliothécaire).
-    expect($first)->not->toContain('"properties":[]')->and($first)->toContain('"properties":{}')
-        ->and($second)->toContain('"args":{}')->not->toContain('"args":[]')
+    // Régression-guard : aucun « properties » ne doit jamais être sérialisé en liste JSON vide « [] ».
+    expect($first)->not->toContain('"properties":[]');
+    expect($second)->toContain('"args":{}')->not->toContain('"args":[]')
         ->and($second)->toContain('"thoughtSignature":"SIG"');
 });
 
@@ -184,11 +184,12 @@ test('l\'accès est refusé avant tout appel à Gemini pour les profils non auto
     foreach ([
         User::factory()->create(['role' => 'etudiant', 'is_active' => true]),
         User::factory()->create(['role' => 'chercheur', 'is_active' => true]),
-        User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]),
         User::factory()->create(['role' => 'administrateur', 'is_active' => false]),
     ] as $denied) {
         expect(fn () => assistant()->ask($denied, 'Combien de documents ?'))->toThrow(AssistantAccessException::class);
     }
+    // Bibliothèque Numérique Globale : un bibliothécaire sans bibliothèque est désormais un compte valide.
+    expect(assistant()->ask(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]), '   ')['ok'])->toBeFalse();
     Http::assertNothingSent();
 });
 

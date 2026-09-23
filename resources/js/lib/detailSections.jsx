@@ -1,6 +1,8 @@
 // Construit les sections affichées dans la fenêtre « Voir » à partir des données
 // réellement enregistrées. Aucun mot de passe, jeton ou secret n'est exposé ici.
 
+import { stripHtml } from "./utils";
+
 const ROLES = {
     etudiant: "Étudiant",
     enseignant: "Enseignant",
@@ -134,7 +136,7 @@ export function librarySections(library) {
             title: "Informations",
             fields: [
                 ["Nom", library.name],
-                ["Description", library.description],
+                ["Description", library.description && stripHtml(library.description)],
                 ["Adresse", library.address],
                 ["Localisation", library.location],
                 ["Horaires", library.opening_hours],

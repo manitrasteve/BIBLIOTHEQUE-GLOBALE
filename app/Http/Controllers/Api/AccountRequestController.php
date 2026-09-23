@@ -8,6 +8,7 @@ use App\Models\MemberRegistry;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
+use App\Support\QueueKicker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -100,7 +101,6 @@ class AccountRequestController extends Controller
             'phone' => ['required', 'string', 'max:50'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
             'address' => ['required', 'string', 'max:255'],
-            'library_id' => ['required', 'integer', 'exists:libraries,id'],
         ];
 
         if ($legacyRequest) {
@@ -373,12 +373,6 @@ class AccountRequestController extends Controller
          */
         $validated['status'] = 'verifiee';
 
-        $validated['library_id'] = $user->library_id ?? null;
-
-        if (!$validated['library_id']) {
-            return response()->json(['message' => 'Le Service Numérique doit être rattaché à une bibliothèque.'], 422);
-        }
-
         $validated['validation_deadline_at'] = now()->addHours(24);
         $validated['expires_at'] = now()->addHours(24);
 
@@ -602,22 +596,7 @@ class AccountRequestController extends Controller
      */
     private function queueMail(\Closure $send): void
     {
-        dispatch($send);
-
-        if (config('queue.default') !== 'database') {
-            return;
-        }
-
-        try {
-            $php = stripos(basename(PHP_BINARY), 'php') !== false ? PHP_BINARY : 'php';
-            $worker = '"' . $php . '" "' . base_path('artisan') . '" queue:work --stop-when-empty --tries=1 --quiet';
-            $command = PHP_OS_FAMILY === 'Windows'
-                ? 'start /B "" ' . $worker . ' > NUL 2>&1'
-                : $worker . ' > /dev/null 2>&1 &';
-            pclose(popen($command, 'r'));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        QueueKicker::dispatch($send);
     }
 
     /**
@@ -1387,7 +1366,6 @@ class AccountRequestController extends Controller
             'phone' => ['required', 'string', 'max:50'],
             // L'adresse est facultative pour un chercheur, obligatoire pour les autres rôles.
             'address' => [Rule::requiredIf($request->input('role') !== 'chercheur'), 'nullable', 'string', 'max:255'],
-            'library_id' => ['required', 'integer', 'exists:libraries,id'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
             'date_of_birth' => ['required', 'date'],
             'birth_place' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
@@ -1505,7 +1483,7 @@ class AccountRequestController extends Controller
             MemberRegistry::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'library_id' => $validated['library_id'],
+                    'library_id' => $validated['library_id'] ?? null,
                     'matricule' => $matricule,
                     'role' => $validated['role'],
                     'last_name' => $validated['last_name'],
@@ -1590,9 +1568,9 @@ class AccountRequestController extends Controller
                 'status' => 'validee',
 
                 /**
-                 * Bibliothèque de l'administrateur.
+                 * Bibliothèque Numérique Globale : plus de bibliothèque unique imposée à la création.
                  */
-                'library_id' => $validated['library_id'],
+                'library_id' => $validated['library_id'] ?? null,
 
                 'expires_at' => now()->addHours(24),
 

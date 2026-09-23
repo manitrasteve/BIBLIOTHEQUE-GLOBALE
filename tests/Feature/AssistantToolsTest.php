@@ -42,44 +42,42 @@ function toolsFor(User $user): AssistantTools
 test('le périmètre vient de l\'utilisateur authentifié et refuse les autres profils', function () {
     $w = toolsWorld();
 
+    // Bibliothèque Numérique Globale : administrateur ET bibliothécaire ont un périmètre global (libraryId null).
     expect(AssistantScope::for($w->admin)->libraryId)->toBeNull()
-        ->and(AssistantScope::for($w->librarianA)->libraryId)->toBe($w->a->id);
+        ->and(AssistantScope::for($w->librarianA)->libraryId)->toBeNull();
+
+    // Un bibliothécaire sans bibliothèque est désormais un compte global valide (plus jamais refusé pour ce motif).
+    expect(AssistantScope::for(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]))->libraryId)->toBeNull();
 
     foreach ([
         User::factory()->create(['role' => 'etudiant', 'is_active' => true]),
-        User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]),
         User::factory()->create(['role' => 'bibliothecaire', 'is_active' => false, 'library_id' => $w->a->id]),
     ] as $denied) {
         expect(fn () => AssistantScope::for($denied))->toThrow(AssistantAccessException::class);
     }
 });
 
-test('un bibliothécaire ne peut jamais lire une autre bibliothèque, quels que soient les critères envoyés par Gemini', function () {
+test('un bibliothécaire peut désormais lire toutes les bibliothèques, comme un administrateur (Bibliothèque Numérique Globale)', function () {
     $w = toolsWorld();
     $tools = toolsFor($w->librarianA);
 
-    // Sa propre bibliothèque : 3 documents (corbeille exclue), 2 publié ... jamais ceux de « Nord ».
-    $own = $tools->run('compter_documents', []);
-    expect($own['total'])->toBe(3)->and($own['par_statut'])->toBe(['brouillon' => 1, 'publie' => 1, 'archive' => 1]);
+    // Comme l'administrateur : toutes les bibliothèques par défaut, sans filtre.
+    expect($tools->run('compter_documents', [])['total'])->toBe(5);
 
-    // Nom d'une autre bibliothèque : aucune donnée, message de périmètre.
-    foreach (['compter_documents', 'rechercher_documents', 'repartition_documents', 'rechercher_actions'] as $tool) {
-        $result = $tools->run($tool, ['bibliotheque' => 'Bibliothèque Nord', 'par' => 'type']);
-        expect($result['hors_perimetre'])->toBeTrue()->and($result['trouve'])->toBeFalse()->and($result)->not->toHaveKey('total');
-    }
-    expect(json_encode($tools->run('rechercher_bibliotheques', ['nom' => 'Nord'])))->not->toContain('Nord"')->and($tools->run('rechercher_bibliotheques', ['nom' => 'Nord'])['hors_perimetre'])->toBeTrue();
+    // Nom d'une autre bibliothèque : trouve désormais ses données (plus de « hors_perimetre »).
+    $nord = $tools->run('compter_documents', ['bibliotheque' => 'Bibliothèque Nord']);
+    expect($nord['total'])->toBe(2)->and($nord)->not->toHaveKey('hors_perimetre');
 
-    // Identifiants injectés : ignorés.
-    $injected = $tools->run('compter_documents', ['library_id' => $w->b->id, 'bibliotheque_id' => $w->b->id, 'user_id' => $w->admin->id]);
-    expect($injected['total'])->toBe(3);
-    $search = $tools->run('rechercher_documents', ['library_id' => $w->b->id]);
-    expect(collect($search['documents'])->pluck('bibliotheque')->unique()->all())->toBe(['Bibliothèque Centrale']);
+    expect($tools->run('repartition_documents', ['par' => 'bibliotheque'])['repartition'])->not->toBeEmpty();
+    expect(json_encode($tools->run('rechercher_bibliotheques', ['nom' => 'Nord'])))->toContain('Nord"');
 
-    // Sa propre bibliothèque nommée : autorisée (même partiellement, sans accents).
-    expect($tools->run('compter_documents', ['bibliotheque' => 'centrale'])['total'])->toBe(3);
-    // Une recherche ciblant un document de l'autre bibliothèque ne le trouve pas.
-    expect($tools->run('rechercher_documents', ['titre' => 'nucléaire'])['trouve'])->toBeFalse();
-    expect($tools->run('historique_document', ['titre' => 'nucléaire'])['trouve'])->toBeFalse();
+    // Un document d'une autre bibliothèque est désormais trouvable.
+    $search = $tools->run('rechercher_documents', ['titre' => 'nucléaire']);
+    expect($search['trouve'])->toBeTrue()->and($search['documents'][0]['bibliotheque'])->toBe('Bibliothèque Nord');
+
+    // Les identifiants injectés restent sans effet (invariant de sécurité conservé), même si le périmètre est déjà global.
+    $injected = $tools->run('compter_documents', ['library_id' => $w->b->id, 'user_id' => $w->admin->id]);
+    expect($injected['total'])->toBe(5);
 });
 
 test('l\'administrateur voit toutes les bibliothèques et peut cibler l\'une d\'elles', function () {
@@ -112,8 +110,9 @@ test('les comptages par statut, type et catégorie viennent de la base et fusion
     $libraries = collect($tools->run('repartition_documents', ['par' => 'bibliotheque'])['repartition'])->pluck('nombre', 'libelle')->all();
     expect($libraries)->toBe(['Bibliothèque Centrale' => 3, 'Bibliothèque Nord' => 2]);
 
-    // Un bibliothécaire ne peut pas regrouper par bibliothèque.
-    expect(toolsFor($w->librarianA)->run('repartition_documents', ['par' => 'bibliotheque'])['hors_perimetre'])->toBeTrue();
+    // Un bibliothécaire peut désormais regrouper par bibliothèque (Bibliothèque Numérique Globale).
+    $byLibrary = collect(toolsFor($w->librarianA)->run('repartition_documents', ['par' => 'bibliotheque'])['repartition'])->pluck('nombre', 'libelle')->all();
+    expect($byLibrary)->toBe(['Bibliothèque Centrale' => 3, 'Bibliothèque Nord' => 2]);
 });
 
 // ---------- Recherche de documents ----------
@@ -219,8 +218,8 @@ test('les actions d\'un utilisateur, d\'une bibliothèque et les créations de c
     // « Qui a créé cet utilisateur ? »
     $creation = $tools->run('rechercher_actions', ['action' => 'creation_compte', 'element' => 'Rabe'])['actions'][0];
     expect($creation)->toMatchArray(['effectuee_par' => 'Admin Un', 'nature_element' => 'compte']);
-    // Un bibliothécaire de la bibliothèque B ne voit pas les actions de la bibliothèque A.
-    expect(toolsFor($w->librarianB)->run('rechercher_actions', ['utilisateur' => 'jean dupont'])['trouve'])->toBeFalse();
+    // Un bibliothécaire de la bibliothèque B voit désormais aussi les actions de la bibliothèque A.
+    expect(toolsFor($w->librarianB)->run('rechercher_actions', ['utilisateur' => 'jean dupont'])['total'])->toBe(1);
 });
 
 // ---------- Robustesse ----------
@@ -255,14 +254,18 @@ test('les outils sont en lecture seule : aucune donnée n\'est modifiée ni jour
     expect(ActivityLog::count())->toBe($logs)->and(Document::withTrashed()->count())->toBe($documents);
 });
 
-test('les déclarations d\'outils dépendent du rôle : le bibliothécaire ne peut pas viser une bibliothèque', function () {
+test('les déclarations d\'outils : le bibliothécaire a désormais le même périmètre que l\'admin, mais pas ses actions réservées (Bibliothèque Numérique Globale)', function () {
     $w = toolsWorld();
     $adminNames = collect(toolsFor($w->admin)->declarations())->pluck('name')->all();
     $librarianDeclarations = collect(toolsFor($w->librarianA)->declarations());
 
     expect($adminNames)->toBe(['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'lister_bibliothecaires', 'mon_historique', 'aucune_donnee_necessaire']);
     expect(json_encode(toolsFor($w->admin)->declarations()))->toContain('"bibliotheque"')->toContain('permissions_modifiees');
-    expect(json_encode($librarianDeclarations->all()))->not->toContain('"bibliotheque":')->not->toContain('permissions_modifiees')->not->toContain('vidage_corbeille');
-    // Aucun paramètre ne permet de fournir un identifiant.
+    // Le bibliothécaire a désormais aussi le paramètre « bibliotheque » (compte global)...
+    expect(json_encode($librarianDeclarations->all()))->toContain('"bibliotheque"')
+        // ... mais jamais les actions réservées à l'administrateur (RBAC, inchangé).
+        ->not->toContain('permissions_modifiees')->not->toContain('vidage_corbeille');
+    // Aucun paramètre ne permet de fournir un identifiant, pour aucun rôle.
     expect(json_encode(toolsFor($w->admin)->declarations()))->not->toContain('library_id')->not->toContain('user_id');
+    expect(json_encode($librarianDeclarations->all()))->not->toContain('library_id')->not->toContain('user_id');
 });

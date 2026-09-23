@@ -32,7 +32,6 @@ class LibrarianManagementController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:50'],
             'address' => ['required', 'string', 'max:255'],
-            'library_id' => ['required', 'integer', 'exists:libraries,id'],
             'gender' => ['required', 'in:masculin,feminin'],
             'cin_number' => ['required', 'digits:12'],
             'cin_issued_at' => ['required', 'date'],
@@ -47,7 +46,6 @@ class LibrarianManagementController extends Controller
             'address' => $data['address'],
             'phone' => $data['phone'],
             'gender' => $data['gender'],
-            'library_id' => $data['library_id'],
             'cin_number' => $data['cin_number'],
             'cin_issued_at' => $data['cin_issued_at'],
             'is_active' => false,
@@ -67,7 +65,6 @@ class LibrarianManagementController extends Controller
             'phone' => $user->phone,
             'address' => $user->address,
             'gender' => $user->gender,
-            'library_id' => $data['library_id'],
             'status' => 'desactive',
             'profile_data' => [],
         ]);

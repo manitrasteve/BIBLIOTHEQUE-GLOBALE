@@ -340,7 +340,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 ">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to="/"
@@ -451,7 +451,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 ">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to="/"

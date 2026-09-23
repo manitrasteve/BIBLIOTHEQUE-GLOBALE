@@ -258,34 +258,34 @@ test('la création d\'un compte à partir d\'un ticket puis sa validation sont e
 });
 
 test('la création directe d\'un compte par l\'administrateur est enregistrée', function () {
-    $library = Library::factory()->create();
     $admin = auditAdmin();
     Sanctum::actingAs($admin);
 
     $this->postJson('/api/users/creer', [
-        'library_id' => $library->id, 'role' => 'enseignant', 'last_name' => 'Rabe', 'first_name' => 'Jean', 'email' => 'enseignant.audit@example.test',
+        'role' => 'enseignant', 'last_name' => 'Rabe', 'first_name' => 'Jean', 'email' => 'enseignant.audit@example.test',
         'phone' => '0340000000', 'address' => 'Mahajanga', 'gender' => 'masculin', 'date_of_birth' => '1980-01-01',
         'faculty' => 'IOSTM', 'teaching_specialty' => 'Informatique',
     ])->assertCreated();
 
     $log = lastAudit('creation_compte');
-    expect($log->user_id)->toBe($admin->id)->and($log->library_id)->toBe($library->id)
+    // Bibliothèque Numérique Globale : le compte créé n'est plus rattaché à une bibliothèque.
+    expect($log->user_id)->toBe($admin->id)->and($log->library_id)->toBeNull()
         ->and($log->subject_id)->toBe(User::where('email', 'enseignant.audit@example.test')->value('id'))
         ->and($log->subject_label)->toContain('Rabe');
 });
 
-test('la création d\'un bibliothécaire indique sa bibliothèque', function () {
-    $library = Library::factory()->create();
+test('la création d\'un bibliothécaire ne le rattache plus à une bibliothèque', function () {
     $admin = auditAdmin();
     Sanctum::actingAs($admin);
 
     $this->postJson('/api/librarians', [
-        'library_id' => $library->id, 'last_name' => 'Rakoto', 'first_name' => 'Soa', 'gender' => 'feminin', 'cin_number' => '123456789012',
+        'last_name' => 'Rakoto', 'first_name' => 'Soa', 'gender' => 'feminin', 'cin_number' => '123456789012',
         'cin_issued_at' => '2025-01-15', 'email' => 'soa@example.com', 'phone' => '0340000000', 'address' => 'Mahajanga',
     ])->assertCreated();
 
     $log = lastAudit('creation_bibliothecaire');
-    expect($log->user_id)->toBe($admin->id)->and($log->library_id)->toBe($library->id)->and($log->subject_label)->toContain('Rakoto');
+    // Bibliothèque Numérique Globale : le bibliothécaire devient global, plus de bibliothèque unique.
+    expect($log->user_id)->toBe($admin->id)->and($log->library_id)->toBeNull()->and($log->subject_label)->toContain('Rakoto');
 });
 
 // ---------- Service et API ----------

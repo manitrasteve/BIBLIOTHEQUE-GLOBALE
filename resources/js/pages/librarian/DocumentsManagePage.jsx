@@ -106,6 +106,49 @@ export default function DocumentsManagePage() {
     }
   }
 
+  function renderDocActions(doc) {
+    return (
+      <>
+        <Link
+          to={`${basePath}/${doc.id}/modifier`}
+          className="flex items-center gap-1 text-brass hover:text-brass-deep"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Modifier
+        </Link>
+        {doc.status !== 'publie' && can('publier_document') && (
+          <button
+            onClick={() => publish(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-green-700 hover:text-green-800 disabled:opacity-50"
+          >
+            <UploadCloud className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Publier
+          </button>
+        )}
+        <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
+        {doc.status === 'publie' && (
+          <button
+            onClick={() => archive(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-ink-soft hover:text-ink disabled:opacity-50"
+          >
+            <Archive className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Archiver
+          </button>
+        )}
+        {user?.role === 'administrateur' && <button
+          onClick={() => remove(doc)}
+          disabled={busySlug === doc.slug}
+          className="flex items-center gap-1 text-red-700 hover:text-red-800 disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Supprimer
+        </button>}
+      </>
+    );
+  }
+
   return (
     <div>
       <div className="relative mb-5 w-full sm:max-w-[600px]">
@@ -180,7 +223,8 @@ export default function DocumentsManagePage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-paper">
+        <>
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-paper sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-ink-soft/70 text-xs uppercase tracking-wide">
@@ -209,42 +253,7 @@ export default function DocumentsManagePage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Link
-                        to={`${basePath}/${doc.id}/modifier`}
-                        className="flex items-center gap-1 text-brass hover:text-brass-deep"
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        Modifier
-                      </Link>
-                      {doc.status !== 'publie' && can('publier_document') && (
-                        <button
-                          onClick={() => publish(doc)}
-                          disabled={busySlug === doc.slug}
-                          className="flex items-center gap-1 text-green-700 hover:text-green-800 disabled:opacity-50"
-                        >
-                          <UploadCloud className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Publier
-                        </button>
-                      )}
-                      <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
-                      {doc.status === 'publie' && (
-                        <button
-                          onClick={() => archive(doc)}
-                          disabled={busySlug === doc.slug}
-                          className="flex items-center gap-1 text-ink-soft hover:text-ink disabled:opacity-50"
-                        >
-                          <Archive className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Archiver
-                        </button>
-                      )}
-                      {user?.role === 'administrateur' && <button
-                        onClick={() => remove(doc)}
-                        disabled={busySlug === doc.slug}
-                        className="flex items-center gap-1 text-red-700 hover:text-red-800 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        Supprimer
-                      </button>}
+                      {renderDocActions(doc)}
                     </div>
                   </td>
                 </tr>
@@ -252,6 +261,25 @@ export default function DocumentsManagePage() {
             </tbody>
           </table>
         </div>
+        <div className="space-y-3 sm:hidden">
+          {sortedDocuments.map((doc) => (
+            <div key={doc.id} className="rounded-xl border border-line bg-paper p-4">
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2 font-medium text-ink">
+                  <FileText className="h-4 w-4 flex-shrink-0 text-ink-soft/50" strokeWidth={1.5} />
+                  <span className="break-words">{doc.title}</span>
+                </span>
+                <StatusBadge status={doc.status} />
+              </div>
+              <p className="mt-1 text-xs text-ink-soft">{doc.category?.name} · {doc.year}</p>
+              <p className="mt-1 text-xs text-ink-soft">{doc.library?.name}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {renderDocActions(doc)}
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       {meta?.last_page > 1 && (

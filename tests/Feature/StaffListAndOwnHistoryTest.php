@@ -38,36 +38,37 @@ function staffTools(User $user): AssistantTools
 
 // ---------- Nombre, noms et date de création des bibliothécaires ----------
 
-test('le bibliothécaire obtient le total, les noms et la date de création des comptes de SA bibliothèque uniquement', function () {
+test('le bibliothécaire obtient désormais le total, les noms et la date de création des comptes de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     $w = staffWorld();
 
     $result = staffTools($w->jean)->run('lister_bibliothecaires', []);
 
     expect($result['trouve'])->toBeTrue()
-        ->and($result['total'])->toBe(3)                       // Jean, Marie, Zo — ni le compte supprimé, ni l'étudiant, ni Paul
-        ->and($result['comptes_actifs'])->toBe(2)->and($result['comptes_inactifs'])->toBe(1)
-        ->and(collect($result['bibliothecaires'])->pluck('nom')->all())->toBe(['Jean Dupont', 'Marie Rasoa', 'Zo Andria'])
-        ->and(collect($result['bibliothecaires'])->pluck('compte_cree_le')->all())->toBe(['2026-01-10', '2026-03-05', '2026-06-20'])
-        ->and($result['bibliothecaires'][2]['compte'])->toContain('inactif')
-        ->and($result['perimetre'])->toBe('Bibliothèque « Bibliothèque Centrale »');
+        ->and($result['total'])->toBe(4)                       // Jean, Paul, Marie, Zo — ni le compte supprimé, ni l'étudiant
+        ->and($result['comptes_actifs'])->toBe(3)->and($result['comptes_inactifs'])->toBe(1)
+        ->and(collect($result['bibliothecaires'])->pluck('nom')->all())->toBe(['Jean Dupont', 'Paul Nord', 'Marie Rasoa', 'Zo Andria'])
+        ->and(collect($result['bibliothecaires'])->pluck('compte_cree_le')->all())->toBe(['2026-01-10', '2026-02-02', '2026-03-05', '2026-06-20'])
+        ->and($result['bibliothecaires'][3]['compte'])->toContain('inactif')
+        ->and($result['perimetre'])->toBe('Toutes les bibliothèques');
 
     // Données minimales : ni e-mail, ni téléphone, ni identifiant technique.
     $json = json_encode($result, JSON_UNESCAPED_UNICODE);
-    expect($json)->not->toContain('Paul Nord')->not->toContain('Ancien Supprimé')->not->toContain('Étudiant Centrale')
+    expect($json)->toContain('Paul Nord')->not->toContain('Ancien Supprimé')->not->toContain('Étudiant Centrale')
         ->not->toContain('@')->not->toContain('"id"')->not->toContain('phone');
 });
 
-test('demander une autre bibliothèque ou glisser des identifiants ne change jamais le périmètre du bibliothécaire', function () {
+test('demander une autre bibliothèque est désormais autorisé ; les identifiants injectés restent sans effet (Bibliothèque Numérique Globale)', function () {
     $w = staffWorld();
     $tools = staffTools($w->jean);
 
     $other = $tools->run('lister_bibliothecaires', ['bibliotheque' => 'Nord']);
-    expect($other['hors_perimetre'])->toBeTrue()->and($other['trouve'])->toBeFalse()->and(json_encode($other))->not->toContain('Paul');
+    expect($other['trouve'])->toBeTrue()->and($other['total'])->toBe(1)->and(json_encode($other))->toContain('Paul');
 
+    // Le périmètre est déjà global : les identifiants injectés dans les arguments restent de toute façon sans effet.
     $spoofed = $tools->run('lister_bibliothecaires', ['library_id' => $w->b->id, 'user_id' => $w->paul->id, 'role' => 'administrateur']);
-    expect($spoofed['total'])->toBe(3)->and(json_encode($spoofed))->not->toContain('Paul Nord');
+    expect($spoofed['total'])->toBe(4)->and(json_encode($spoofed))->toContain('Paul Nord');
 
-    // Son propre nom de bibliothèque reste accepté.
+    // Son propre nom de bibliothèque reste accepté aussi.
     expect($tools->run('lister_bibliothecaires', ['bibliotheque' => 'Centrale']))->toHaveKey('total', 3);
 });
 
@@ -181,7 +182,7 @@ test('via l\'API : les données envoyées à Gemini pour « combien de biblioth�
     Sanctum::actingAs($w->jean);
 
     $cases = [
-        ['Combien de bibliothécaires dans ma bibliothèque ?', 'lister_bibliothecaires', [], ['"total":3', 'Jean Dupont', 'Marie Rasoa', 'Zo Andria', '2026-03-05'], 'Liste des bibliothécaires'],
+        ['Combien de bibliothécaires dans ma bibliothèque ?', 'lister_bibliothecaires', [], ['"total":4', 'Jean Dupont', 'Marie Rasoa', 'Zo Andria', 'Paul Nord', '2026-03-05'], 'Liste des bibliothécaires'],
         ["Quel est mon historique d'aujourd'hui ?", 'mon_historique', ['periode' => 'aujourdhui'], ['"total":2', 'Doc du jour'], 'Mon historique'],
         ['Mon historique du 12/04/2026 ?', 'mon_historique', ['date' => '2026-04-12'], ['Vieux document', '14:30'], 'Mon historique'],
     ];
@@ -192,7 +193,8 @@ test('via l\'API : les données envoyées à Gemini pour « combien de biblioth�
         $response = $this->postJson('/api/assistant/librarian', ['question' => $question])->assertOk();
 
         $sent = json_encode(Http::recorded()[1][0]->data()['contents'][2], JSON_UNESCAPED_UNICODE);
-        expect($sent)->toContain(...$facts)->and($sent)->not->toContain('Paul Nord')->not->toContain('Doc de Marie');
+        // « mon_historique » ne renvoie jamais les actions d'une autre personne, quel que soit le périmètre de bibliothèque.
+        expect($sent)->toContain(...$facts)->and($sent)->not->toContain('Doc de Marie');
         expect($response->json('sources.0.libelle'))->toBe($label)->and($response->json('ok'))->toBeTrue();
     }
 });

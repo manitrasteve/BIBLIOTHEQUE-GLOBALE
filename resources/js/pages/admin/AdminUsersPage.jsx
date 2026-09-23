@@ -101,7 +101,6 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState(null);
-    const [libraries, setLibraries] = useState([]);
     const [modal, setModal] = useState(null); // { type: 'delete'|'deactivate', user }
     const [showCreate, setShowCreate] = useState(false);
     const [query, setQuery] = useState("");
@@ -126,9 +125,6 @@ export default function AdminUsersPage() {
 
     useEffect(() => {
         load();
-        api.getLibraries()
-            .then((r) => setLibraries(r.data || r || []))
-            .catch(() => {});
     }, []);
 
     async function handleDelete(reason) {
@@ -186,7 +182,6 @@ export default function AdminUsersPage() {
     if (showCreate) {
         return (
             <CreateUserForm
-                libraries={libraries}
                 onCancel={() => setShowCreate(false)}
                 onCreated={(res) => {
                     setUsers((list) => [res.user, ...(list || [])]);
@@ -232,7 +227,8 @@ export default function AdminUsersPage() {
                     Aucun utilisateur.
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                <>
+                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white sm:block">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort}/><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-right">Actions</th></tr></thead>
                         <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
@@ -245,6 +241,25 @@ export default function AdminUsersPage() {
                         ))}</tbody>
                     </table>
                 </div>
+                <div className="space-y-3 sm:hidden">
+                    {filteredUsers.length === 0 && <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-500">Aucun résultat.</div>}
+                    {filteredUsers.map((u) => (
+                        <div key={u.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0"><p className="font-semibold break-words">{u.name}</p><p className="text-xs text-slate-500 break-words">{u.email}</p></div>
+                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span>
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">Rôle : {u.role}</p>
+                            <p className="mt-1 text-xs text-slate-500">Bibliothèque : {u.library?.name || "—"}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <ViewButton onClick={() => setViewing(u)} />
+                                {u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}
+                                {!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600"><Trash2 className="h-4 w-4"/></button>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                </>
             )}
 
             <Pager meta={meta} onChange={(p) => load(p)} />

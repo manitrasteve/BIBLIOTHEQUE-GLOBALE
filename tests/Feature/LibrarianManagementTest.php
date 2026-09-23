@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Mail;
 function librarianPayload(Library $library): array
 {
     return [
-        'library_id' => $library->id,
         'last_name' => 'Rakoto',
         'first_name' => 'Soa',
         'gender' => 'feminin',
@@ -56,7 +55,8 @@ test('un administrateur crée un bibliothécaire en attente de création de mot 
     $registry = MemberRegistry::where('user_id', $user->id)->firstOrFail();
 
     expect($user->role)->toBe('bibliothecaire');
-    expect($user->library_id)->toBe($library->id);
+    // Bibliothèque Numérique Globale : le bibliothécaire devient global, plus de bibliothèque unique.
+    expect($user->library_id)->toBeNull();
     expect($user->gender)->toBe('feminin');
     expect($user->cin_number)->toBe('123456789012');
     expect($user->cin_issued_at)->toBe('2025-01-15');
@@ -64,7 +64,7 @@ test('un administrateur crée un bibliothécaire en attente de création de mot 
     expect($user->password_set_at)->toBeNull();
     expect($user->matricule)->toMatch('/^BIB-\d{4}-\d{4}$/');
     expect($registry->matricule)->toBe($user->matricule);
-    expect($registry->library_id)->toBe($library->id);
+    expect($registry->library_id)->toBeNull();
     expect($registry->status)->toBe('desactive');
     expect(DB::table('password_reset_tokens')->where('email', $user->email)->exists())->toBeTrue();
 });

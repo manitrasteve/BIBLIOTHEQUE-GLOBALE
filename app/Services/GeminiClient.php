@@ -49,7 +49,7 @@ class GeminiClient
             'content' => [
                 'parts' => [
                     [
-                        'text' => $text
+                        'text' => $this->sanitizeUtf8($text)
                     ]
                 ]
             ],
@@ -97,7 +97,7 @@ public function batchEmbed(array $texts): array
             'content' => [
                 'parts' => [
                     [
-                        'text' => $text
+                        'text' => $this->sanitizeUtf8($text)
                     ]
                 ]
             ],
@@ -202,10 +202,40 @@ public function batchEmbed(array $texts): array
         ];
     }
 
+    /**
+     * Nettoie récursivement les chaînes d'un tableau pour garantir un UTF-8
+     * valide : un PDF mal encodé (police CID corrompue, ligature mal
+     * mappée…) peut produire des octets invalides qui font échouer le
+     * json_encode de Guzzle avant même l'envoi de la requête.
+     */
+    private function sanitizeDeep(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $data[$key] = $this->sanitizeUtf8($value);
+            } elseif (is_array($value)) {
+                $data[$key] = $this->sanitizeDeep($value);
+            }
+        }
+
+        return $data;
+    }
+
+    private function sanitizeUtf8(string $text): string
+    {
+        if ($text === '' || mb_check_encoding($text, 'UTF-8')) {
+            return $text;
+        }
+
+        $clean = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+
+        return $clean !== false ? $clean : mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+    }
+
     private function payload(array $contents, array $options): array
     {
         $payload = [
-            'contents' => $contents,
+            'contents' => $this->sanitizeDeep($contents),
             'generationConfig' => [
                 'temperature' => (float) ($options['temperature'] ?? 0.3),
             ],
@@ -213,7 +243,7 @@ public function batchEmbed(array $texts): array
 
         if (!empty($options['system'])) {
             $payload['systemInstruction'] = [
-                'parts' => [['text' => $options['system']]],
+                'parts' => [['text' => $this->sanitizeUtf8($options['system'])]],
             ];
         }
 
@@ -239,6 +269,41 @@ public function batchEmbed(array $texts): array
         }
 
         return $text;
+    }
+
+    /**
+     * Raison d'arrêt de la génération (STOP en temps normal) et raison de
+     * blocage éventuelle, données par Gemini à côté du texte.
+     *
+     * @return array{reason: ?string, block_reason: ?string}
+     */
+    private function finishInfo(?array $json): array
+    {
+        return [
+            'reason' => $json['candidates'][0]['finishReason'] ?? null,
+            'block_reason' => $json['promptFeedback']['blockReason'] ?? null,
+        ];
+    }
+
+    /**
+     * Une réponse sans texte n'est retentée sur le modèle suivant que si
+     * Gemini signale explicitement un blocage (sécurité, recitation,
+     * contenu protégé…) — une fin normale (STOP) sans texte n'est pas un
+     * blocage et ne doit pas boucler inutilement sur toute la chaîne.
+     *
+     * @param array{reason: ?string, block_reason: ?string} $finish
+     */
+    private function isBlocked(array $finish): bool
+    {
+        if ($finish['block_reason'] !== null) {
+            return true;
+        }
+
+        return in_array(
+            $finish['reason'],
+            ['SAFETY', 'RECITATION', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'OTHER'],
+            true
+        );
     }
 
     /**
@@ -268,9 +333,28 @@ public function batchEmbed(array $texts): array
             }
 
             if ($response->successful()) {
+                $json = $response->json();
+                $text = $this->extractText($json);
+                $finish = $this->finishInfo($json);
+
+                if ($text === '' && $this->isBlocked($finish)) {
+                    // Blocage de contenu (pas une panne) : on tente le modèle
+                    // suivant sans le mettre en veille.
+                    $last = new GeminiException(
+                        "Réponse Gemini bloquée ({$model}) : " .
+                        ($finish['reason'] ?? $finish['block_reason']),
+                        0,
+                        true
+                    );
+
+                    continue;
+                }
+
                 return [
-                    'text' => $this->extractText($response->json()),
+                    'text' => $text,
                     'model' => $model,
+                    'finish_reason' => $finish['reason'],
+                    'block_reason' => $finish['block_reason'],
                 ];
             }
 
@@ -400,6 +484,7 @@ public function batchEmbed(array $texts): array
             $body = $response->toPsrResponse()->getBody();
             $buffer = '';
             $full = '';
+            $finish = ['reason' => null, 'block_reason' => null];
 
             while (!$body->eof()) {
                 $buffer .= str_replace("\r\n", "\n", $body->read(512));
@@ -412,18 +497,40 @@ public function batchEmbed(array $texts): array
                         continue;
                     }
 
-                    $delta = $this->extractText(
-                        json_decode(trim(substr($event, 5)), true)
-                    );
+                    $json = json_decode(trim(substr($event, 5)), true);
+                    $delta = $this->extractText($json);
 
                     if ($delta !== '') {
                         $full .= $delta;
                         $onDelta($delta);
                     }
+
+                    $eventFinish = $this->finishInfo($json);
+                    if ($eventFinish['reason'] !== null || $eventFinish['block_reason'] !== null) {
+                        $finish = $eventFinish;
+                    }
                 }
             }
 
-            return ['text' => $full, 'model' => $model];
+            if ($full === '' && $this->isBlocked($finish)) {
+                // Rien n'a encore été émis : on peut encore basculer sur le
+                // modèle suivant sans le mettre en veille.
+                $last = new GeminiException(
+                    "Réponse Gemini bloquée en flux ({$model}) : " .
+                    ($finish['reason'] ?? $finish['block_reason']),
+                    0,
+                    true
+                );
+
+                continue;
+            }
+
+            return [
+                'text' => $full,
+                'model' => $model,
+                'finish_reason' => $finish['reason'],
+                'block_reason' => $finish['block_reason'],
+            ];
         }
 
         throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
@@ -442,7 +549,7 @@ public function batchEmbed(array $texts): array
             try {
                 $response = $this->http(90)
                     ->post("{$this->baseUrl}/models/{$model}:generateContent", [
-                        'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+                        'contents' => [['role' => 'user', 'parts' => [['text' => $this->sanitizeUtf8($prompt)]]]],
                         'generationConfig' => ['responseModalities' => ['TEXT', 'IMAGE']],
                     ]);
             } catch (ConnectionException $e) {

@@ -13,8 +13,6 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import DocumentDetailPage from "./pages/DocumentDetailPage";
 import LoginPage from "./pages/LoginPage";
 import CreateAccountFormPage from "./pages/CreateAccountFormPage";
-import CreateAccountSelectLibraryPage from "./pages/CreateAccountSelectLibraryPage";
-import CreateAccountLibraryPage from "./pages/CreateAccountLibraryPage";
 import TicketReceiptPage from "./pages/TicketReceiptPage";
 import DashboardPage from "./pages/DashboardPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -86,14 +84,6 @@ export default function App() {
                             <Route path="/connexion" element={<LoginPage />} />
                             <Route
                                 path="/creer-un-compte"
-                                element={<CreateAccountSelectLibraryPage />}
-                            />
-                            <Route
-                                path="/creer-un-compte/:libraryId"
-                                element={<CreateAccountLibraryPage />}
-                            />
-                            <Route
-                                path="/creer-un-compte/:libraryId/demande"
                                 element={<CreateAccountFormPage />}
                             />
                             <Route

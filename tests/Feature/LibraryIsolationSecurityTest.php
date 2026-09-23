@@ -38,40 +38,42 @@ function isolationWorld(): object
     ];
 }
 
-test('la liste et les totaux de gestion ne montrent que la bibliothèque du bibliothécaire, même avec library_id dans l\'URL', function () {
+test('la liste et les totaux de gestion sont désormais globaux pour le bibliothécaire, avec filtre possible par bibliothèque (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     Sanctum::actingAs($w->jean);
 
-    foreach (['/api/documents-manage', "/api/documents-manage?library_id={$w->b->id}", '/api/documents-manage?library_id=999'] as $url) {
-        $json = $this->getJson($url)->assertOk()->json();
-        expect(collect($json['data'])->pluck('title')->all())->toBe(['Doc Centrale'])->and($json['counts']['all'])->toBe(1);
-    }
+    $json = $this->getJson('/api/documents-manage')->assertOk()->json();
+    expect(collect($json['data'])->pluck('title')->sort()->values()->all())->toBe(['Doc Centrale', 'Doc Nord'])->and($json['counts']['all'])->toBe(2);
 
-    // L'administrateur, lui, voit tout et peut filtrer.
+    // Il peut filtrer sur une bibliothèque précise, comme l'administrateur.
+    $filtered = $this->getJson("/api/documents-manage?library_id={$w->b->id}")->assertOk()->json();
+    expect(collect($filtered['data'])->pluck('title')->all())->toBe(['Doc Nord'])->and($filtered['counts']['all'])->toBe(1);
+
+    expect($this->getJson('/api/documents-manage?library_id=999')->assertOk()->json('data'))->toBeEmpty();
+
+    // L'administrateur : comportement inchangé.
     Sanctum::actingAs($w->admin);
     expect($this->getJson('/api/documents-manage')->json('counts.all'))->toBe(2)
         ->and($this->getJson("/api/documents-manage?library_id={$w->b->id}")->json('counts.all'))->toBe(1);
 });
 
-test('un bibliothécaire ne peut ni lire, ni modifier, ni publier, ni archiver, ni réindexer, ni supprimer un document d\'une autre bibliothèque', function () {
+test('un bibliothécaire peut désormais lire, modifier, publier, archiver, réindexer et supprimer un document d\'une autre bibliothèque (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     $w->theirs->update(['status' => 'brouillon']);
     Sanctum::actingAs($w->jean);
     $id = $w->theirs->id;
 
-    $this->getJson("/api/documents-manage/{$id}")->assertForbidden();
-    $this->postJson("/api/documents/{$id}", ['title' => 'Piraté'])->assertForbidden();
-    $this->putJson("/api/documents/{$id}", ['title' => 'Piraté'])->assertForbidden();
-    $this->postJson("/api/documents/{$id}/publish")->assertForbidden();
-    $this->postJson("/api/documents/{$id}/archive")->assertForbidden();
-    $this->postJson("/api/documents/{$id}/reindex")->assertForbidden();
-    $this->deleteJson("/api/documents/{$id}")->assertForbidden();
+    $this->getJson("/api/documents-manage/{$id}")->assertOk();
+    $this->postJson("/api/documents/{$id}", ['title' => 'Titre modifié'])->assertOk();
+    $this->postJson("/api/documents/{$id}/publish")->assertOk();
+    $this->postJson("/api/documents/{$id}/archive")->assertOk();
+    $this->postJson("/api/documents/{$id}/reindex")->assertOk();
+    $this->deleteJson("/api/documents/{$id}")->assertOk();
 
-    $fresh = $w->theirs->fresh();
-    expect($fresh->title)->toBe('Doc Nord')->and($fresh->status)->toBe('brouillon')->and($fresh->trashed())->toBeFalse();
-    $this->assertDatabaseMissing('activity_logs', ['subject_id' => $id]);
+    expect($w->theirs->fresh()->trashed())->toBeTrue();
+    $this->assertDatabaseHas('activity_logs', ['subject_id' => $id, 'action' => 'suppression_document']);
 
-    // Sur sa propre bibliothèque tout fonctionne (publication et suppression : permissions accordées).
+    // Sa propre bibliothèque continue de fonctionner normalement.
     $mine = $w->mine->id;
     $this->getJson("/api/documents-manage/{$mine}")->assertOk();
     $this->postJson("/api/documents/{$mine}", ['title' => 'Mon titre'])->assertOk();
@@ -80,7 +82,7 @@ test('un bibliothécaire ne peut ni lire, ni modifier, ni publier, ni archiver, 
     $this->deleteJson("/api/documents/{$mine}")->assertOk();
 });
 
-test('un bibliothécaire ne peut créer ou déplacer un document que dans sa bibliothèque', function () {
+test('un bibliothécaire peut désormais créer et déplacer un document vers n\'importe quelle bibliothèque (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     Sanctum::actingAs($w->jean);
     $payload = fn (int $libraryId) => [
@@ -88,31 +90,30 @@ test('un bibliothécaire ne peut créer ou déplacer un document que dans sa bib
         'access_level' => 'authentifie', 'file' => UploadedFile::fake()->create('a.pdf', 50, 'application/pdf'),
     ];
 
-    $this->post('/api/documents', $payload($w->b->id), ['Accept' => 'application/json'])->assertForbidden();
-    expect(Document::where('title', 'Nouveau')->exists())->toBeFalse();
-
-    $this->post('/api/documents', $payload($w->a->id), ['Accept' => 'application/json'])->assertCreated();
-
-    // Transfert d'un de ses documents vers une autre bibliothèque : refusé.
-    $this->postJson("/api/documents/{$w->mine->id}", ['library_id' => $w->b->id])->assertForbidden();
-    expect($w->mine->fresh()->library_id)->toBe($w->a->id);
-
-    // L'administrateur peut créer partout et transférer.
-    Sanctum::actingAs($w->admin);
     $this->post('/api/documents', $payload($w->b->id), ['Accept' => 'application/json'])->assertCreated();
+    expect(Document::where('title', 'Nouveau')->exists())->toBeTrue();
+
+    // Transfert d'un de ses documents vers une autre bibliothèque : autorisé.
     $this->postJson("/api/documents/{$w->mine->id}", ['library_id' => $w->b->id])->assertOk();
+    expect($w->mine->fresh()->library_id)->toBe($w->b->id);
+
+    // L'administrateur : comportement inchangé (peut créer partout).
+    Sanctum::actingAs($w->admin);
+    $this->post('/api/documents', $payload($w->a->id), ['Accept' => 'application/json'])->assertCreated();
 });
 
-test('un bibliothécaire sans bibliothèque ne voit rien et ne peut rien gérer', function () {
+test('un bibliothécaire sans bibliothèque (compte global) voit toutes les bibliothèques comme n\'importe quel bibliothécaire', function () {
     $w = isolationWorld();
     $orphan = User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]);
     Sanctum::actingAs($orphan);
 
-    expect($this->getJson('/api/documents-manage')->assertOk()->json('counts.all'))->toBe(0);
-    $this->postJson("/api/documents/{$w->mine->id}/archive")->assertForbidden();
+    // Bibliothèque Numérique Globale : l'absence de library_id ne bloque plus rien.
+    expect($this->getJson('/api/documents-manage')->assertOk()->json('counts.all'))->toBe(2);
+    // Ce compte minimal n'a reçu aucune permission « publier_document » : refusé pour cette raison, pas pour la bibliothèque.
+    $this->postJson("/api/documents/{$w->mine->id}/publish")->assertForbidden();
 });
 
-test('la corbeille est limitée à la bibliothèque et « vider » ne touche pas les autres bibliothèques', function () {
+test('la corbeille est désormais globale pour le bibliothécaire (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     $w->mine->delete();
     $w->theirs->delete();
@@ -123,62 +124,49 @@ test('la corbeille est limitée à la bibliothèque et « vider » ne touche pas
     Sanctum::actingAs($w->jean);
 
     $trash = $this->getJson('/api/trash')->assertOk()->json();
-    expect(collect($trash['documents'])->pluck('title')->all())->toBe(['Doc Centrale'])
-        ->and(collect($trash['users'])->pluck('id')->all())->toBe([$studentA->id]);
+    expect(collect($trash['documents'])->pluck('title')->sort()->values()->all())->toBe(['Doc Centrale', 'Doc Nord'])
+        ->and(collect($trash['users'])->pluck('id')->sort()->values()->all())->toBe(collect([$studentA->id, $studentB->id])->sort()->values()->all());
 
-    // Tentatives sur les éléments de l'autre bibliothèque : introuvables.
-    $this->postJson("/api/trash/documents/{$w->theirs->id}/restore")->assertNotFound();
-    $this->deleteJson("/api/trash/documents/{$w->theirs->id}")->assertNotFound();
-    $this->postJson("/api/trash/users/{$studentB->id}/restore")->assertNotFound();
-    $this->deleteJson("/api/trash/users/{$studentB->id}")->assertNotFound();
+    // Les éléments de l'autre bibliothèque sont désormais accessibles.
+    $this->postJson("/api/trash/documents/{$w->theirs->id}/restore")->assertOk();
+    $this->postJson("/api/trash/users/{$studentB->id}/restore")->assertOk();
 
-    // Vider la corbeille : uniquement la sienne.
+    // Vider la corbeille : tout, toutes bibliothèques confondues.
     $this->deleteJson('/api/trash')->assertOk();
-    expect(Document::onlyTrashed()->pluck('title')->all())->toBe(['Doc Nord'])
-        ->and(User::onlyTrashed()->pluck('id')->all())->toBe([$studentB->id]);
-
-    // L'administrateur voit et vide tout.
-    Sanctum::actingAs($w->admin);
-    expect($this->getJson('/api/trash')->json('documents'))->toHaveCount(1);
-    $this->deleteJson('/api/trash')->assertOk();
-    expect(Document::onlyTrashed()->count())->toBe(0);
+    expect(Document::onlyTrashed()->count())->toBe(0)->and(User::onlyTrashed()->count())->toBe(0);
 });
 
-test('les demandes de compte sont limitées à la bibliothèque et ne peuvent pas être traitées ailleurs', function () {
+test('les demandes de compte sont désormais globales pour le bibliothécaire (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     $mine = AccountRequest::factory()->create(['library_id' => $w->a->id, 'status' => 'en_attente']);
     $theirs = AccountRequest::factory()->create(['library_id' => $w->b->id, 'status' => 'en_attente']);
     Sanctum::actingAs($w->jean);
 
-    expect(collect($this->getJson('/api/account-requests')->assertOk()->json('data'))->pluck('id')->all())->toBe([$mine->id]);
+    expect(collect($this->getJson('/api/account-requests')->assertOk()->json('data'))->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$mine->id, $theirs->id])->sort()->values()->all());
 
-    $this->postJson("/api/account-requests/{$theirs->id}/verify")->assertForbidden();
-    $this->postJson("/api/account-requests/{$theirs->id}/reject", ['reason' => 'x'])->assertForbidden();
-    $this->postJson("/api/account-requests/{$theirs->id}/create-account", ['email' => 'x@example.com', 'role' => 'etudiant', 'password' => 'password123'])->assertForbidden();
-    $this->postJson("/api/account-requests/{$theirs->id}/validate")->assertForbidden();
-    expect($theirs->fresh()->status)->toBe('en_attente');
+    $this->postJson("/api/account-requests/{$theirs->id}/verify")->assertOk();
+    expect($theirs->fresh()->status)->toBe('verifiee');
 
-    // Sa propre demande : pas de blocage par le périmètre.
     $this->postJson("/api/account-requests/{$mine->id}/verify")->assertOk();
 
-    // L'administrateur voit toutes les demandes.
+    // L'administrateur : comportement inchangé.
     Sanctum::actingAs($w->admin);
     expect($this->getJson('/api/account-requests')->json('total'))->toBe(2);
 });
 
-test('un bibliothécaire ne modifie que sa propre bibliothèque', function () {
+test('un bibliothécaire peut désormais modifier n\'importe quelle bibliothèque, tant qu\'il a la permission (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     Sanctum::actingAs($w->jean);
 
-    $this->putJson("/api/libraries/{$w->b->id}", ['name' => 'Piratée'])->assertForbidden();
-    $this->postJson("/api/libraries/{$w->b->id}", ['name' => 'Piratée'])->assertForbidden();
-    expect($w->b->fresh()->name)->toBe('Nord');
+    $this->putJson("/api/libraries/{$w->b->id}", ['name' => 'Nord modifiée'])->assertOk();
+    expect($w->b->fresh()->name)->toBe('Nord modifiée');
 
     $this->putJson("/api/libraries/{$w->a->id}", ['name' => 'Centrale 2'])->assertOk();
     expect($w->a->fresh()->name)->toBe('Centrale 2');
 });
 
-test('les statistiques du bibliothécaire ne portent que sur sa bibliothèque', function () {
+test('les statistiques du bibliothécaire portent désormais sur toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     $studentA = User::factory()->create(['role' => 'etudiant', 'library_id' => $w->a->id]);
     User::factory()->count(3)->create(['role' => 'etudiant', 'library_id' => $w->b->id]);
@@ -189,18 +177,18 @@ test('les statistiques du bibliothécaire ne portent que sur sa bibliothèque', 
 
     Sanctum::actingAs($w->jean);
     $stats = $this->getJson('/api/dashboard/admin')->assertOk()->json();
-    expect($stats['total_documents'])->toBe(1)->and($stats['total_consultations'])->toBe(1)->and($stats['pending_account_requests'])->toBe(0)
-        ->and($stats['total_users'])->toBe(2); // jean + l'étudiant de sa bibliothèque
+    expect($stats['total_documents'])->toBe(2)->and($stats['total_consultations'])->toBe(3)->and($stats['pending_account_requests'])->toBe(1);
 
     $popularity = $this->getJson('/api/engagement-stats')->assertOk()->json();
-    expect(collect($popularity['documents'])->pluck('title')->all())->toBe(['Doc Centrale'])->and($popularity['totals']['consultations'])->toBe(1);
+    expect(collect($popularity['documents'])->pluck('title')->sort()->values()->all())->toBe(['Doc Centrale', 'Doc Nord'])->and($popularity['totals']['consultations'])->toBe(3);
 
+    // L'administrateur : mêmes chiffres, comportement inchangé.
     Sanctum::actingAs($w->admin);
     $all = $this->getJson('/api/dashboard/admin')->json();
     expect($all['total_documents'])->toBe(2)->and($all['total_consultations'])->toBe(3)->and($all['pending_account_requests'])->toBe(1);
 });
 
-test('les avis sont limités aux membres de la bibliothèque du bibliothécaire', function () {
+test('les avis sont désormais visibles par tout bibliothécaire, toutes bibliothèques confondues (Bibliothèque Numérique Globale)', function () {
     $w = isolationWorld();
     $studentA = User::factory()->create(['role' => 'etudiant', 'library_id' => $w->a->id]);
     $studentB = User::factory()->create(['role' => 'etudiant', 'library_id' => $w->b->id]);
@@ -209,7 +197,7 @@ test('les avis sont limités aux membres de la bibliothèque du bibliothécaire'
     }
 
     Sanctum::actingAs($w->jean);
-    expect(collect($this->getJson('/api/feedbacks')->assertOk()->json('data'))->pluck('user_id')->all())->toBe([$studentA->id]);
+    expect($this->getJson('/api/feedbacks')->assertOk()->json('total'))->toBe(2);
 
     Sanctum::actingAs($w->admin);
     expect($this->getJson('/api/feedbacks')->json('total'))->toBe(2);

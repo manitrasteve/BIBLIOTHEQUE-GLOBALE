@@ -21,7 +21,7 @@
     <p>NOM : {{ strtoupper($accountRequest->last_name) }}</p>
     <p>PRÉNOM : {{ $accountRequest->first_name }}</p>
     <p>ADRESSE : {{ $accountRequest->address }}</p>
-    <p>BIBLIOTHÈQUE : {{ $accountRequest->library->name }}</p>
+    <p>BIBLIOTHÈQUE : {{ $accountRequest->library->name ?? 'Bibliothèque Numérique Globale' }}</p>
     <hr>
     <p class="center"><strong>N° DE DEMANDE : {{ $accountRequest->request_number }}</strong></p>
     <p>Valable jusqu'au : {{ $accountRequest->expires_at->format('d/m/Y') }}</p>

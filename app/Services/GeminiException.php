@@ -10,13 +10,25 @@ use RuntimeException;
  */
 class GeminiException extends RuntimeException
 {
-    public function __construct(string $message, private readonly int $status = 0)
-    {
+    public function __construct(
+        string $message,
+        private readonly int $status = 0,
+        private readonly bool $blocked = false
+    ) {
         parent::__construct($message);
     }
 
     public function status(): int
     {
         return $this->status;
+    }
+
+    /**
+     * Vrai si Gemini a explicitement refusé de générer du texte (sécurité,
+     * recitation, contenu protégé…) plutôt qu'une panne réseau/serveur.
+     */
+    public function blocked(): bool
+    {
+        return $this->blocked;
     }
 }

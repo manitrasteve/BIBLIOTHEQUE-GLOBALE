@@ -323,7 +323,7 @@ export default function ProfilePage() {
                         {showPasswordForm && (
                             <form
                                 onSubmit={submit}
-                                className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                                className="mx-auto mt-6 max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-5"
                             >
                                 <div className="mb-5">
                                     <h4 className="font-extrabold text-blue-800">
@@ -351,7 +351,7 @@ export default function ProfilePage() {
                                             onChange={(e) =>
                                                 setOldPassword(e.target.value)
                                             }
-                                            className="w-full rounded-xl border border-slate-200 pr-11"
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-11 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                                             placeholder="Votre ancien mot de passe"
                                         />
 
@@ -387,7 +387,7 @@ export default function ProfilePage() {
                                             onChange={(e) =>
                                                 setPassword(e.target.value)
                                             }
-                                            className="w-full rounded-xl border border-slate-200 pr-11"
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-11 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                                             placeholder="Minimum 8 caractères"
                                         />
 
@@ -420,7 +420,7 @@ export default function ProfilePage() {
                                         onChange={(e) =>
                                             setConfirm(e.target.value)
                                         }
-                                        className="mt-2 w-full rounded-xl border border-slate-200"
+                                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                                         placeholder="Confirmez votre nouveau mot de passe"
                                     />
                                 </label>

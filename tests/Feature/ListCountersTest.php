@@ -77,7 +77,7 @@ test('« validee » et « compte activé » se distinguent par l\'effacement du 
         ->and(collect($this->getJson('/api/account-requests?status=compte_active')->json('data'))->pluck('id')->all())->toBe([$activated->id]);
 });
 
-test('le bibliothécaire ne compte et ne voit que les demandes de sa bibliothèque', function () {
+test('le bibliothécaire voit et compte désormais les demandes de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     $mine = Library::factory()->create();
     $other = Library::factory()->create();
     requestsIn($mine, ['en_attente' => 2, 'verifiee' => 1, 'rejetee' => 1]);
@@ -86,18 +86,18 @@ test('le bibliothécaire ne compte et ne voit que les demandes de sa bibliothèq
 
     $response = $this->getJson('/api/account-requests')->assertOk();
 
-    expect($response->json('counts'))->toMatchArray(['total' => 4, 'en_attente' => 2, 'verifiee' => 1, 'rejetee' => 1, 'expiree' => 0])
-        ->and($response->json('total'))->toBe(4)
-        ->and(collect($response->json('data'))->pluck('library_id')->unique()->all())->toBe([$mine->id]);
+    expect($response->json('counts'))->toMatchArray(['total' => 16, 'en_attente' => 7, 'verifiee' => 5, 'rejetee' => 1, 'expiree' => 3])
+        ->and($response->json('total'))->toBe(16)
+        ->and(collect($response->json('data'))->pluck('library_id')->unique()->sort()->values()->all())->toBe(collect([$mine->id, $other->id])->sort()->values()->all());
 
-    // Un library_id demandé dans l'URL ne change ni la liste ni les compteurs.
-    expect($this->getJson("/api/account-requests?library_id={$other->id}")->json('counts.total'))->toBe(4);
+    // Un library_id demandé dans l'URL ne change ni la liste ni les compteurs (paramètre non pris en charge ici).
+    expect($this->getJson("/api/account-requests?library_id={$other->id}")->json('counts.total'))->toBe(16);
 
-    // Un bibliothécaire sans bibliothèque : 0 partout, sans erreur.
+    // Un bibliothécaire sans bibliothèque (compte global) : voit aussi tout, sans erreur.
     Sanctum::actingAs(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]));
-    expect($this->getJson('/api/account-requests')->assertOk()->json('counts.total'))->toBe(0);
+    expect($this->getJson('/api/account-requests')->assertOk()->json('counts.total'))->toBe(16);
 
-    // Un étudiant n'accède à rien.
+    // Un étudiant n'accède à rien (RBAC, inchangé).
     Sanctum::actingAs(User::factory()->create(['role' => 'etudiant', 'is_active' => true]));
     $this->getJson('/api/account-requests')->assertForbidden();
 });
@@ -219,7 +219,7 @@ test('signalements : total et statuts existants (nouveau, en cours, traité)', f
     expect($this->getJson('/api/problem-reports')->assertOk()->json('counts'))->toBe(['total' => 4, 'nouveau' => 1, 'en_cours' => 2, 'traite' => 1]);
 });
 
-test('avis et signalements : aucun élément donne Total 0 ; le bibliothécaire ne compte que les membres de sa bibliothèque', function () {
+test('avis et signalements : aucun élément donne Total 0 ; le bibliothécaire compte désormais les membres de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     Sanctum::actingAs(counterAdmin());
     expect($this->getJson('/api/feedbacks')->assertOk()->json('counts'))->toBe(['total' => 0, 'nouveau' => 0, 'lu' => 0, 'traite' => 0])
         ->and($this->getJson('/api/problem-reports')->assertOk()->json('counts'))->toBe(['total' => 0, 'nouveau' => 0, 'en_cours' => 0, 'traite' => 0]);
@@ -234,8 +234,8 @@ test('avis et signalements : aucun élément donne Total 0 ; le bibliothécaire 
     }
 
     Sanctum::actingAs(counterLibrarian($mine, ['voir_avis_utilisateurs', 'voir_signalements']));
-    expect($this->getJson('/api/feedbacks')->json('counts'))->toBe(['total' => 1, 'nouveau' => 1, 'lu' => 0, 'traite' => 0])
-        ->and($this->getJson('/api/problem-reports')->json('counts'))->toBe(['total' => 1, 'nouveau' => 1, 'en_cours' => 0, 'traite' => 0]);
+    expect($this->getJson('/api/feedbacks')->json('counts'))->toBe(['total' => 3, 'nouveau' => 2, 'lu' => 0, 'traite' => 1])
+        ->and($this->getJson('/api/problem-reports')->json('counts'))->toBe(['total' => 3, 'nouveau' => 2, 'en_cours' => 0, 'traite' => 1]);
 
     // Sans la permission, aucun accès (donc aucun compteur).
     Sanctum::actingAs(counterLibrarian($mine));

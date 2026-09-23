@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -66,17 +66,11 @@ function Field({ label, value, onChange, required = false, type = "text", placeh
 }
 
 export default function CreateAccountFormPage() {
-    const { libraryId } = useParams();
     const navigate = useNavigate();
-    const [library, setLibrary] = useState(null);
     const [form, setForm] = useState(initialForm);
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    useEffect(() => {
-        api.getLibrary(libraryId).then(setLibrary).catch(() => setError("Cette bibliothèque est introuvable."));
-    }, [libraryId]);
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -94,8 +88,7 @@ export default function CreateAccountFormPage() {
             form.cin_issued_at &&
             form.address.trim() &&
             form.phone.trim() &&
-            validEmail &&
-            libraryId,
+            validEmail,
     );
     const stepTwoValid = Boolean(form.school && form.filiere.trim() && form.student_card_number.trim());
 
@@ -112,7 +105,6 @@ export default function CreateAccountFormPage() {
         try {
             const response = await api.createAccountRequest({
                 ...form,
-                library_id: Number(libraryId),
                 role: "etudiant",
                 niveau_type: "Université",
             });
@@ -124,15 +116,12 @@ export default function CreateAccountFormPage() {
         }
     }
 
-    if (error && !library) return <div className="mx-auto max-w-2xl px-6 py-16 text-center text-red-700">{error}</div>;
-    if (!library) return <div className="mx-auto max-w-2xl px-6 py-16 text-center text-ink-soft">Chargement…</div>;
-
     return (
         <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-            <Link to={`/creer-un-compte/${libraryId}`} className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-brass-deep">
-                <ArrowLeft className="h-4 w-4" /> Retour à la présentation
+            <Link to="/" className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-brass-deep">
+                <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
             </Link>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brass">Demande pour {library.name}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brass">Inscription étudiant</p>
             <h1 className="mt-2 font-display text-2xl text-ink">Créer un compte étudiant</h1>
             <p className="mt-3 text-sm text-ink-soft">Étape {step} sur 2</p>
 
@@ -141,7 +130,6 @@ export default function CreateAccountFormPage() {
             <form onSubmit={submit} className="mt-8 rounded-xl border border-line bg-paper p-5 sm:p-5">
                 {step === 1 ? (
                     <div className="grid gap-5 md:grid-cols-2">
-                        <div className="md:col-span-2"><Field label="Bibliothèque" value={library.name} onChange={() => {}} readOnly /></div>
                         <Field label="Nom" value={form.last_name} onChange={(value) => update("last_name", value)} required />
                         <Field label="Prénom" value={form.first_name} onChange={(value) => update("first_name", value)} />
                         <Field label="Né(e), le" type="date" value={form.date_of_birth} onChange={(value) => update("date_of_birth", value)} required />
@@ -181,7 +169,7 @@ export default function CreateAccountFormPage() {
                 )}
 
                 <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-                    <button type="button" onClick={() => step === 1 ? navigate(`/creer-un-compte/${libraryId}`) : setStep(1)} className="btn-secondary"><ArrowLeft className="h-4 w-4" /> Retour</button>
+                    <button type="button" onClick={() => step === 1 ? navigate("/") : setStep(1)} className="btn-secondary"><ArrowLeft className="h-4 w-4" /> Retour</button>
                     {step === 1 ? <button type="button" disabled={!stepOneValid} onClick={() => setStep(2)} className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">Suivant <ChevronRight className="h-4 w-4" /></button> : <button type="submit" disabled={loading || !stepTwoValid} className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"><CheckCircle2 className="h-4 w-4" />{loading ? "Envoi…" : "Envoyer"}</button>}
                 </div>
             </form>

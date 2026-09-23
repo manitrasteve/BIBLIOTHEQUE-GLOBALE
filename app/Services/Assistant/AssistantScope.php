@@ -8,7 +8,7 @@ use App\Models\User;
  * Périmètre de données d'un assistant. Il est TOUJOURS déduit de l'utilisateur authentifié,
  * jamais d'une valeur fournie par le client ou par Gemini :
  *  - administrateur : toutes les bibliothèques ;
- *  - bibliothécaire : uniquement sa propre bibliothèque (users.library_id).
+ *  - bibliothécaire : Bibliothèque Numérique Globale — toutes les bibliothèques également.
  */
 final class AssistantScope
 {
@@ -31,11 +31,7 @@ final class AssistantScope
         }
 
         if ($user->isLibrarian()) {
-            if (!$user->library_id) {
-                throw new AssistantAccessException("Aucune bibliothèque n'est associée à votre compte.");
-            }
-
-            return new self('bibliothecaire', $user->id, (int) $user->library_id, $user->library?->name);
+            return new self('bibliothecaire', $user->id, null, null);
         }
 
         throw new AssistantAccessException("Cet assistant est réservé à l'équipe de gestion.");
@@ -44,5 +40,11 @@ final class AssistantScope
     public function isAdmin(): bool
     {
         return $this->role === 'administrateur';
+    }
+
+    /** Bibliothèque Numérique Globale : vrai pour l'administrateur ET le bibliothécaire (aucune bibliothèque unique imposée). */
+    public function isGlobal(): bool
+    {
+        return $this->libraryId === null;
     }
 }

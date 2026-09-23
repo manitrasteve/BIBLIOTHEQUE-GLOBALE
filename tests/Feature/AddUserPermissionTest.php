@@ -131,8 +131,8 @@ test('le formulaire commun : les champs étudiant de l\'admin sont validés et e
     expect($accountRequest->cin_issued_at?->toDateString())->toBe('2020-01-15');
     expect($accountRequest->student_card_number)->toBe('CARTE-0001');
     expect($accountRequest->school)->toBe('IOSTM');
-    // La bibliothèque reste imposée par le compte du bibliothécaire.
-    expect($accountRequest->library_id)->toBe($librarian->library_id);
+    // Bibliothèque Numérique Globale : la demande n'est plus rattachée à une bibliothèque.
+    expect($accountRequest->library_id)->toBeNull();
 });
 
 test('le formulaire commun : mêmes validations que l\'administrateur pour les champs étudiant', function () {

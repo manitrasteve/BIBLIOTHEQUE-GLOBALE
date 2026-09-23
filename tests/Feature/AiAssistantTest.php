@@ -188,6 +188,61 @@ test('si tous les modèles échouent une erreur claire est renvoyée sans enregi
     expect(AiQuery::count())->toBe(0);
 });
 
+test('un résumé bloqué par Gemini (recitation/sécurité) renvoie un message précis, pas une panne générique', function () {
+    [$document, $user] = aiSetup();
+
+    Http::fake([
+        '*:embedContent' => Http::response(['embedding' => ['values' => [1.0, 0.0, 0.0]]]),
+        '*:generateContent' => Http::response([
+            'candidates' => [['content' => ['parts' => []], 'finishReason' => 'RECITATION']],
+        ]),
+    ]);
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/documents/{$document->slug}/ask", ['question' => 'Fais-moi un résumé du document']);
+
+    $response->assertStatus(503);
+    expect($response->json('message'))->toContain('bloqué');
+    expect(AiQuery::count())->toBe(0);
+});
+
+test('un résumé simplement vide (STOP, sans blocage) ne bascule pas indéfiniment sur les autres modèles', function () {
+    [$document, $user] = aiSetup();
+
+    Http::fake([
+        '*:embedContent' => Http::response(['embedding' => ['values' => [1.0, 0.0, 0.0]]]),
+        '*:generateContent' => Http::response([
+            'candidates' => [['content' => ['parts' => []], 'finishReason' => 'STOP']],
+        ]),
+    ]);
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/documents/{$document->slug}/ask", ['question' => 'Fais-moi un résumé du document']);
+
+    $response->assertStatus(503);
+    expect($response->json('message'))->toContain("n'ai pas pu générer");
+});
+
+test('un chunk contenant des octets UTF-8 invalides (PDF mal extrait) ne fait pas planter le résumé', function () {
+    [$document, $user] = aiSetup();
+
+    // Texte tel qu'un PDF à la police CID corrompue peut le faire ressortir :
+    // octets de continuation UTF-8 orphelins, invalides pour json_encode.
+    $document->chunks()->create([
+        'page_number' => 4, 'chunk_index' => 2,
+        'content' => "Texte corrompu \x80\x81 extrait du PDF.",
+        'embedding' => [0.5, 0.5, 0.0],
+    ]);
+
+    fakeGemini('Selon le document, voici un résumé complet. Source : page 2');
+
+    $response = $this->actingAs($user, 'sanctum')
+        ->postJson("/api/documents/{$document->slug}/ask", ['question' => 'Fais-moi un résumé du document']);
+
+    $response->assertOk();
+    expect($response->json('answer'))->toContain('résumé complet');
+});
+
 test('une panne de la recherche sémantique n\'est pas présentée comme "absent du document"', function () {
     [$document, $user] = aiSetup();
 

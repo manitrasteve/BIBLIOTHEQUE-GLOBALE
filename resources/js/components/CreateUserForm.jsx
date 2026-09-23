@@ -86,12 +86,10 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
 // et le Bibliothécaire. Le contexte fournit l'appel API, les rôles autorisés,
 // la bibliothèque imposée et les textes ; l'interface reste identique.
 export default function CreateUserForm({
-    libraries,
     onCancel,
     onCreated,
     submitUser = (data) => api.createUserByAdmin(data),
     allowedRoles = ALL_ROLES.map((role) => role.value),
-    lockedLibraryId = null,
     requireLevel = false,
     eyebrow = "Gestion des utilisateurs",
     subtitle = "Sélectionnez un rôle. Seul le formulaire correspondant sera affiché.",
@@ -123,13 +121,12 @@ export default function CreateUserForm({
         researcher_field: "",
         specialty: "",
         profession: "",
-        library_id: lockedLibraryId ? String(lockedLibraryId) : "",
     });
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
     const [studentStep, setStudentStep] = useState(1);
     const studentStepOneValid = Boolean(
-        form.library_id && form.last_name.trim() && form.date_of_birth &&
+        form.last_name.trim() && form.date_of_birth &&
         form.birth_place.trim() && form.gender && /^\d{12}$/.test(form.cin_number) &&
         form.cin_issued_at && form.address.trim() && form.phone.trim() &&
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
@@ -213,13 +210,6 @@ export default function CreateUserForm({
                         </div>
                     )}
                     <div className="mb-7">
-                        <label className="mb-2 block text-sm font-bold text-slate-700">Bibliothèque *</label>
-                        <select value={form.library_id} onChange={update("library_id")} required disabled={Boolean(lockedLibraryId)} className="mb-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                            <option value="">Sélectionner une bibliothèque</option>
-                            {libraries
-                                .filter((library) => !lockedLibraryId || String(library.id) === String(lockedLibraryId))
-                                .map((library) => <option key={library.id} value={library.id}>{library.name}</option>)}
-                        </select>
                         <span className="mb-3 block text-sm font-bold text-slate-700">
                             Rôle
                         </span>

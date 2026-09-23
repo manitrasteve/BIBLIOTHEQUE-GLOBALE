@@ -10,6 +10,7 @@ import LibraryCover from '../../components/LibraryCover';
 import SortTh from '../../components/SortTh';
 import { librarySections } from '../../lib/detailSections';
 import CounterBar from '../../components/CounterBar';
+import RichTextEditor from '../../components/RichTextEditor';
 
 function getLibraryVal(row, key) {
   if (key === 'hours') return `${row.opening_days || ''} ${row.opening_hours || ''}`;
@@ -176,7 +177,7 @@ export default function AdminLibrariesPage() {
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm" />
               <button className="w-full sm:w-auto sm:shrink-0 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper"><Building2 className="mr-2 inline h-4 w-4" />Rechercher</button>
             </form>
-            <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
+            <div className="hidden overflow-x-auto rounded-2xl border border-line bg-paper sm:block">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-soft">
@@ -207,6 +208,23 @@ export default function AdminLibrariesPage() {
                 </tbody>
               </table>
             </div>
+            <div className="space-y-3 sm:hidden">
+              {filtered.map((lib) => (
+                <div key={lib.id} className={`rounded-2xl border border-line bg-paper p-4 ${editing?.id === lib.id ? 'bg-brass/5' : ''}`}>
+                  <p className="font-medium text-ink break-words">{lib.name}</p>
+                  <p className="mt-1 text-xs text-ink-soft break-words">{lib.address || '—'}</p>
+                  <p className="mt-1 text-xs text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</p>
+                  {showActions && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {canView && <ViewButton onClick={() => setViewing(lib)} />}
+                      {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
+                      {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {filtered.length === 0 && <div className="rounded-2xl border border-line bg-paper p-5 text-center text-ink-soft">Aucune bibliothèque trouvée.</div>}
+            </div>
           </>
         )}
       </div>
@@ -234,11 +252,9 @@ export default function AdminLibrariesPage() {
             </div>
             <div>
               <label className="block text-sm text-ink-soft mb-1.5">Description</label>
-              <textarea
-                rows={2}
+              <RichTextEditor
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className={inputClass}
+                onChange={(html) => setForm({ ...form, description: html })}
               />
             </div>
             <div>

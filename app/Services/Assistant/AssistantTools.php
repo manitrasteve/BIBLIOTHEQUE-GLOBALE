@@ -67,7 +67,7 @@ class AssistantTools
     /** Déclarations d'outils adaptées au rôle (un bibliothécaire ne voit pas le paramètre « bibliotheque »). */
     public function declarations(): array
     {
-        $admin = $this->scope->isAdmin();
+        $admin = $this->scope->isGlobal();
         $string = fn (string $description) => ['type' => 'STRING', 'description' => $description];
         $enum = fn (string $description, array $values) => ['type' => 'STRING', 'description' => $description, 'enum' => $values];
         $date = fn (string $description) => ['type' => 'STRING', 'description' => $description . ' Format AAAA-MM-JJ.'];
@@ -196,7 +196,7 @@ class AssistantTools
         if (!$by) {
             throw new InvalidToolArguments('Le paramètre « par » est obligatoire (statut, type, categorie).');
         }
-        if ($by === 'bibliotheque' && !$this->scope->isAdmin()) {
+        if ($by === 'bibliotheque' && !$this->scope->isGlobal()) {
             return ['trouve' => false, 'hors_perimetre' => true, 'message' => "Votre périmètre est limité à la bibliothèque « {$this->scope->libraryName} »."];
         }
 
@@ -303,7 +303,7 @@ class AssistantTools
     {
         $name = $this->text($args, 'nom');
 
-        if ($this->scope->isAdmin()) {
+        if ($this->scope->isGlobal()) {
             $query = Library::query()->when($name, fn ($q) => $q->where('name', 'like', "%{$name}%"));
         } else {
             if ($name !== null && !$this->sameLibrary($name)) {
@@ -515,7 +515,7 @@ class AssistantTools
      */
     private function libraryIds(?string $name): array
     {
-        if ($this->scope->isAdmin()) {
+        if ($this->scope->isGlobal()) {
             if ($name === null) {
                 return [null, null];
             }
@@ -552,7 +552,7 @@ class AssistantTools
 
     private function perimeter(?array $ids): string
     {
-        if (!$this->scope->isAdmin()) {
+        if (!$this->scope->isGlobal()) {
             return "Bibliothèque « {$this->scope->libraryName} »";
         }
 

@@ -176,7 +176,6 @@ test('l\'administrateur garde l\'accès aux consultations', function () {
 function adminTeacherPayload(array $overrides = []): array
 {
     return array_merge([
-        'library_id' => Library::factory()->create()->id,
         'role' => 'enseignant',
         'last_name' => 'Rabe',
         'first_name' => '',
@@ -196,7 +195,8 @@ test('formulaire enseignant : champs obligatoires validés, département et fonc
     Mail::fake();
     $admin = User::factory()->create(['role' => 'administrateur', 'is_active' => true]);
 
-    foreach (['last_name', 'email', 'phone', 'address', 'gender', 'date_of_birth', 'faculty', 'teaching_specialty', 'library_id'] as $index => $field) {
+    // Bibliothèque Numérique Globale : "library_id" n'est plus un champ requis pour ce formulaire.
+    foreach (['last_name', 'email', 'phone', 'address', 'gender', 'date_of_birth', 'faculty', 'teaching_specialty'] as $index => $field) {
         $this->actingAs($admin, 'sanctum')
             ->postJson('/api/users/creer', adminTeacherPayload(['email' => "t{$index}@example.test", $field => ""]))
             ->assertStatus(422);

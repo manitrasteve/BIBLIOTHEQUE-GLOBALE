@@ -149,6 +149,16 @@ class RagService
         } catch (\Throwable $e) {
             report($e);
 
+            if ($e instanceof GeminiException && $e->blocked()) {
+                return $this->errorResult(
+                    $e,
+                    "Je ne peux pas générer un résumé complet de ce document : Gemini a bloqué la réponse "
+                    . "(contenu potentiellement protégé ou sensible). Essaie de demander un résumé par "
+                    . "section, ou pose une question plus précise sur une partie du document.",
+                    false
+                );
+            }
+
             return $this->errorResult(
                 $e,
                 "Le service IA est momentanément indisponible. Réessaie dans un instant."
@@ -158,6 +168,12 @@ class RagService
         $text = trim($result['text']);
 
         if ($text === '') {
+            report(new \RuntimeException(
+                'Réponse Gemini vide sans blocage détecté (modèle '
+                . ($result['model'] ?? '?') . ', finishReason='
+                . ($result['finish_reason'] ?? 'null') . ')'
+            ));
+
             return $this->errorResult(
                 null,
                 "Je n'ai pas pu générer une réponse à partir des passages trouvés."

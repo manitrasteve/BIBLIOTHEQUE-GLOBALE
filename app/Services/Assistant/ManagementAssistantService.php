@@ -131,7 +131,7 @@ class ManagementAssistantService
 
         $who = $scope->isAdmin()
             ? "un ADMINISTRATEUR : tu peux interroger toutes les bibliothèques."
-            : "un BIBLIOTHÉCAIRE : tu n'as accès qu'aux données de la bibliothèque « {$scope->libraryName} ». Si on te demande une autre bibliothèque, réponds que c'est hors de ton périmètre, sans donner de chiffres ni de noms la concernant.";
+            : "un BIBLIOTHÉCAIRE de la Bibliothèque Numérique Globale : tu peux interroger toutes les bibliothèques, comme un administrateur.";
 
         return <<<PROMPT
 Tu es l'assistant de gestion de la Bibliothèque Numérique de l'Université de Mahajanga. Tu parles à {$who}

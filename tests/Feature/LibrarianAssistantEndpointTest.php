@@ -40,7 +40,7 @@ function askLibrarian($test, string $tool, array $args, string $question = 'Ques
     return [$response, $sent];
 }
 
-test('seul un bibliothécaire actif rattaché à une bibliothèque accède à son assistant', function () {
+test('seul un bibliothécaire actif accède à son assistant (Bibliothèque Numérique Globale : plus besoin d\'être rattaché à une bibliothèque)', function () {
     $w = librarianWorld();
     Http::fake();
 
@@ -51,8 +51,6 @@ test('seul un bibliothécaire actif rattaché à une bibliothèque accède à so
         $this->postJson('/api/assistant/librarian', ['question' => 'Combien de documents ?'])->assertForbidden();
     }
     Sanctum::actingAs(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => false, 'library_id' => $w->a->id]));
-    $this->postJson('/api/assistant/librarian', ['question' => 'Bonjour'])->assertForbidden();
-    Sanctum::actingAs(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => null]));
     $this->postJson('/api/assistant/librarian', ['question' => 'Bonjour'])->assertForbidden();
 
     Http::assertNothingSent();
@@ -68,7 +66,7 @@ test('un bibliothécaire ne peut pas utiliser l\'endpoint administrateur', funct
     Http::assertNothingSent();
 });
 
-test('les comptages et recherches ne portent que sur sa bibliothèque', function () {
+test('les comptages et recherches portent désormais sur toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
     $w = librarianWorld();
     Document::factory()->count(2)->create(['library_id' => $w->a->id, 'status' => 'brouillon']);
     Document::factory()->count(5)->create(['library_id' => $w->b->id, 'status' => 'brouillon']);
@@ -76,17 +74,16 @@ test('les comptages et recherches ne portent que sur sa bibliothèque', function
     Sanctum::actingAs($w->jean);
 
     [$response, $sent] = askLibrarian($this, 'compter_documents', ['statut' => 'brouillon']);
-    expect($response->assertOk()->json('sources.0.total'))->toBe(2)->and($sent)->toContain('"total":2')->toContain('Bibliothèque « Bibliothèque Centrale »');
+    expect($response->assertOk()->json('sources.0.total'))->toBe(7)->and($sent)->toContain('"total":7')->toContain('Toutes les bibliothèques');
 
     [, $sent] = askLibrarian($this, 'rechercher_documents', ['titre' => 'Secret du Nord']);
-    // (le critère demandé est répété dans « filtres » : on vérifie l'absence de résultat, pas du texte)
-    expect($sent)->toContain('"trouve":false')->not->toContain('"documents":[{');
+    expect($sent)->toContain('"trouve":true')->toContain('Secret du Nord');
 
     [, $sent] = askLibrarian($this, 'compter_documents', []);
-    expect($sent)->toContain('"total":2');
+    expect($sent)->toContain('"total":8');
 });
 
-test('demander une autre bibliothèque renvoie « hors périmètre » sans aucun chiffre ni nom', function () {
+test('demander une autre bibliothèque renvoie désormais ses vraies données (Bibliothèque Numérique Globale)', function () {
     $w = librarianWorld();
     Document::factory()->count(4)->create(['library_id' => $w->b->id, 'title' => 'Doc Nord']);
     ActivityLogService::log($w->paul->id, 'modification_document', 'Doc Nord', Document::first(), ['title' => ['before' => 'a', 'after' => 'b']]);
@@ -101,12 +98,12 @@ test('demander une autre bibliothèque renvoie « hors périmètre » sans aucun
         ['rechercher_bibliotheques', ['nom' => 'Nord']],
     ] as [$tool, $args]) {
         [$response, $sent] = askLibrarian($this, $tool, $args);
-        expect($response->json('sources.0.hors_perimetre'))->toBeTrue("{$tool} " . json_encode($args));
-        expect($sent)->toContain('hors_perimetre')->not->toContain('Doc Nord')->not->toContain('Paul Nord')->not->toContain('"total":4');
+        expect($response->json('sources.0.hors_perimetre') ?? false)->toBeFalse("{$tool} " . json_encode($args));
+        expect($sent)->not->toContain('hors_perimetre');
     }
 });
 
-test('le journal des actions exclut les autres bibliothèques et les actions réservées à l\'administrateur', function () {
+test('le journal des actions inclut désormais toutes les bibliothèques ; les actions réservées à l\'administrateur restent exclues (Bibliothèque Numérique Globale)', function () {
     $w = librarianWorld();
     $mine = Document::factory()->create(['library_id' => $w->a->id, 'title' => 'Doc Centrale']);
     $theirs = Document::factory()->create(['library_id' => $w->b->id, 'title' => 'Doc Nord']);
@@ -116,9 +113,9 @@ test('le journal des actions exclut les autres bibliothèques et les actions ré
     Sanctum::actingAs($w->jean);
 
     [, $sent] = askLibrarian($this, 'rechercher_actions', []);
-    expect($sent)->toContain('Doc Centrale')->toContain('Jean Dupont')->not->toContain('Doc Nord')->not->toContain('Paul Nord');
+    expect($sent)->toContain('Doc Centrale')->toContain('Jean Dupont')->toContain('Doc Nord')->toContain('Paul Nord');
 
-    // Les actions réservées à l'administrateur ne sont pas exposées au bibliothécaire.
+    // Les actions réservées à l'administrateur ne sont toujours pas exposées au bibliothécaire (RBAC, inchangé).
     ActivityLogService::log($w->admin->id, 'permissions_modifiees', 'Permissions de Jean', $w->jean, null, $w->a->id);
     foreach (['permissions_modifiees', 'vidage_corbeille'] as $adminOnly) {
         [$response, $sent] = askLibrarian($this, 'rechercher_actions', ['action' => $adminOnly]);
@@ -127,16 +124,16 @@ test('le journal des actions exclut les autres bibliothèques et les actions ré
     [, $sent] = askLibrarian($this, 'rechercher_actions', []);
     expect($sent)->not->toContain('Permissions de Jean')->not->toContain('Permissions modifiées');
 
-    // Une bibliothèque créée dans une autre bibliothèque reste invisible.
+    // Une bibliothèque créée dans une autre bibliothèque est désormais visible.
     [, $sent] = askLibrarian($this, 'rechercher_actions', ['action' => 'creation_bibliotheque']);
-    expect($sent)->not->toContain('Bibliothèque Nord');
+    expect($sent)->toContain('Bibliothèque Nord');
 
-    // L'historique d'un document d'une autre bibliothèque n'existe pas pour lui.
+    // L'historique d'un document d'une autre bibliothèque est désormais consultable.
     [, $sent] = askLibrarian($this, 'historique_document', ['titre' => 'Doc Nord']);
-    expect($sent)->not->toContain('Paul Nord')->toContain('"trouve":false');
+    expect($sent)->toContain('Paul Nord')->toContain('"trouve":true');
 });
 
-test('les identifiants envoyés dans la requête ne modifient jamais le périmètre', function () {
+test('les identifiants envoyés dans la requête ne modifient jamais le périmètre (Bibliothèque Numérique Globale)', function () {
     $w = librarianWorld();
     Document::factory()->count(3)->create(['library_id' => $w->b->id]);
     Sanctum::actingAs($w->jean);
@@ -144,10 +141,11 @@ test('les identifiants envoyés dans la requête ne modifient jamais le périmè
 
     $this->postJson('/api/assistant/librarian', ['question' => 'Combien ?', 'library_id' => $w->b->id, 'role' => 'administrateur', 'user_id' => $w->admin->id])->assertOk();
 
-    expect(json_encode(Http::recorded()[1][0]->data()['contents'][2]))->toContain('"total":0');
-    // Le prompt annonce le périmètre du compte, pas celui de la requête.
+    // Jean voit ces documents parce que son compte est global, pas parce que le corps de la requête l'a demandé.
+    expect(json_encode(Http::recorded()[1][0]->data()['contents'][2]))->toContain('"total":3');
+    // Le prompt annonce toujours le rôle réel du compte authentifié (bibliothécaire), jamais celui injecté dans la requête.
     $system = json_encode(Http::recorded()[0][0]->data()['systemInstruction'] ?? [], JSON_UNESCAPED_UNICODE);
-    expect($system)->toContain('Bibliothèque Centrale')->not->toContain('Bibliothèque Nord');
+    expect($system)->toContain('BIBLIOTHÉCAIRE')->not->toContain('un ADMINISTRATEUR');
 });
 
 test('une injection dans le titre d\'un document reste une simple donnée', function () {
