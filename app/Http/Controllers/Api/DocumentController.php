@@ -345,7 +345,11 @@ class DocumentController extends Controller
         $before = $this->auditSnapshot($document);
         $previousLibraryId = $document->library_id;
         $document->update($data);
-        if (isset($data['author_ids'])) $document->authors()->sync($data['author_ids']);
+        // Le formulaire renvoie toujours la liste complète des auteurs cochés ; si elle est
+        // vidée, FormData n'envoie aucune entrée "author_ids[]" (la clé est alors absente de
+        // la requête). On synchronise donc toujours, avec [] par défaut, pour bien retirer
+        // tous les auteurs plutôt que de laisser silencieusement les anciens en place.
+        $document->authors()->sync($data['author_ids'] ?? []);
 
         // Audit : uniquement les champs réellement modifiés, avec leur valeur avant / après.
         $changes = ActivityLogService::diff($before, $this->auditSnapshot($document));

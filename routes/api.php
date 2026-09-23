@@ -51,8 +51,9 @@ Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware
 Route::post('/account-requests', [AccountRequestController::class, 'store']);
 Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show']);
 Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm']);
-Route::post('/account-requests/verify-member', [AccountRequestController::class, 'verifyMember']);
-Route::post('/account-requests/recreate', [AccountRequestController::class, 'recreate']);
+// Limité : sans ça, un numéro de carte se devine par force brute (comme forgot-password ci-dessus).
+Route::post('/account-requests/verify-member', [AccountRequestController::class, 'verifyMember'])->middleware('throttle:10,1');
+Route::post('/account-requests/recreate', [AccountRequestController::class, 'recreate'])->middleware('throttle:10,1');
 Route::post('/account-requests/setup/{token}', [AccountRequestController::class, 'setupPassword']);
 
 

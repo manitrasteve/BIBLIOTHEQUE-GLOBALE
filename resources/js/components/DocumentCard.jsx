@@ -7,8 +7,17 @@ const TYPE_CONFIG = {
   memoire: { label: 'Mémoire', icon: GraduationCap },
   these: { label: 'Thèse', icon: ScrollText },
   rapport: { label: 'Rapport', icon: ClipboardList },
+  document: { label: 'Document', icon: FileText },
   autre: { label: 'Document', icon: FileText },
 };
+
+// Insensible à la casse et aux accents : « Mémoire », « MEMOIRE » et « memoire » doivent tous retrouver la même entrée.
+function normalizeType(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
 
 function callNumber(doc) {
   const prefix = (doc.category || 'GEN').slice(0, 3).toUpperCase();
@@ -19,7 +28,7 @@ function callNumber(doc) {
 export default function DocumentCard({ document, showCategory = false }) {
   // Le type est saisi librement : un type inconnu s'affiche tel quel (les anciens codes gardent leur libellé).
   const typeCfg =
-    TYPE_CONFIG[String(document.type || '').toLowerCase()] ||
+    TYPE_CONFIG[normalizeType(document.type)] ||
     { label: document.type || TYPE_CONFIG.autre.label, icon: TYPE_CONFIG.autre.icon };
   const TypeIcon = typeCfg.icon;
   const AccessIcon = document.access_level === 'public' ? Globe : Lock;

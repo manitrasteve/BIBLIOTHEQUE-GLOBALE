@@ -4,10 +4,14 @@ import { UploadCloud, Image as ImageIcon } from "lucide-react";
 import { api } from "../../lib/api";
 import RichTextEditor from "../../components/RichTextEditor";
 
-// Type, niveau, catégorie et langue sont des champs libres. Les anciens documents contiennent
-// des codes (« memoire », « fr ») : on affiche leur libellé à la modification.
+// Langue reste un champ libre. Les anciens documents contiennent des codes
+// (« memoire », « fr ») : on affiche leur libellé à la modification.
 const LEGACY_TYPE_LABELS = { livre: "Livre", memoire: "Mémoire", these: "Thèse", rapport: "Rapport", autre: "Autre" };
 const LEGACY_LANGUAGE_LABELS = { fr: "Français", mg: "Malgache", en: "Anglais", es: "Espagnol", pt: "Portugais", it: "Italien", ru: "Russe", autre: "Autre" };
+
+const TYPE_OPTIONS = ["Mémoire", "Livre", "Thèse", "Rapport", "Document", "Autre"];
+const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
+const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
 
 const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm";
 
@@ -52,24 +56,29 @@ export default function DocumentFormPage() {
     const [submitting, setSubmitting] = useState(false);
     const [newAuthor, setNewAuthor] = useState("");
     const [authorError, setAuthorError] = useState(null);
+    const [typeOther, setTypeOther] = useState(false);
+    const [categoryOther, setCategoryOther] = useState(false);
 
     useEffect(() => {
         api.getLibraries()
             .then(setLibraries)
             .catch(() => {});
-        api.getAuthors()
+        api.getAuthors({ per_page: 500 })
             .then((res) => setAuthors(res.data))
             .catch(() => {});
 
         if (isEditing) {
             api.getManagedDocument(id).then((doc) => {
+                const type = LEGACY_TYPE_LABELS[doc.type] || doc.type || "";
+                const category = doc.category?.name || "";
+
                 setForm({
                     title: doc.title || "",
                     subtitle: doc.subtitle || "",
                     abstract: doc.abstract || "",
-                    type: LEGACY_TYPE_LABELS[doc.type] || doc.type || "",
+                    type,
                     niveau: doc.niveau || "",
-                    category: doc.category?.name || "",
+                    category,
                     library_id: doc.library_id,
                     year: doc.year || "",
                     publisher: doc.publisher || "",
@@ -80,6 +89,11 @@ export default function DocumentFormPage() {
                     access_level: doc.access_level,
                     author_ids: doc.authors?.map((a) => a.id) || [],
                 });
+                // Document déjà existant avec un type/catégorie hors des options
+                // prédéfinies (ancienne saisie libre) : on garde sa valeur exacte
+                // via le champ "Autre" plutôt que de la perdre silencieusement.
+                setTypeOther(type !== "" && !TYPE_OPTIONS.includes(type));
+                setCategoryOther(category !== "" && !CATEGORY_OPTIONS.includes(category));
             }).catch((e) => setError(e.data?.message || "Impossible de charger ce document."));
         }
     }, [id]);
@@ -231,47 +245,89 @@ export default function DocumentFormPage() {
                         <label htmlFor="doc-type" className="block text-sm text-ink-soft mb-1.5">
                             Type *
                         </label>
-                        <input
+                        <select
                             id="doc-type"
                             required
-                            maxLength={100}
-                            value={form.type}
-                            onChange={(e) =>
-                                setForm({ ...form, type: e.target.value })
-                            }
+                            value={typeOther ? "Autre" : form.type}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setTypeOther(v === "Autre");
+                                setForm({ ...form, type: v === "Autre" ? "" : v });
+                            }}
                             className={inputClass}
-                        />
+                        >
+                            <option value="">—</option>
+                            {TYPE_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                        {typeOther && (
+                            <input
+                                required
+                                maxLength={100}
+                                autoFocus
+                                placeholder="Précisez le type"
+                                value={form.type}
+                                onChange={(e) =>
+                                    setForm({ ...form, type: e.target.value })
+                                }
+                                className={`${inputClass} mt-2`}
+                            />
+                        )}
                     </div>
 
                     <div>
                         <label htmlFor="doc-niveau" className="block text-sm text-ink-soft mb-1.5">
                             Niveau
                         </label>
-                        <input
+                        <select
                             id="doc-niveau"
-                            maxLength={100}
                             value={form.niveau}
                             onChange={(e) =>
                                 setForm({ ...form, niveau: e.target.value })
                             }
                             className={inputClass}
-                        />
+                        >
+                            <option value="">—</option>
+                            {NIVEAU_OPTIONS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
                         <label htmlFor="doc-category" className="block text-sm text-ink-soft mb-1.5">
                             Catégorie *
                         </label>
-                        <input
+                        <select
                             id="doc-category"
                             required
-                            maxLength={255}
-                            value={form.category}
-                            onChange={(e) =>
-                                setForm({ ...form, category: e.target.value })
-                            }
+                            value={categoryOther ? "Autre" : form.category}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setCategoryOther(v === "Autre");
+                                setForm({ ...form, category: v === "Autre" ? "" : v });
+                            }}
                             className={inputClass}
-                        />
+                        >
+                            <option value="">—</option>
+                            {CATEGORY_OPTIONS.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        {categoryOther && (
+                            <input
+                                required
+                                maxLength={255}
+                                autoFocus
+                                placeholder="Précisez la catégorie"
+                                value={form.category}
+                                onChange={(e) =>
+                                    setForm({ ...form, category: e.target.value })
+                                }
+                                className={`${inputClass} mt-2`}
+                            />
+                        )}
                     </div>
 
                     <div>

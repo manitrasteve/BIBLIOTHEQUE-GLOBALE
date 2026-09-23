@@ -16,7 +16,12 @@ class AuthorController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
-        return response()->json($query->orderBy('name')->paginate(20));
+        // Le sélecteur d'auteurs du formulaire document affiche toute la liste
+        // sans pagination visible ; sans ça, les auteurs au-delà du 20e sont
+        // silencieusement introuvables (aucun indice qu'il y en a d'autres).
+        $perPage = max(1, min((int) $request->get('per_page', 20), 500));
+
+        return response()->json($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(Request $request)

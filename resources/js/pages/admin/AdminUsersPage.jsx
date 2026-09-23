@@ -109,9 +109,11 @@ export default function AdminUsersPage() {
 
     const [meta, setMeta] = useState(null);
     const [sort, setSort] = useState({ key: null, dir: "asc" });
+    const [error, setError] = useState(null);
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
+        setError(null);
         api.getUsers({ page })
             .then((r) => {
                 // Dernier utilisateur d'une page supprimé : retour à la page précédente.
@@ -120,7 +122,7 @@ export default function AdminUsersPage() {
                 setCounts(r.counts || null);
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
-            .catch(() => {});
+            .catch((requestError) => setError(requestError?.data?.message || "Impossible de charger les utilisateurs."));
     }
 
     useEffect(() => {
@@ -220,8 +222,15 @@ export default function AdminUsersPage() {
 
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
 
+            {error && (
+                <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                    <span>{error}</span>
+                    <button onClick={() => load()} className="btn-secondary shrink-0">Réessayer</button>
+                </div>
+            )}
+
             {users === null ? (
-                <p>Chargement…</p>
+                error ? null : <p>Chargement…</p>
             ) : users.length === 0 ? (
                 <div className="modern-card p-10 text-center text-slate-500">
                     Aucun utilisateur.

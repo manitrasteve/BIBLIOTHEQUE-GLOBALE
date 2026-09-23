@@ -731,6 +731,8 @@ class AccountRequestController extends Controller
             ], 403);
         }
 
+        $this->authorizeRequestLibrary($user, $accountRequest);
+
         if ($accountRequest->status !== 'verifiee') {
             return response()->json([
                 'message' => 'Seules les demandes vérifiées peuvent être rejetées.',
@@ -1225,8 +1227,7 @@ class AccountRequestController extends Controller
             'card_number' => ['required', 'string', 'max:80'],
         ]);
 
-        $member = MemberRegistry::with(['user', 'library'])
-            ->where('library_id', $validated['library_id'])
+        $member = MemberRegistry::where('library_id', $validated['library_id'])
             ->where('card_number', trim($validated['card_number']))
             ->first();
 
@@ -1237,9 +1238,12 @@ class AccountRequestController extends Controller
             ], 404);
         }
 
+        // Endpoint public (pas d'authentification) : on ne renvoie jamais l'e-mail,
+        // le téléphone, l'adresse ou le genre du membre, seulement de quoi
+        // personnaliser l'étape suivante et savoir si un compte existe déjà.
         return response()->json([
             'valid' => true,
-            'member' => $member,
+            'first_name' => $member->first_name,
             'has_account' => (bool) $member->user_id,
         ]);
     }

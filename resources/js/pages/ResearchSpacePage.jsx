@@ -11,6 +11,7 @@ const TYPES = [
     { value: "memoire", label: "Mémoire" },
     { value: "these", label: "Thèse" },
     { value: "rapport", label: "Rapport" },
+    { value: "Document", label: "Document" },
     { value: "autre", label: "Autre" },
 ];
 
