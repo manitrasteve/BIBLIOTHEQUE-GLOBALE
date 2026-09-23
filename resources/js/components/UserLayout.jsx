@@ -10,7 +10,6 @@ import {
     BookMarked,
     Activity,
     Microscope,
-    History,
     Radar,
 } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
@@ -22,7 +21,6 @@ const ITEM = {
     researchSpace: { to: "/espace-recherche", label: "Espace recherche", icon: Microscope },
     readings: { to: "/mes-lectures", label: "Mes lectures", icon: BookMarked },
     activities: { to: "/mes-activites", label: "Mes activités", icon: Activity },
-    searches: { to: "/mes-recherches", label: "Mes recherches", icon: History },
     watch: { to: "/veille-scientifique", label: "Veille scientifique", icon: Radar },
     favorites: { to: "/mes-favoris", label: "❤️ Mes favoris", icon: Heart },
     notifications: { to: "/notifications", label: "Notifications", icon: Bell },
@@ -43,14 +41,14 @@ const NAV_BY_ROLE = {
         "researchSpace",
         "readings",
         "activities",
-        "searches",
         "watch",
         ...COMMON_END,
     ],
     // Administrateur / Service Numérique consultant « Mon profil » (espace membre) :
-    // même module « Mes lectures » que sur le compte Enseignant.
-    administrateur: ["dashboard", "catalogue", "readings", ...COMMON_END],
-    bibliothecaire: ["dashboard", "catalogue", "readings", ...COMMON_END],
+    // même module « Mes lectures » que sur le compte Enseignant, sans
+    // « Avis & Suggestions » ni « Signaler un problème » (ce sont eux qui les traitent).
+    administrateur: ["dashboard", "catalogue", "readings", "favorites", "notifications", "messages"],
+    bibliothecaire: ["dashboard", "catalogue", "readings", "favorites", "notifications", "messages"],
 };
 
 const DEFAULT_NAV = ["dashboard", "catalogue", ...COMMON_END];

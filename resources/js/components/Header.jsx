@@ -11,6 +11,8 @@ import {
     LogIn,
     Menu,
     X,
+    Settings,
+    LayoutTemplate,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -29,13 +31,35 @@ const ROLE_LABELS = {
     autre: "Autres",
 };
 
-// Petit menu déroulant de la photo de profil : Profil + Déconnexion
-function ProfileMenu({ user, pathname, openLogoutModal }) {
+// Paramètres de l'administrateur (sous-menu du menu de profil).
+const SETTINGS_PATH = "/administrateur/parametres";
+const SETTINGS_LINKS = [
+    { to: "/administrateur/parametres/page-accueil", label: "Modifier la page d'accueil", icon: LayoutTemplate },
+];
+
+// Petit menu déroulant de la photo de profil : Profil + (Paramètres pour l'admin) + Déconnexion
+function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
     const roleLabel =
         ROLE_LABELS[user?.role] ||
         (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "");
+    const navigate = useNavigate();
     const [open, setOpen] = useState(false);
+    const isAdmin = user?.role === "administrateur" || user?.role === "admin";
+    const inSettings = pathname.startsWith(SETTINGS_PATH);
+    const [settingsOpen, setSettingsOpen] = useState(inSettings);
     const ref = useRef(null);
+
+    // Un clic ouvre le sous-menu, un second clic le referme. Si une page des paramètres est
+    // affichée, ce second clic la ferme aussi et ramène à la dernière page consultée avant.
+    function toggleSettings() {
+        if (settingsOpen && inSettings) {
+            setSettingsOpen(false);
+            setOpen(false);
+            navigate(settingsReturnTo.current || "/administrateur");
+            return;
+        }
+        setSettingsOpen((value) => !value);
+    }
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -61,6 +85,11 @@ function ProfileMenu({ user, pathname, openLogoutModal }) {
     useEffect(() => {
         setOpen(false);
     }, [pathname]);
+
+    // À chaque ouverture, le sous-menu Paramètres est déplié seulement si on est dedans.
+    useEffect(() => {
+        if (open) setSettingsOpen(inSettings);
+    }, [open]);
 
     return (
         <div className="relative shrink-0" ref={ref}>
@@ -119,7 +148,7 @@ function ProfileMenu({ user, pathname, openLogoutModal }) {
             {open && (
                 <div
                     role="menu"
-                    className="absolute right-0 top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2"
+                    className={`absolute right-0 top-full z-50 mt-2 ${isAdmin ? "w-64" : "w-48"} max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2`}
                 >
                     <Link
                         to="/profil"
@@ -130,6 +159,47 @@ function ProfileMenu({ user, pathname, openLogoutModal }) {
                         <User className="h-4 w-4" />
                         Profil
                     </Link>
+
+                    {isAdmin && (
+                        <>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onClick={toggleSettings}
+                                aria-expanded={settingsOpen}
+                                className={`flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-semibold hover:bg-slate-100 hover:text-slate-900 ${
+                                    inSettings ? "text-indigo-700" : "text-slate-600"
+                                }`}
+                            >
+                                <Settings className="h-4 w-4" />
+                                Paramètres
+                                <ChevronDown
+                                    aria-hidden="true"
+                                    className={`ml-auto h-4 w-4 transition-transform ${settingsOpen ? "rotate-180" : ""}`}
+                                />
+                            </button>
+                            {settingsOpen && (
+                                <div className="mb-1 ml-5 border-l border-slate-200 pl-2">
+                                    {SETTINGS_LINKS.map(({ to, label, icon: Icon }) => (
+                                        <Link
+                                            key={to}
+                                            to={to}
+                                            role="menuitem"
+                                            onClick={() => setOpen(false)}
+                                            className={`flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
+                                                pathname.startsWith(to)
+                                                    ? "bg-indigo-600 text-white"
+                                                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                            }`}
+                                        >
+                                            <Icon className="h-4 w-4 shrink-0" />
+                                            {label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
 
                     <button
                         type="button"
@@ -156,12 +226,24 @@ export default function Header() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const isHome = location.pathname === "/";
+    // Dernière page consultée hors des Paramètres : on y revient en refermant les Paramètres.
+    const settingsReturnTo = useRef(null);
+    useEffect(() => {
+        if (!location.pathname.startsWith(SETTINGS_PATH)) {
+            settingsReturnTo.current = location.pathname + location.search;
+        }
+    }, [location.pathname, location.search]);
+
+    // L'aperçu de la page d'accueil (administrateur) garde l'en-tête de l'accueil.
+    const isHome = location.pathname === "/" || location.pathname === "/apercu-page-accueil";
 
     // Compte utilisateur (étudiant, enseignant, chercheur…) : son tableau de bord est /tableau-de-bord.
     // Administrateur et bibliothécaire ont leurs propres entrées (Administration / Gestion).
     const isMember =
         !!user && !["bibliothecaire", "administrateur"].includes(user.role);
+
+    // Admin / bibliothécaire : « Catalogue » ouvre directement la recherche, pas la page d'accueil.
+    const catalogueLink = user && !isMember ? "/recherche" : "/";
 
     // Pages publiques qui utilisent le Header public
     const isPublicPage =
@@ -343,7 +425,7 @@ export default function Header() {
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
-                                                to="/"
+                                                to={catalogueLink}
                                                 onClick={() =>
                                                     setMenuOpen(false)
                                                 }
@@ -366,11 +448,8 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* Gestion */}
-                                            {[
-                                                "bibliothecaire",
-                                                "administrateur",
-                                            ].includes(user.role) && (
+                                            {/* Gestion (bibliothécaire uniquement) */}
+                                            {user.role === "bibliothecaire" && (
                                                 <Link
                                                     to="/bibliothecaire"
                                                     onClick={() =>
@@ -406,6 +485,7 @@ export default function Header() {
                                     user={user}
                                     pathname={location.pathname}
                                     openLogoutModal={openLogoutModal}
+                                    settingsReturnTo={settingsReturnTo}
                                 />
                             </>
                         ) : (
@@ -454,7 +534,7 @@ export default function Header() {
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
                                             {/* Catalogue */}
                                             <Link
-                                                to="/"
+                                                to={catalogueLink}
                                                 onClick={() =>
                                                     setMenuOpen(false)
                                                 }
@@ -491,12 +571,8 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* Gestion */}
-                                            {user &&
-                                                [
-                                                    "bibliothecaire",
-                                                    "administrateur",
-                                                ].includes(user.role) && (
+                                            {/* Gestion (bibliothécaire uniquement) */}
+                                            {user?.role === "bibliothecaire" && (
                                                     <Link
                                                         to="/bibliothecaire"
                                                         onClick={() =>
@@ -550,6 +626,7 @@ export default function Header() {
                                         user={user}
                                         pathname={location.pathname}
                                         openLogoutModal={openLogoutModal}
+                                        settingsReturnTo={settingsReturnTo}
                                     />
                                 )}
                             </>

@@ -91,6 +91,7 @@ class DocumentController extends Controller
             'type' => $d->type,
             'niveau' => $d->niveau,
             'year' => $d->year,
+            'language' => $d->language,
             'cover_url' => $d->cover_path ? Storage::url($d->cover_path) : null,
             'authors' => $d->authors->pluck('name'),
             'category' => $d->category?->name,

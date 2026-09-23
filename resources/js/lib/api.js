@@ -780,6 +780,40 @@ export const api = {
             method: "POST",
             body: { question, history },
         }),
+
+    // ---------------------------------------------------------
+    // Page d'accueil configurable
+    // ---------------------------------------------------------
+
+    // Public : dernière version publiée (sections = null → contenu par défaut).
+    getHomepage: () => request("/homepage", { auth: false }),
+
+    // Administrateur : brouillon, publication, historique.
+    getHomepageAdmin: () => request("/admin/homepage"),
+
+    saveHomepageDraft: (sections) =>
+        request("/admin/homepage/draft", { method: "PUT", body: { sections } }),
+
+    discardHomepageDraft: () =>
+        request("/admin/homepage/draft", { method: "DELETE" }),
+
+    publishHomepage: () =>
+        request("/admin/homepage/publish", { method: "POST" }),
+
+    uploadHomepageImage: (file) => {
+        const data = new FormData();
+        data.append("image", file);
+        return request("/admin/homepage/images", { method: "POST", body: data });
+    },
+
+    getHomepageVersions: (page = 1) =>
+        request(`/admin/homepage/versions?page=${page}`),
+
+    getHomepageVersion: (version) =>
+        request(`/admin/homepage/versions/${version}`),
+
+    restoreHomepageVersion: (version) =>
+        request(`/admin/homepage/versions/${version}/restore`, { method: "POST" }),
 };
 
 export { API_URL };

@@ -68,3 +68,15 @@ test('une photo de profil est enregistrée et renvoyée avec une url publique', 
     $response->assertJsonPath('photo_path', fn ($path) => is_string($path) && str_starts_with($path, 'profiles/'));
     $response->assertJsonPath('photo_url', fn ($url) => is_string($url) && str_contains($url, '/storage/profiles/'));
 });
+
+test('la connexion est limitée à 10 essais par minute pour un même e-mail et une même IP', function () {
+    User::factory()->create(['email' => 'cible@example.com', 'is_active' => true]);
+
+    for ($i = 0; $i < 10; $i++) {
+        $this->postJson('/api/login', ['email' => 'cible@example.com', 'password' => 'mauvais'])->assertStatus(422);
+    }
+    $this->postJson('/api/login', ['email' => 'cible@example.com', 'password' => 'mauvais'])->assertStatus(429);
+
+    // Un autre compte depuis la même IP (même salle informatique) n'est pas bloqué.
+    $this->postJson('/api/login', ['email' => 'autre@example.com', 'password' => 'mauvais'])->assertStatus(422);
+});

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, GraduationCap, ScrollText, ClipboardList, FileText, Globe, Lock, ArrowUpRight } from 'lucide-react';
+import { BookOpen, GraduationCap, ScrollText, ClipboardList, FileText, Globe, Lock, ArrowUpRight, Languages, CalendarDays } from 'lucide-react';
 import { stripHtml } from '../lib/utils';
+import { languageLabel } from '../lib/languages';
 
 const TYPE_CONFIG = {
   livre: { label: 'Livre', icon: BookOpen },
@@ -24,14 +25,91 @@ function callNumber(doc) {
   return `${prefix}.${doc.year || '----'}`;
 }
 
+// Carte « grille » du catalogue, compacte : couverture, type, titre, auteurs, niveau, langue et année.
+function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
+  const isPublic = document.access_level === 'public';
+  const authors = document.authors?.length ? document.authors.join(', ') : 'Auteur non renseigné';
+
+  return (
+    <Link
+      to={`/documents/${document.slug}`}
+      title={document.title}
+      className="modern-card group flex h-full flex-col overflow-hidden"
+    >
+      <div className="relative flex h-32 items-center justify-center bg-slate-100">
+        {document.cover_url ? (
+          <img
+            src={document.cover_url}
+            alt=""
+            loading="lazy"
+            className="h-24 w-auto max-w-[60%] rounded object-cover shadow-md ring-1 ring-black/5 transition-transform duration-300 group-hover:-translate-y-0.5"
+          />
+        ) : (
+          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-indigo-100 shadow-md transition-transform duration-300 group-hover:-translate-y-0.5">
+            <TypeIcon className="h-6 w-6" strokeWidth={1.5} />
+          </span>
+        )}
+
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700 shadow-sm">
+          <TypeIcon className="h-3 w-3" />
+          {typeCfg.label}
+        </span>
+        <span
+          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-indigo-600 shadow-sm"
+          title={isPublic ? 'Accès libre' : 'Connexion requise'}
+          aria-label={isPublic ? 'Accès libre' : 'Connexion requise'}
+        >
+          <AccessIcon className="h-3 w-3" />
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-2.5">
+        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 [overflow-wrap:anywhere] group-hover:text-indigo-700">
+          {document.title}
+        </h3>
+        <p className="mt-0.5 truncate text-xs text-slate-500" title={authors}>
+          {authors}
+        </p>
+
+        <div className="mt-auto flex flex-wrap gap-1 pt-2">
+          {document.niveau && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <GraduationCap className="h-3 w-3" />
+              {document.niveau}
+            </span>
+          )}
+          {language && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+              <Languages className="h-3 w-3" />
+              {language}
+            </span>
+          )}
+          {document.year && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+              <CalendarDays className="h-3 w-3" />
+              {document.year}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 // showCategory : affiche « Catégorie : … » sous le titre (utilisé par l'accueil uniquement).
-export default function DocumentCard({ document, showCategory = false }) {
+// variant « grid » : carte verticale du catalogue ; par défaut, carte horizontale.
+export default function DocumentCard({ document, showCategory = false, variant = 'row' }) {
   // Le type est saisi librement : un type inconnu s'affiche tel quel (les anciens codes gardent leur libellé).
   const typeCfg =
     TYPE_CONFIG[normalizeType(document.type)] ||
     { label: document.type || TYPE_CONFIG.autre.label, icon: TYPE_CONFIG.autre.icon };
   const TypeIcon = typeCfg.icon;
   const AccessIcon = document.access_level === 'public' ? Globe : Lock;
+  const language = languageLabel(document.language);
+
+  if (variant === 'grid') {
+    return <GridCard document={document} typeCfg={typeCfg} TypeIcon={TypeIcon} AccessIcon={AccessIcon} language={language} />;
+  }
 
   return (
     <Link
@@ -75,7 +153,24 @@ export default function DocumentCard({ document, showCategory = false }) {
 
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
         <span>{document.library || 'Bibliothèque universitaire'}</span>
-        {document.language && <><span className="text-slate-300">•</span><span>🌐 {({fr:'Français',mg:'Malgache',en:'Anglais',es:'Espagnol',pt:'Portugais',it:'Italien',ru:'Russe',autre:'Autre'})[document.language] || document.language}</span></>}
+        {document.niveau && (
+          <>
+            <span className="text-slate-300">•</span>
+            <span className="inline-flex items-center gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 text-indigo-500" />
+              Niveau {document.niveau}
+            </span>
+          </>
+        )}
+        {language && (
+          <>
+            <span className="text-slate-300">•</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Languages className="h-3.5 w-3.5 text-indigo-500" />
+              {language}
+            </span>
+          </>
+        )}
         <span className="text-slate-300">•</span>
         <span className="inline-flex items-center gap-1.5">
           <AccessIcon className="h-3.5 w-3.5 text-indigo-500" />

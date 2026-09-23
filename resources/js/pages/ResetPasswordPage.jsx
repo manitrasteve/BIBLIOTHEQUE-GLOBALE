@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import AuthField from "../components/AuthField";
 
 export default function ResetPasswordPage() {
     const [params] = useSearchParams();
@@ -66,7 +67,7 @@ export default function ResetPasswordPage() {
         <div className="mx-auto max-w-lg px-4 py-8">
             <form
                 onSubmit={submit}
-                className="modern-card space-y-5 p-7"
+                className="modern-card space-y-5 p-5 sm:p-7"
             >
                 <h1 className="font-display text-2xl font-extrabold">
                     {creation ? "Créer votre mot de passe" : "Réinitialiser le mot de passe"}
@@ -91,32 +92,32 @@ export default function ResetPasswordPage() {
                     </div>
                 )}
 
-                <input
+                <AuthField
+                    label="Nouveau mot de passe"
                     type="password"
                     minLength={8}
                     required
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-xl"
-                    placeholder="Nouveau mot de passe"
+                    placeholder="8 caractères minimum"
                     autoComplete="new-password"
                 />
 
-                <input
+                <AuthField
+                    label="Confirmer le mot de passe"
                     type="password"
                     minLength={8}
                     required
                     value={confirm}
                     onChange={(event) => setConfirm(event.target.value)}
-                    className="w-full rounded-xl"
-                    placeholder="Confirmer"
+                    placeholder="Retapez le mot de passe"
                     autoComplete="new-password"
                 />
 
                 <button
                     type="submit"
                     disabled={submitting || ok}
-                    className="btn-primary w-full disabled:opacity-50"
+                    className="btn-primary w-full !py-3.5 disabled:opacity-50"
                 >
                     {submitting ? "Enregistrement…" : creation ? "Créer mon mot de passe" : "Enregistrer"}
                 </button>

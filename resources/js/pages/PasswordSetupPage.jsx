@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { api } from "../lib/api";
+import AuthField from "../components/AuthField";
 
 export default function PasswordSetupPage() {
     const [params] = useSearchParams();
@@ -33,7 +34,8 @@ export default function PasswordSetupPage() {
                 const data = await api.getSetupAccount(token);
 
                 if (!cancelled) {
-                    setEmail(data.email || "");
+                    // L'e-mail est celui de la demande validée : affiché pour information, non modifiable.
+                    setEmail(data.request?.email || data.request?.created_user?.email || "");
                     setLoading(false);
                 }
             } catch (err) {
@@ -66,11 +68,6 @@ export default function PasswordSetupPage() {
             return;
         }
 
-        if (!email) {
-            setError("Adresse e-mail introuvable.");
-            return;
-        }
-
         if (password.length < 8) {
             setError("Le mot de passe doit contenir au moins 8 caractères.");
             return;
@@ -85,13 +82,12 @@ export default function PasswordSetupPage() {
 
         try {
             await api.setupPassword(token, {
-                email,
                 password,
                 password_confirmation: passwordConfirmation,
             });
 
             setMessage(
-                "Votre mot de passe et votre e-mail ont été ajoutés avec succès.",
+                "Votre mot de passe a été créé. Votre compte est maintenant actif.",
             );
 
             setTimeout(() => {
@@ -150,62 +146,43 @@ export default function PasswordSetupPage() {
                     </div>
                 )}
 
-                <div>
-                    <label className="mb-1 block text-sm font-medium">
-                        Adresse e-mail
-                    </label>
-
-                    <input
+                {email && (
+                    <AuthField
+                        label="Adresse e-mail"
                         type="email"
-                        required
                         value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="Adresse e-mail"
-                        className="w-full rounded-xl"
-                        autoComplete="email"
+                        readOnly
+                        className="bg-slate-50"
+                        autoComplete="username"
                     />
-                </div>
+                )}
 
-                <div>
-                    <label className="mb-1 block text-sm font-medium">
-                        Mot de passe
-                    </label>
+                <AuthField
+                    label="Mot de passe"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="8 caractères minimum"
+                    autoComplete="new-password"
+                />
 
-                    <input
-                        type="password"
-                        required
-                        minLength={8}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Mot de passe"
-                        className="w-full rounded-xl"
-                        autoComplete="new-password"
-                    />
-                </div>
-
-                <div>
-                    <label className="mb-1 block text-sm font-medium">
-                        Confirmer le mot de passe
-                    </label>
-
-                    <input
-                        type="password"
-                        required
-                        minLength={8}
-                        value={passwordConfirmation}
-                        onChange={(event) =>
-                            setPasswordConfirmation(event.target.value)
-                        }
-                        placeholder="Confirmer le mot de passe"
-                        className="w-full rounded-xl"
-                        autoComplete="new-password"
-                    />
-                </div>
+                <AuthField
+                    label="Confirmer le mot de passe"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={passwordConfirmation}
+                    onChange={(event) => setPasswordConfirmation(event.target.value)}
+                    placeholder="Retapez le mot de passe"
+                    autoComplete="new-password"
+                />
 
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="btn-primary flex w-full items-center justify-center gap-2"
+                    className="btn-primary flex w-full items-center justify-center gap-2 !py-3.5"
                 >
                     <Lock className="h-4 w-4" />
 

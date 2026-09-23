@@ -37,7 +37,9 @@ export default function LoginPage() {
             setError(
                 err.status === 422
                     ? err.data?.errors?.email?.[0] || "Identifiants incorrects."
-                    : "Connexion impossible pour le moment.",
+                    : err.status === 429
+                      ? err.data?.message || "Trop de tentatives. Réessayez dans une minute."
+                      : "Connexion impossible pour le moment.",
             );
         } finally {
             setLoading(false);

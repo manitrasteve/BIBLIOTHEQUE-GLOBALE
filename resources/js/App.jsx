@@ -29,7 +29,6 @@ import NotFoundPage from "./pages/NotFoundPage";
 import MyReadingsPage from "./pages/MyReadingsPage";
 import MyActivitiesPage from "./pages/MyActivitiesPage";
 import ResearchSpacePage from "./pages/ResearchSpacePage";
-import MySearchesPage from "./pages/MySearchesPage";
 import ScientificWatchPage from "./pages/ScientificWatchPage";
 
 const MEMBER_ROLES = ["etudiant", "enseignant", "chercheur"];
@@ -60,6 +59,8 @@ import {
 import AdminMessagesPage from "./pages/admin/AdminMessagesPage";
 import AdminLibrariansPage from "./pages/admin/AdminLibrariansPage";
 import AdminPermissionsPage from "./pages/admin/AdminPermissionsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import AdminHomepageEditorPage from "./pages/admin/AdminHomepageEditorPage";
 import MessagesPage from "./pages/MessagesPage";
 import StaffDiscussionPage from "./pages/StaffDiscussionPage";
 
@@ -73,6 +74,11 @@ export default function App() {
                         <Routes>
                             {/* Public */}
                             <Route path="/" element={<HomePage />} />
+                            {/* Aperçu du brouillon de la page d'accueil (administrateur) */}
+                            <Route
+                                path="/apercu-page-accueil"
+                                element={<RoleRoute roles={["administrateur"]}><HomePage preview /></RoleRoute>}
+                            />
                             <Route
                                 path="/recherche"
                                 element={<SearchResultsPage />}
@@ -143,10 +149,6 @@ export default function App() {
                                 <Route
                                     path="/espace-recherche"
                                     element={<RoleRoute roles={["chercheur"]}><ResearchSpacePage /></RoleRoute>}
-                                />
-                                <Route
-                                    path="/mes-recherches"
-                                    element={<RoleRoute roles={["chercheur"]}><MySearchesPage /></RoleRoute>}
                                 />
                                 <Route
                                     path="/veille-scientifique"
@@ -321,6 +323,8 @@ export default function App() {
                                     path="historique"
                                     element={<AdminActivityPage />}
                                 />
+                                <Route path="parametres" element={<AdminSettingsPage />} />
+                                <Route path="parametres/page-accueil" element={<AdminHomepageEditorPage />} />
                             </Route>
 
                             {/* Adresse inconnue */}

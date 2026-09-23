@@ -41,6 +41,8 @@ class EngagementController extends Controller
                     'subtitle' => $d->subtitle,
                     'type' => $d->type,
                     'year' => $d->year,
+                    'niveau' => $d->niveau,
+                    'language' => $d->language,
                     'cover_url' => $d->cover_path ? \Illuminate\Support\Facades\Storage::url($d->cover_path) : null,
                     'authors' => $d->authors->pluck('name'),
                     'category' => $d->category?->name,

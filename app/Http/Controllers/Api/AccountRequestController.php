@@ -600,13 +600,13 @@ class AccountRequestController extends Controller
     }
 
     /**
-     * Vérification d'une demande par le Service Numérique.
+     * Vérification d'une demande par le Service Numérique ou l'administrateur.
      */
     public function verify(Request $request, AccountRequest $accountRequest)
     {
         $user = $request->user();
 
-        if (!$user || !$user->isLibrarian()) {
+        if (!$user || !in_array($user->role, ['administrateur', 'bibliothecaire'], true)) {
             return response()->json([
                 'message' => 'Accès non autorisé.',
             ], 403);
@@ -646,16 +646,21 @@ class AccountRequestController extends Controller
             }
         });
 
-        NotificationService::sendToRole(
-            'administrateur',
-            'account_request_verified',
-            'Demande de compte vérifiée',
-            "La demande de {$accountRequest->first_name} {$accountRequest->last_name} a été vérifiée par le Service Numérique et attend votre validation.",
-            $accountRequest
-        );
+        // Vérifiée par l'administrateur : inutile de le notifier lui-même.
+        if ($user->isLibrarian()) {
+            NotificationService::sendToRole(
+                'administrateur',
+                'account_request_verified',
+                'Demande de compte vérifiée',
+                "La demande de {$accountRequest->first_name} {$accountRequest->last_name} a été vérifiée par le Service Numérique et attend votre validation.",
+                $accountRequest
+            );
+        }
 
         return response()->json([
-            'message' => 'La demande a été vérifiée et transmise à l’administrateur.',
+            'message' => $user->isLibrarian()
+                ? 'La demande a été vérifiée et transmise à l’administrateur.'
+                : 'La demande a été vérifiée.',
             'request' => $accountRequest->fresh()->load([
                 'library',
                 'createdBy',
@@ -733,9 +738,9 @@ class AccountRequestController extends Controller
 
         $this->authorizeRequestLibrary($user, $accountRequest);
 
-        if ($accountRequest->status !== 'verifiee') {
+        if (!in_array($accountRequest->status, ['en_attente', 'verifiee'], true)) {
             return response()->json([
-                'message' => 'Seules les demandes vérifiées peuvent être rejetées.',
+                'message' => 'Seules les demandes non validées ou vérifiées peuvent être rejetées.',
             ], 422);
         }
 
@@ -1133,10 +1138,15 @@ class AccountRequestController extends Controller
             ], 404);
         }
 
+        // Même effet qu'une création via le lien de réinitialisation (AuthController::resetPassword) :
+        // compte actif, e-mail vérifié (le lien y a été reçu) et membre « actif » dans le registre.
         $user->update([
             'password' => Hash::make($validated['password']),
             'is_active' => true,
+            'password_set_at' => now(),
+            'email_verified_at' => $user->email_verified_at ?: now(),
         ]);
+        MemberRegistry::where('user_id', $user->id)->update(['status' => 'actif']);
 
         $accountRequest->update([
             'setup_token_hash' => null,

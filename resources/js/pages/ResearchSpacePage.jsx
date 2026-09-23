@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Microscope, Search, SearchX, RotateCcw } from "lucide-react";
 import { api } from "../lib/api";
+import { LANGUAGES } from "../lib/languages";
 import { useDebouncedValue } from "../lib/search";
 import DocumentCard from "../components/DocumentCard";
 import { SkeletonDocumentCard } from "../components/Skeleton";
@@ -15,23 +16,11 @@ const TYPES = [
     { value: "autre", label: "Autre" },
 ];
 
-const LANGUAGES = [
-    { value: "fr", label: "Français" },
-    { value: "mg", label: "Malgache" },
-    { value: "en", label: "Anglais" },
-    { value: "es", label: "Espagnol" },
-    { value: "pt", label: "Portugais" },
-    { value: "it", label: "Italien" },
-    { value: "ru", label: "Russe" },
-    { value: "autre", label: "Autre" },
-];
-
 const FILTER_KEYS = ["author", "category_id", "type", "year", "library_id", "language"];
 const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm";
 
 // Espace recherche du chercheur : même moteur que le catalogue (GET /documents),
-// avec des filtres avancés. Les résultats se mettent à jour pendant la saisie ;
-// seule une recherche validée (bouton / Entrée) est ajoutée à « Mes recherches ».
+// avec des filtres avancés. Les résultats se mettent à jour pendant la saisie.
 export default function ResearchSpacePage() {
     const [searchParams] = useSearchParams();
     const initial = (key) => searchParams.get(key) || "";
@@ -45,7 +34,6 @@ export default function ResearchSpacePage() {
     const [libraries, setLibraries] = useState([]);
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
-    const [saved, setSaved] = useState(false);
 
     useEffect(() => {
         api.getCategories().then(setCategories).catch(() => {});
@@ -96,27 +84,17 @@ export default function ResearchSpacePage() {
     function setFilter(key, value) {
         setFilters((current) => ({ ...current, [key]: value }));
         setPage(1);
-        setSaved(false);
     }
 
     function reset() {
         setQ("");
         setFilters(Object.fromEntries(FILTER_KEYS.map((key) => [key, ""])));
         setPage(1);
-        setSaved(false);
     }
 
-    async function submit(event) {
+    // Les résultats suivent déjà la saisie : valider le formulaire ne recharge pas la page.
+    function submit(event) {
         event.preventDefault();
-        const query = q.trim();
-        if (!query) return;
-
-        try {
-            await api.saveSearch({ query, filters });
-            setSaved(true);
-        } catch {
-            setSaved(false);
-        }
     }
 
     const hasCriteria = q.trim() !== "" || FILTER_KEYS.some((key) => filters[key] !== "");
@@ -136,7 +114,6 @@ export default function ResearchSpacePage() {
                         onChange={(e) => {
                             setQ(e.target.value);
                             setPage(1);
-                            setSaved(false);
                         }}
                         placeholder="Mots-clés, titre, auteur…"
                         aria-label="Mots-clés"
@@ -222,12 +199,7 @@ export default function ResearchSpacePage() {
                     </select>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-slate-500" role="status">
-                        {saved
-                            ? "Recherche enregistrée dans « Mes recherches »."
-                            : "Validez la recherche pour la retrouver dans « Mes recherches »."}
-                    </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
                     {hasCriteria && (
                         <button type="button" onClick={reset} className="btn-secondary">
                             <RotateCcw className="h-4 w-4" />

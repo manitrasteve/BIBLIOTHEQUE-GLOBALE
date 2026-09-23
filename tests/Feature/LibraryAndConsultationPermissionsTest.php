@@ -99,12 +99,17 @@ test('ajouter une bibliothèque : refusé sans permission, autorisé avec, photo
     expect($created->json('cover_url'))->not->toBeNull();
     Storage::disk('public')->assertExists(Library::where('name', 'Bibliothèque Test')->firstOrFail()->photo_path);
 
-    // Champs obligatoires : nom, adresse, localisation, horaires, jours d'ouverture, photo.
-    foreach (['name', 'address', 'location', 'opening_hours', 'opening_days', 'photo'] as $field) {
+    // Champs obligatoires : nom, adresse, horaires, jours d'ouverture, photo.
+    foreach (['name', 'address', 'opening_hours', 'opening_days', 'photo'] as $field) {
         $payload = libraryPayload(['name' => "Autre {$field}"]);
         unset($payload[$field]);
         $this->actingAs($librarian, 'sanctum')->postJson('/api/libraries', $payload)->assertStatus(422);
     }
+
+    // La localisation n'est plus demandée dans le formulaire : facultative.
+    $payload = libraryPayload(['name' => 'Sans localisation']);
+    unset($payload['location']);
+    $this->actingAs($librarian, 'sanctum')->postJson('/api/libraries', $payload)->assertCreated();
 
     // Type de fichier invalide.
     $this->actingAs($librarian, 'sanctum')

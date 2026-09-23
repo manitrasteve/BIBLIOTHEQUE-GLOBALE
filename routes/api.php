@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\HomepageController;
 use App\Http\Controllers\Api\ProblemReportController;
 use App\Http\Controllers\Api\AdminMessageController;
 use App\Http\Controllers\Api\AdminAssistantController;
@@ -32,12 +33,15 @@ use Illuminate\Support\Facades\Route;
 | Routes publiques (aucune connexion requise)
 |--------------------------------------------------------------------------
 */
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 // Limité : la réponse indique si une adresse a un compte (limite l'énumération d'adresses).
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:10,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/site-updates', [SiteUpdateController::class, 'index']);
 Route::get('/site-updates/{uuid}', [SiteUpdateController::class, 'show']);
+
+// Page d'accueil : dernière version publiée uniquement (jamais le brouillon).
+Route::get('/homepage', [HomepageController::class, 'published']);
 
 Route::get('/libraries', [LibraryController::class, 'index']);
 Route::get('/libraries/{library}', [LibraryController::class, 'show']);
@@ -199,6 +203,18 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::get('/bibliothecaires', [PermissionManagementController::class, 'librarians']);
        Route::get('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'show']);
        Route::put('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'update']);
+
+       // Paramètres → Modifier la page d'accueil (brouillon, publication, historique).
+       Route::prefix('admin/homepage')->group(function () {
+           Route::get('/', [HomepageController::class, 'show']);
+           Route::put('/draft', [HomepageController::class, 'saveDraft']);
+           Route::delete('/draft', [HomepageController::class, 'discardDraft']);
+           Route::post('/publish', [HomepageController::class, 'publish']);
+           Route::post('/images', [HomepageController::class, 'uploadImage']);
+           Route::get('/versions', [HomepageController::class, 'versions']);
+           Route::get('/versions/{version}', [HomepageController::class, 'version'])->whereNumber('version');
+           Route::post('/versions/{version}/restore', [HomepageController::class, 'restore'])->whereNumber('version');
+       });
     });
 
     /*

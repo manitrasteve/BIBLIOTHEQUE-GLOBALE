@@ -21,7 +21,6 @@ const emptyForm = {
   name: '',
   description: '',
   address: '',
-  location: '',
   opening_hours: '',
   opening_days: '',
   map_link: '',
@@ -88,7 +87,6 @@ export default function AdminLibrariesPage() {
       name: lib.name || '',
       description: lib.description || '',
       address: lib.address || '',
-      location: lib.location || '',
       opening_hours: lib.opening_hours || '',
       opening_days: lib.opening_days || '',
       map_link: lib.map_link || '',
@@ -263,15 +261,6 @@ export default function AdminLibrariesPage() {
                 required
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-ink-soft mb-1.5">Localisation *</label>
-              <input
-                required
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
                 className={inputClass}
               />
             </div>

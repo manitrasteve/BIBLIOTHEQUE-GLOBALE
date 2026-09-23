@@ -28,7 +28,7 @@ class LibraryController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'address' => ['required', 'string', 'max:255'],
-            'location' => ['required', 'string', 'max:255'],
+            'location' => ['nullable', 'string', 'max:255'], // plus demandé dans le formulaire
             'opening_hours' => ['required', 'string', 'max:255'],
             'opening_days' => ['required', 'string', 'max:255'],
             'map_link' => ['nullable', 'url'],
@@ -55,7 +55,7 @@ class LibraryController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'address' => ['sometimes', 'required', 'string', 'max:255'],
-            'location' => ['sometimes', 'required', 'string', 'max:255'],
+            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'opening_hours' => ['sometimes', 'required', 'string', 'max:255'],
             'opening_days' => ['sometimes', 'required', 'string', 'max:255'],
             'map_link' => ['nullable', 'url'],

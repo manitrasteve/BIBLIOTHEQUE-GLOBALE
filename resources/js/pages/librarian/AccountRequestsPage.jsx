@@ -40,9 +40,9 @@ function isSetupLinkExpired(r) {
 }
 
 const LABELS = {
-    en_attente: "En attente",
+    en_attente: "Non validé",
     verifiee: "Vérifiée",
-    validee: "En attente de création du mot de passe",
+    validee: "En attente",
     compte_active: "Compte activé",
     rejetee: "Rejetée",
     expiree: "Expirée",
@@ -194,7 +194,7 @@ export default function AccountRequestsPage() {
         return (
             <>
                 <ViewButton onClick={() => setViewing(r)} />
-                {user?.role === "bibliothecaire" && r.status === "en_attente" && (
+                {r.status === "en_attente" && (
                     <>
                         <button
                             onClick={() => verify(r.id)}
@@ -253,10 +253,21 @@ export default function AccountRequestsPage() {
                         </button>
                     </>
                 ) : r.status === "validee" && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-                        <Clock3 className="h-4 w-4" />
-                        Lien envoyé
-                    </span>
+                    <>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                            <Clock3 className="h-4 w-4" />
+                            Lien envoyé
+                        </span>
+                        <button
+                            onClick={() => resendLink(r.id)}
+                            disabled={busyId !== null}
+                            title="Renvoyer le lien de création du mot de passe"
+                            aria-label="Renvoyer le lien de création du mot de passe"
+                            className="btn-secondary !px-2.5 disabled:opacity-50"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${busyId === r.id ? "animate-spin" : ""}`} />
+                        </button>
+                    </>
                 )}
             </>
         );

@@ -11,6 +11,7 @@ import {
     UserPlus,
     UserCheck,
     UserX,
+    LayoutTemplate,
 } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -45,6 +46,8 @@ const ACTION_CONFIG = {
     restauration_utilisateur: { label: "Compte restauré", icon: UserCheck },
     suppression_definitive_utilisateur: { label: "Compte supprimé définitivement", icon: UserX },
     vidage_corbeille: { label: "Corbeille vidée", icon: UserX },
+    publication_page_accueil: { label: "Page d'accueil publiée", icon: LayoutTemplate },
+    restauration_page_accueil: { label: "Page d'accueil restaurée", icon: LayoutTemplate },
 };
 
 function formatDate(value) {

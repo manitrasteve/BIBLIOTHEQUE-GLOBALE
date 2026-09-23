@@ -139,6 +139,12 @@ test('la validation par l\'administrateur déplace la demande de « Vérifiée �
     $this->postJson("/api/account-requests/setup/{$token}", ['password' => 'MotDePasse123', 'password_confirmation' => 'MotDePasse123'])->assertOk();
 
     expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'validee' => 0, 'compte_active' => 1]);
+
+    // Le compte créé est actif, et le registre des membres le reflète.
+    $user = $toValidate->fresh()->createdUser;
+    expect($user->is_active)->toBeTrue()
+        ->and($user->password_set_at)->not->toBeNull()
+        ->and(\App\Models\MemberRegistry::where('user_id', $user->id)->value('status'))->toBe('actif');
 });
 
 test('aucune demande : Total 0 et tous les compteurs à zéro, sans erreur', function () {

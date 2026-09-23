@@ -19,6 +19,7 @@ import {
     ArchiveRestore,
     Trash2,
     Building2,
+    LayoutTemplate,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { SkeletonList } from "../../components/Skeleton";
@@ -109,6 +110,8 @@ const ACTION_CONFIG = {
     restauration_utilisateur: { label: "Compte restauré", icon: ArchiveRestore },
     suppression_definitive_utilisateur: { label: "Compte supprimé définitivement", icon: UserX },
     vidage_corbeille: { label: "Corbeille vidée", icon: Trash2 },
+    publication_page_accueil: { label: "Page d'accueil publiée", icon: LayoutTemplate },
+    restauration_page_accueil: { label: "Page d'accueil restaurée", icon: LayoutTemplate },
 
     connexion: {
         label: "Connexion",

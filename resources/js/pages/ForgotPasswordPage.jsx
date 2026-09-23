@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, AlertCircle, Ban } from "lucide-react";
 import { api } from "../lib/api";
+import AuthField from "../components/AuthField";
 
 const SUCCESS_MESSAGE =
     "Un lien de réinitialisation de votre mot de passe a été envoyé à cette adresse e-mail.";
@@ -81,12 +82,12 @@ export default function ForgotPasswordPage() {
                     </div>
                 )}
 
-                <input
+                <AuthField
+                    label="Adresse e-mail"
                     required
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-xl"
                     placeholder="vous@exemple.com"
                     autoComplete="email"
                 />
@@ -94,7 +95,7 @@ export default function ForgotPasswordPage() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="btn-primary w-full disabled:opacity-50"
+                    className="btn-primary w-full !py-3.5 disabled:opacity-50"
                 >
                     {loading ? "Envoi en cours…" : "Envoyer le lien"}
                 </button>
