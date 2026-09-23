@@ -19,6 +19,17 @@ function geminiText(string $text): array
     return ['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => $text]]]]]];
 }
 
+/** @param array<int, array{0: string, 1?: array}> $calls */
+function geminiParallelCalls(array $calls): array
+{
+    $parts = [];
+    foreach ($calls as $i => $call) {
+        $parts[] = ['functionCall' => ['name' => $call[0], 'args' => $call[1] ?? [], 'id' => "call_{$i}"], 'thoughtSignature' => "SIG-{$i}"];
+    }
+
+    return ['candidates' => [['content' => ['role' => 'model', 'parts' => $parts]]]];
+}
+
 function assistantSetup(): object
 {
     config(['services.gemini.key' => 'test-key']);
@@ -149,6 +160,31 @@ test('après 3 tours d\'outils, Gemini est contraint de conclure sans outil', fu
 
     expect($result['ok'])->toBeTrue()->and($result['answer'])->toContain("pas trouvé cette information")->and(Http::recorded())->toHaveCount(4)
         ->and(Http::recorded()[3][0]->data()['toolConfig'])->toBe(['functionCallingConfig' => ['mode' => 'NONE']]);
+});
+
+test('plus de 3 appels d\'outils demandés en parallèle dans un même tour reçoivent tous une réponse', function () {
+    $w = assistantSetup();
+    stubGeminiReplies(
+        geminiParallelCalls([
+            ['compter_documents', ['statut' => 'brouillon']],
+            ['compter_documents', ['statut' => 'publie']],
+            ['compter_documents', ['statut' => 'archive']],
+            ['compter_documents', []],
+        ]),
+        geminiText('Voici la répartition demandée.')
+    );
+
+    $result = assistant()->ask($w->admin, 'Donne-moi tous les comptages par statut en une fois.');
+
+    expect($result['ok'])->toBeTrue()
+        ->and($result['answer'])->toBe('Voici la répartition demandée.')
+        ->and($result['tools'])->toHaveCount(4);
+
+    // Le tour suivant doit répondre aux 4 functionCall du tour précédent (une functionResponse
+    // chacun), sinon Gemini rejette la requête pour cause d'appels orphelins.
+    $secondRequestContents = Http::recorded()[1][0]->data()['contents'];
+    $functionResponses = end($secondRequestContents)['parts'];
+    expect($functionResponses)->toHaveCount(4);
 });
 
 test('une boucle qui continue à réclamer des outils au dernier tour renvoie un message de repli', function () {

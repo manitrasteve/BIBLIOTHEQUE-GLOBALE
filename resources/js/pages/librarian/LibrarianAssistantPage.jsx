@@ -1,6 +1,5 @@
 import { Sparkles } from "lucide-react";
 import ManagementAssistantChat from "../../components/ManagementAssistantChat";
-import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import { sessionMemory } from "../../lib/sessionMemory";
 
@@ -8,7 +7,7 @@ const EXAMPLES = [
     "Combien de documents avons-nous ?",
     "Combien de documents sont en brouillon ?",
     "Quels documents ont été archivés aujourd'hui ?",
-    "Combien de bibliothécaires y a-t-il dans ma bibliothèque ?",
+    "Combien de bibliothécaires y a-t-il au total ?",
     "Quel est mon historique complet ?",
     "Quelles actions ai-je effectuées aujourd'hui ?",
     "Qui a modifié le dernier document publié ?",
@@ -16,9 +15,6 @@ const EXAMPLES = [
 ];
 
 export default function LibrarianAssistantPage() {
-    const { user } = useAuth();
-    const library = user?.library?.name;
-
     return (
         <div className="mx-auto max-w-3xl">
             <div className="mb-6">
@@ -27,7 +23,7 @@ export default function LibrarianAssistantPage() {
                     Assistant IA de gestion
                 </h2>
                 <p className="mt-1 text-sm text-ink-soft">
-                    Interrogez l'assistant sur les documents et l'historique des actions{library ? <> de votre bibliothèque (<strong>{library}</strong>)</> : " de votre bibliothèque"}. Les autres bibliothèques ne sont pas accessibles.
+                    Interrogez l'assistant sur les documents, les bibliothèques et l'historique des actions. Les réponses proviennent des données réelles de la plateforme.
                 </p>
             </div>
 

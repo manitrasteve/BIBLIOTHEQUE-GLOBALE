@@ -196,10 +196,6 @@ class AssistantTools
         if (!$by) {
             throw new InvalidToolArguments('Le paramètre « par » est obligatoire (statut, type, categorie).');
         }
-        if ($by === 'bibliotheque' && !$this->scope->isGlobal()) {
-            return ['trouve' => false, 'hors_perimetre' => true, 'message' => "Votre périmètre est limité à la bibliothèque « {$this->scope->libraryName} »."];
-        }
-
         [$ids, $error] = $this->libraryIds($this->text($args, 'bibliotheque'));
         if ($error) {
             return $error;

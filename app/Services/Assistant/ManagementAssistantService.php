@@ -20,7 +20,6 @@ use Throwable;
 class ManagementAssistantService
 {
     private const MAX_TOOL_ROUNDS = 3; // tours pendant lesquels Gemini peut appeler des outils ; un dernier tour, sans outil, sert à conclure
-    private const MAX_CALLS_PER_STEP = 3;
     private const MAX_HISTORY = 6;
     private const MAX_QUESTION = 1000;
 
@@ -86,7 +85,11 @@ class ManagementAssistantService
                 $contents[] = $reply['content'];
                 $responses = [];
 
-                foreach (array_slice($reply['function_calls'], 0, self::MAX_CALLS_PER_STEP) as $call) {
+                // Chaque appel demandé par Gemini dans ce tour DOIT recevoir une functionResponse
+                // (le contenu du modèle, avec tous ses functionCall, est renvoyé tel quel ci-dessus) :
+                // n'en exécuter qu'une partie désynchroniserait la conversation et ferait échouer le
+                // tour suivant. Chaque outil reste de toute façon borné (périmètre + LIMIT internes).
+                foreach ($reply['function_calls'] as $call) {
                     $output = $tools->run($call['name'], $call['args']);
                     $used[] = ['outil' => $call['name'], 'criteres' => $call['args']];
                     if ($call['name'] !== 'aucune_donnee_necessaire') {
