@@ -154,7 +154,7 @@ export default function SecurePdfViewer({ slug }) {
 
     if (loading) {
         return (
-            <div className="reader-panel-height flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white">
+            <div className="reader-panel-height flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-surface">
                 <FileText className="h-6 w-6 text-slate-400" />
                 <p className="text-sm text-slate-500">
                     Chargement du document…
@@ -174,7 +174,7 @@ export default function SecurePdfViewer({ slug }) {
                 userSelect: "none",
             }}
         >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-surface px-3 py-2">
                 <div className="flex items-center gap-2">
                     <button
                         type="button"

@@ -9,7 +9,7 @@ import { SECTION_TYPES, STYLE_OPTIONS, homepageImageUrl, safeLink } from "../../
  * errors : messages du serveur indexés par chemin relatif (« content.title », « style.bg_color »).
  */
 
-const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm";
+const inputClass = "w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold text-slate-600";
 
 const STYLE_LABELS = {
@@ -28,7 +28,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 function FieldError({ errors, path }) {
     const messages = errors?.[path];
     if (!messages?.length) return null;
-    return <p className="mt-1 text-xs font-semibold text-rose-600">{messages[0]}</p>;
+    return <p className="mt-1 text-xs font-semibold text-rose-700">{messages[0]}</p>;
 }
 
 function ImageField({ field, value, onChange }) {
@@ -86,7 +86,7 @@ function ImageField({ field, value, onChange }) {
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} className="sr-only" tabIndex={-1} />
             <p className="mt-1 text-xs text-slate-500">JPG, PNG ou WebP — 4 Mo maximum.</p>
-            {error && <p className="mt-1 text-xs font-semibold text-rose-600">{error}</p>}
+            {error && <p className="mt-1 text-xs font-semibold text-rose-700">{error}</p>}
         </div>
     );
 }
@@ -117,7 +117,7 @@ function ListField({ field, value = [], onChange, id }) {
                 </div>
             ))}
             {items.length < field.maxItems && (
-                <button type="button" onClick={() => onChange([...items, ""])} className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600">
+                <button type="button" onClick={() => onChange([...items, ""])} className="inline-flex items-center gap-1 text-sm font-semibold text-brass">
                     <Plus className="h-4 w-4" /> Ajouter
                 </button>
             )}
@@ -137,7 +137,7 @@ function CardsField({ field, value = [], onChange, errors, path }) {
                         <button
                             type="button"
                             onClick={() => onChange(value.filter((_, i) => i !== index))}
-                            className="text-rose-600"
+                            className="text-rose-700"
                             aria-label={`Supprimer la carte ${index + 1}`}
                             title="Supprimer la carte"
                         >
@@ -148,7 +148,7 @@ function CardsField({ field, value = [], onChange, errors, path }) {
                         <input placeholder="Titre" value={card.title || ""} maxLength={80} onChange={(e) => update(index, "title", e.target.value)} className={inputClass} aria-label={`Titre de la carte ${index + 1}`} />
                         <textarea placeholder="Texte" value={card.text || ""} maxLength={300} rows={2} onChange={(e) => update(index, "text", e.target.value)} className={inputClass} aria-label={`Texte de la carte ${index + 1}`} />
                         <input placeholder="Lien (facultatif) : /recherche ou https://…" value={card.link || ""} maxLength={500} onChange={(e) => update(index, "link", e.target.value)} className={inputClass} aria-label={`Lien de la carte ${index + 1}`} />
-                        {card.link && !safeLink(card.link) && <p className="text-xs font-semibold text-rose-600">Lien invalide.</p>}
+                        {card.link && !safeLink(card.link) && <p className="text-xs font-semibold text-rose-700">Lien invalide.</p>}
                         <FieldError errors={errors} path={`${path}.${index}.link`} />
                     </div>
                 </div>
@@ -157,7 +157,7 @@ function CardsField({ field, value = [], onChange, errors, path }) {
                 <button
                     type="button"
                     onClick={() => onChange([...value, { title: "", text: "", link: "" }])}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-brass"
                 >
                     <Plus className="h-4 w-4" /> Ajouter une carte
                 </button>
@@ -202,7 +202,7 @@ function ContentField({ field, value, onChange, errors }) {
             control = (
                 <>
                     <input id={id} value={value || ""} maxLength={500} placeholder="/recherche ou https://…" onChange={(e) => onChange(e.target.value)} className={inputClass} />
-                    {value && !safeLink(value) && <p className="mt-1 text-xs font-semibold text-rose-600">Lien invalide : adresse interne (/page) ou externe (https://…).</p>}
+                    {value && !safeLink(value) && <p className="mt-1 text-xs font-semibold text-rose-700">Lien invalide : adresse interne (/page) ou externe (https://…).</p>}
                 </>
             );
             break;
@@ -255,7 +255,7 @@ function StyleField({ name, value, onChange, errors }) {
             <div className="flex items-center gap-2">
                 {value ? (
                     <>
-                        <input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-white p-0.5" />
+                        <input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-surface p-0.5" />
                         <span className="font-mono text-xs text-slate-500">{value}</span>
                         <button type="button" onClick={() => onChange(null)} className="text-slate-500 hover:text-slate-800" title="Revenir à la couleur par défaut" aria-label="Revenir à la couleur par défaut">
                             <RotateCcw className="h-4 w-4" />

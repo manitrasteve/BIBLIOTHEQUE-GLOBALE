@@ -158,7 +158,7 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                                     key={ex}
                                     type="button"
                                     onClick={() => send(ex)}
-                                    className="max-w-full rounded-full border border-line bg-white px-3 py-1.5 text-left text-xs text-ink hover:border-brass dark:bg-slate-800"
+                                    className="max-w-full rounded-full border border-line bg-surface px-3 py-1.5 text-left text-xs text-ink hover:border-brass"
                                 >
                                     {ex}
                                 </button>
@@ -177,8 +177,8 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                     ) : (
                         <div key={i} className="flex justify-start">
                             <div
-                                className={`max-w-[92%] break-words rounded-2xl rounded-bl-md border px-4 py-3 text-sm text-black dark:bg-slate-800 dark:text-slate-100 ${
-                                    m.error ? "border-red-300 bg-red-50 dark:border-red-500" : "border-gray-200 bg-white dark:border-slate-600"
+                                className={`max-w-[92%] break-words rounded-2xl rounded-bl-md border px-4 py-3 text-sm text-slate-950 ${
+                                    m.error ? "border-red-300 bg-red-50" : "border-gray-200 bg-surface"
                                 }`}
                             >
                                 <AnswerText text={m.text} />
@@ -190,7 +190,7 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
 
                 {loading && (
                     <div className="flex justify-start">
-                        <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 text-sm text-ink-soft dark:border-slate-600 dark:bg-slate-800">
+                        <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-surface px-4 py-3 text-sm text-ink-soft">
                             Consultation des données…
                             <span className="ml-2 ai-typing-dots align-middle" aria-label="L'assistant écrit">
                                 <span></span>
@@ -226,7 +226,7 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                     disabled={loading}
                     placeholder={placeholder}
                     aria-label="Votre question"
-                    className="min-w-0 flex-1 resize-none rounded-lg border border-line bg-white px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                    className="min-w-0 flex-1 resize-none rounded-lg border border-line bg-surface px-3 py-2 text-sm text-slate-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
                 />
                 <button
                     type="submit"

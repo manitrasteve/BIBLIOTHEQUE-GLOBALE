@@ -30,7 +30,7 @@ const emptyForm = {
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 
-const inputClass = 'w-full rounded-lg border border-line bg-white/60 px-3 py-2.5';
+const inputClass = 'w-full rounded-lg border border-line bg-surface/60 px-3 py-2.5';
 
 export default function AdminLibrariesPage() {
   const { user } = useAuth();
@@ -172,7 +172,7 @@ export default function AdminLibrariesPage() {
         ) : (
           <>
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une bibliothèque…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-line bg-surface px-4 py-3 text-sm" />
               <button className="w-full sm:w-auto sm:shrink-0 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper"><Building2 className="mr-2 inline h-4 w-4" />Rechercher</button>
             </form>
             <div className="hidden overflow-x-auto rounded-2xl border border-line bg-paper sm:block">

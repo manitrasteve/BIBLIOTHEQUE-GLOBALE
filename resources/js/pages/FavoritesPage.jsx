@@ -51,7 +51,7 @@ export default function FavoritesPage() {
     return (
         <div>
             <div className="mb-6 flex items-center gap-2">
-                <Heart className="h-5 w-5 fill-indigo-600 text-indigo-600" />
+                <Heart className="h-5 w-5 fill-brass text-brass" />
                 <h2 className="font-display text-xl font-extrabold">
                     Mes favoris
                 </h2>
@@ -86,7 +86,7 @@ export default function FavoritesPage() {
                                     type="button"
                                     onClick={() => remove(document)}
                                     disabled={removingId === document.id}
-                                    className="absolute right-4 top-4 rounded-full bg-white/95 p-2 text-rose-600  disabled:opacity-50"
+                                    className="absolute right-4 top-4 rounded-full bg-surface/95 p-2 text-rose-700  disabled:opacity-50"
                                     title="Retirer des favoris"
                                     aria-label="Retirer des favoris"
                                 >

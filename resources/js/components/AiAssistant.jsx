@@ -274,7 +274,7 @@ export default function AiAssistant({ slug }) {
                             {/* Réponse de l'IA */}
                             <div className="flex justify-start">
                                 <div className="max-w-[85%] w-fit min-w-0">
-                                    <div className="bg-white text-black border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3  dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600">
+                                    <div className="bg-surface text-slate-950 border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 ">
                                         {/* Icône IA */}
                                         <div className="flex items-center gap-2 mb-2">
                                             <Sparkles
@@ -282,7 +282,7 @@ export default function AiAssistant({ slug }) {
                                                 strokeWidth={1.75}
                                             />
 
-                                            <span className="text-xs font-medium text-gray-600 dark:text-slate-400">
+                                            <span className="text-xs font-medium text-gray-600">
                                                 Assistant IA
                                             </span>
                                         </div>
@@ -301,9 +301,9 @@ export default function AiAssistant({ slug }) {
                                                 <img
                                                     src={`data:${ex.image.mime};base64,${ex.image.data}`}
                                                     alt="Illustration générée par l'IA"
-                                                    className="max-h-80 w-auto max-w-full rounded-lg border border-gray-200 dark:border-slate-600"
+                                                    className="max-h-80 w-auto max-w-full rounded-lg border border-gray-200"
                                                 />
-                                                <span className="mt-1 flex items-center gap-1 text-xs text-gray-600 dark:text-slate-400">
+                                                <span className="mt-1 flex items-center gap-1 text-xs text-gray-600">
                                                     <ImageIcon className="h-3 w-3" />
                                                     Image générée par l'IA — cliquer pour l'agrandir
                                                 </span>
@@ -364,7 +364,7 @@ export default function AiAssistant({ slug }) {
 
                         <div className="flex justify-start">
                             <div className="max-w-[85%] w-fit min-w-0">
-                                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3  dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100">
+                                <div className="bg-surface border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 ">
                                     <div className="flex items-center gap-2">
                                         <Sparkles
                                             className="h-3.5 w-3.5 text-brass/70"
@@ -372,11 +372,11 @@ export default function AiAssistant({ slug }) {
                                         />
 
                                         {streamText ? (
-                                            <div className="min-w-0 text-black dark:text-slate-100">
+                                            <div className="min-w-0 text-slate-950">
                                                 <AnswerText text={streamText} />
                                             </div>
                                         ) : (
-                                            <span className="text-sm text-gray-500 dark:text-slate-400">
+                                            <span className="text-sm text-gray-500">
                                                 L’assistant est en train d’écrire…
                                                 <span className="ml-2 ai-typing-dots align-middle" aria-label="L’assistant écrit">
                                                     <span></span><span></span><span></span>
@@ -417,7 +417,7 @@ export default function AiAssistant({ slug }) {
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="Poser une question sur ce document…"
                     disabled={loading}
-                    className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-60"
+                    className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-slate-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-60"
                 />
 
                 {/* Bouton Envoyer */}

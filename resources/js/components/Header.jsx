@@ -119,7 +119,7 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
                     {/* Indicateur UX : signale que la photo ouvre un menu (pas un statut) */}
                     <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"
+                        className="pointer-events-none absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-surface bg-emerald-500"
                     />
                 </span>
 
@@ -148,7 +148,7 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
             {open && (
                 <div
                     role="menu"
-                    className={`absolute right-0 top-full z-50 mt-2 ${isAdmin ? "w-64" : "w-48"} max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2`}
+                    className={`absolute right-0 top-full z-50 mt-2 ${isAdmin ? "w-64" : "w-48"} max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2`}
                 >
                     <Link
                         to="/profil"
@@ -168,7 +168,7 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
                                 onClick={toggleSettings}
                                 aria-expanded={settingsOpen}
                                 className={`flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-semibold hover:bg-slate-100 hover:text-slate-900 ${
-                                    inSettings ? "text-indigo-700" : "text-slate-600"
+                                    inSettings ? "text-brass-deep" : "text-slate-600"
                                 }`}
                             >
                                 <Settings className="h-4 w-4" />
@@ -208,7 +208,7 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
                             setOpen(false);
                             openLogoutModal();
                         }}
-                        className="flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-semibold text-rose-600 hover:bg-rose-50"
+                        className="flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-semibold text-rose-700 hover:bg-rose-50"
                     >
                         <LogOut className="h-4 w-4" />
                         Déconnexion
@@ -312,7 +312,7 @@ export default function Header() {
         <>
             {/* ================= HEADER ================= */}
             <header
-                className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl  ${
+                className={`sticky top-0 z-40 border-b border-slate-200/80 bg-surface/85 backdrop-blur-xl  ${
                     isLoggingOut ? "pointer-events-none" : ""
                 }`}
             >
@@ -333,7 +333,7 @@ export default function Header() {
                                 Bibliothèque Numérique
                             </span>
 
-                            <span className="hidden sm:block text-[10px] font-bold uppercase tracking-[.16em] text-indigo-600">
+                            <span className="hidden sm:block text-[10px] font-bold uppercase tracking-[.16em] text-brass">
                                 Université de Mahajanga
                             </span>
                         </span>
@@ -366,7 +366,7 @@ export default function Header() {
                                 {/* S'inscrire */}
                                 <Link
                                     to="/creer-un-compte"
-                                    className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                    className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                 >
                                     <UserPlus className="h-4 w-4" />
                                     S’inscrire
@@ -422,7 +422,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to={catalogueLink}
@@ -441,7 +441,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <LayoutDashboard className="h-4 w-4" />
                                                     Tableau de bord
@@ -455,7 +455,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <LayoutDashboard className="h-4 w-4" />
                                                     Gestion
@@ -469,7 +469,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <ShieldCheck className="h-4 w-4" />
                                                     Administration
@@ -531,7 +531,7 @@ export default function Header() {
                                     </button>
 
                                     {menuOpen && (
-                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 ">
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
                                             {/* Catalogue */}
                                             <Link
                                                 to={catalogueLink}
@@ -550,7 +550,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <LayoutDashboard className="h-4 w-4" />
                                                     Tableau de bord
@@ -564,7 +564,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <UserPlus className="h-4 w-4" />
                                                     S’inscrire
@@ -578,7 +578,7 @@ export default function Header() {
                                                         onClick={() =>
                                                             setMenuOpen(false)
                                                         }
-                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                     >
                                                         <LayoutDashboard className="h-4 w-4" />
                                                         Gestion
@@ -593,7 +593,7 @@ export default function Header() {
                                                     onClick={() =>
                                                         setMenuOpen(false)
                                                     }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                                 >
                                                     <ShieldCheck className="h-4 w-4" />
                                                     Administration
@@ -609,7 +609,7 @@ export default function Header() {
                                                         onClick={() =>
                                                             setMenuOpen(false)
                                                         }
-                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-indigo-600 hover:bg-indigo-50"
+                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-brass hover:bg-indigo-50"
                                                     >
                                                         <LogIn className="h-4 w-4" />
                                                         Connexion
@@ -643,17 +643,17 @@ export default function Header() {
                 sans dépendre de la position de défilement de la page. */}
             {isLoggingOut && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/60 px-4 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 px-4 backdrop-blur-sm"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="logout-title"
                 >
                     <div
-                        className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-4 "
+                        className="w-full max-w-md rounded-3xl border border-slate-200 bg-surface p-4 "
                         onClick={(event) => event.stopPropagation()}
                     >
                         {/* Icône */}
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-brass">
                             <LogOut className="h-6 w-6" />
                         </div>
 
@@ -682,7 +682,7 @@ export default function Header() {
                                 type="button"
                                 onClick={confirmLogout}
                                 disabled={isConfirmingLogout}
-                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white  shadow-rose-600/20 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-80"
+                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white  shadow-rose-600/20 transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-80"
                             >
                                 {isConfirmingLogout ? (
                                     <span>

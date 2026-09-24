@@ -16,7 +16,7 @@ import CounterBar from "../../components/CounterBar";
 import Pager from "../../components/Pager";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
 import SortTh from "../../components/SortTh";
-import { userSections } from "../../lib/detailSections";
+import { ROLES, userSections } from "../../lib/detailSections";
 
 function getUserVal(row, key) {
     if (key === "library") return row.library?.name;
@@ -33,7 +33,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-4 ">
+            <div className="w-full max-w-md rounded-2xl bg-surface p-4 ">
                 {step === "confirm" ? (
                     <>
                         <p className="mb-6 text-sm font-medium text-slate-800">
@@ -48,7 +48,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                             </button>
                             <button
                                 onClick={() => setStep("reason")}
-                                className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white ${danger ? "bg-red-600 hover:bg-red-700" : "bg-violet-600 hover:bg-violet-700"}`}
+                                className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white ${danger ? "bg-red-600 hover:brightness-90" : "bg-indigo-600 hover:bg-indigo-700"}`}
                             >
                                 <Check className="h-4 w-4" /> {confirmLabel}
                             </button>
@@ -66,7 +66,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             rows={4}
-                            className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-violet-500"
+                            className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-brass"
                             placeholder="Expliquez la raison ici..."
                         />
                         <p className="mt-1 text-xs text-slate-400">
@@ -87,7 +87,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                                     await onConfirm(reason.trim());
                                     setSending(false);
                                 }}
-                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:bg-red-700" : "bg-violet-600 hover:bg-violet-700"}`}
+                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:brightness-90" : "bg-indigo-600 hover:bg-indigo-700"}`}
                             >
                                 {sending ? "Envoi..." : "Envoyer"}
                             </button>
@@ -198,11 +198,11 @@ export default function AdminUsersPage() {
         <div>
             <div className="mb-6 flex items-center justify-between gap-4">
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
-                    <Users className="h-5 w-5 text-violet-600" /> Utilisateurs
+                    <Users className="h-5 w-5 text-brass" /> Utilisateurs
                 </h2>
                 <button
                     onClick={() => setShowCreate(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
                     <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
                 </button>
@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
                 note={counts ? `Hors total (gérés dans leurs propres pages) : Bibliothécaires ${counts.hors_total?.bibliothecaire ?? 0} · Administrateurs ${counts.hors_total?.administrateur ?? 0}` : null}
             />
 
-            <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
+            <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
 
             {error && (
                 <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">
@@ -237,33 +237,33 @@ export default function AdminUsersPage() {
                 </div>
             ) : (
                 <>
-                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white sm:block">
+                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort}/><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-right">Actions</th></tr></thead>
                         <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
-                                <td className="px-4 py-3">{u.role}</td><td className="px-4 py-3">{u.library?.name || "—"}</td>
+                                <td className="px-4 py-3">{ROLES[u.role] || u.role}</td><td className="px-4 py-3">{u.library?.name || "—"}</td>
                                 <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span></td>
-                                <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600"><Trash2 className="h-4 w-4"/></button>}</div></td>
+                                <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div></td>
                             </tr>
                         ))}</tbody>
                     </table>
                 </div>
                 <div className="space-y-3 sm:hidden">
-                    {filteredUsers.length === 0 && <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-500">Aucun résultat.</div>}
+                    {filteredUsers.length === 0 && <div className="rounded-2xl border border-slate-200 bg-surface p-5 text-center text-slate-500">Aucun résultat.</div>}
                     {filteredUsers.map((u) => (
-                        <div key={u.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div key={u.id} className="rounded-2xl border border-slate-200 bg-surface p-4">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0"><p className="font-semibold break-words">{u.name}</p><p className="text-xs text-slate-500 break-words">{u.email}</p></div>
                                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span>
                             </div>
-                            <p className="mt-2 text-xs text-slate-500">Rôle : {u.role}</p>
+                            <p className="mt-2 text-xs text-slate-500">Rôle : {ROLES[u.role] || u.role}</p>
                             <p className="mt-1 text-xs text-slate-500">Bibliothèque : {u.library?.name || "—"}</p>
                             <div className="mt-3 flex flex-wrap gap-2">
                                 <ViewButton onClick={() => setViewing(u)} />
                                 {u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}
-                                {!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600"><Trash2 className="h-4 w-4"/></button>}
+                                {!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}
                             </div>
                         </div>
                     ))}

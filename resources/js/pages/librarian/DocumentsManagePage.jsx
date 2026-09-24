@@ -126,7 +126,7 @@ export default function DocumentsManagePage() {
             Publier
           </button>
         )}
-        <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
+        <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-brass hover:text-brass-deep disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
         {doc.status === 'publie' && (
           <button
             onClick={() => archive(doc)}
@@ -159,7 +159,7 @@ export default function DocumentsManagePage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Rechercher un document…"
           aria-label="Rechercher un document"
-          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm"
+          className="w-full rounded-xl border border-slate-200 bg-surface py-3 pl-9 pr-4 text-sm"
         />
       </div>
 
@@ -214,7 +214,7 @@ export default function DocumentsManagePage() {
       {error && <p className="text-red-700 mb-4">{error}</p>}
 
       {documents === null ? (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
       ) : documents.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line p-10 text-center">
           <Inbox className="h-6 w-6 mx-auto text-ink-soft/50 mb-2" strokeWidth={1.5} />

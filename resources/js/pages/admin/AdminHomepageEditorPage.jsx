@@ -47,8 +47,8 @@ function AddSectionDialog({ onAdd, onClose }) {
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-            <div role="dialog" aria-modal="true" aria-label="Ajouter une section" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <div role="dialog" aria-modal="true" aria-label="Ajouter une section" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-5">
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <h3 className="font-display text-lg font-extrabold">Ajouter une section</h3>
                     <button type="button" onClick={onClose} aria-label="Fermer" className="btn-secondary !px-3 !py-2">
@@ -63,7 +63,7 @@ function AddSectionDialog({ onAdd, onClose }) {
                             onClick={() => onAdd(type)}
                             className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50"
                         >
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-brass">
                                 <Icon className="h-4 w-4" />
                             </span>
                             <span className="min-w-0">
@@ -253,7 +253,7 @@ export default function AdminHomepageEditorPage() {
 
     return (
         <div>
-            <Link to="/administrateur/parametres" className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-700">
+            <Link to="/administrateur/parametres" className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brass-deep">
                 <ArrowLeft className="h-4 w-4" /> Paramètres
             </Link>
 
@@ -300,7 +300,7 @@ export default function AdminHomepageEditorPage() {
             )}
 
             {/* Téléphone / tablette : éditeur et aperçu en onglets. */}
-            <div className="mb-4 flex rounded-lg border border-slate-200 bg-white p-0.5 lg:hidden" role="tablist">
+            <div className="mb-4 flex rounded-lg border border-slate-200 bg-surface p-0.5 lg:hidden" role="tablist">
                 {[
                     ["editor", "Éditeur"],
                     ["preview", "Aperçu"],
@@ -341,7 +341,7 @@ export default function AdminHomepageEditorPage() {
                                         setDragIndex(null);
                                         setDropIndex(null);
                                     }}
-                                    className={`rounded-xl border bg-white transition ${
+                                    className={`rounded-xl border bg-surface transition ${
                                         sectionErrors ? "border-rose-300" : dropIndex === index && dragIndex !== index ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"
                                     } ${dragIndex === index ? "opacity-50" : ""}`}
                                 >
@@ -367,7 +367,7 @@ export default function AdminHomepageEditorPage() {
                                             aria-expanded={expanded}
                                             className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                                         >
-                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${section.visible ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-400"}`}>
+                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${section.visible ? "bg-indigo-50 text-brass" : "bg-slate-100 text-slate-400"}`}>
                                                 <Icon className="h-4 w-4" />
                                             </span>
                                             <span className="min-w-0">
@@ -384,7 +384,7 @@ export default function AdminHomepageEditorPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => updateSection(section.id, { ...section, visible: !section.visible })}
-                                                className={`rounded-md p-1.5 ${section.visible ? "text-emerald-600 hover:bg-emerald-50" : "text-slate-400 hover:bg-slate-100"}`}
+                                                className={`rounded-md p-1.5 ${section.visible ? "text-emerald-700 hover:bg-emerald-50" : "text-slate-400 hover:bg-slate-100"}`}
                                                 title={section.visible ? "Visible — cliquer pour masquer" : "Masquée — cliquer pour afficher"}
                                                 aria-label={section.visible ? "Masquer la section" : "Afficher la section"}
                                                 aria-pressed={section.visible}
@@ -422,7 +422,7 @@ export default function AdminHomepageEditorPage() {
                     <button
                         type="button"
                         onClick={() => setShowAdd(true)}
-                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 py-3 text-sm font-bold text-slate-600 transition hover:border-indigo-400 hover:text-indigo-700"
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 py-3 text-sm font-bold text-slate-600 transition hover:border-indigo-400 hover:text-brass-deep"
                     >
                         <Plus className="h-4 w-4" /> Ajouter une section
                     </button>

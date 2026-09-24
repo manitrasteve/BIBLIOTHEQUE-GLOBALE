@@ -282,7 +282,7 @@ export default function AdminActivityPage() {
                                 key={row.id}
                                 className="modern-card flex items-center gap-4 p-4"
                             >
-                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-brass">
                                     <Eye className="h-5 w-5" />
                                 </span>
 
@@ -360,7 +360,7 @@ export default function AdminActivityPage() {
                         {logs.map((row) => (
                             <div key={row.id} className="modern-card p-5">
                                 <div className="flex items-start gap-4">
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-brass">
                                         <Sparkles className="h-5 w-5" />
                                     </span>
 
@@ -381,7 +381,7 @@ export default function AdminActivityPage() {
                                         </div>
 
                                         {row.document?.title && (
-                                            <p className="mt-1 text-xs font-medium text-indigo-600">
+                                            <p className="mt-1 text-xs font-medium text-brass">
                                                 Document : {row.document.title}
                                             </p>
                                         )}
@@ -443,7 +443,7 @@ export default function AdminActivityPage() {
                                 key={row.id}
                                 className="modern-card flex items-center gap-4 p-4"
                             >
-                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
                                     <Heart className="h-5 w-5" />
                                 </span>
 
@@ -513,7 +513,7 @@ export default function AdminActivityPage() {
                     <select
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
-                        className="rounded-lg border border-line bg-white/60 py-2 pl-8 pr-3 text-sm"
+                        className="rounded-lg border border-line bg-surface/60 py-2 pl-8 pr-3 text-sm"
                     >
                         <option value="">Toutes les actions</option>
 

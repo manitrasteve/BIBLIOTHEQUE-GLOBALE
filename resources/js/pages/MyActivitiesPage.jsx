@@ -81,7 +81,7 @@ export default function MyActivitiesPage() {
     return (
         <div>
             <div className="mb-6 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-indigo-600" />
+                <Activity className="h-5 w-5 text-brass" />
                 <h2 className="font-display text-xl font-extrabold">Mes activités</h2>
             </div>
 
@@ -103,7 +103,7 @@ export default function MyActivitiesPage() {
 
                         return (
                             <li key={log.id} className="modern-card flex items-start gap-3 p-4">
-                                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-brass">
                                     <Icon className="h-4 w-4" />
                                 </span>
                                 <div className="min-w-0">

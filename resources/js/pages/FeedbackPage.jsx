@@ -54,7 +54,7 @@ export default function FeedbackPage() {
     return (
         <div className="w-full">
             <h2 className="mb-6 flex items-center gap-2 font-display text-xl font-extrabold">
-                <MessageSquare className="h-5 w-5 text-indigo-600" />
+                <MessageSquare className="h-5 w-5 text-brass" />
                 Avis & Suggestions
             </h2>
 

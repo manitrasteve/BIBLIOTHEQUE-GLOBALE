@@ -14,23 +14,23 @@ const components = {
     h2: (props) => <h3 className="mb-2 mt-3 text-base font-bold" {...props} />,
     h3: (props) => <h4 className="mb-1 mt-3 text-sm font-bold" {...props} />,
     h4: (props) => <h4 className="mb-1 mt-2 text-sm font-semibold" {...props} />,
-    hr: () => <hr className="my-3 border-gray-200 dark:border-slate-600" />,
+    hr: () => <hr className="my-3 border-gray-200" />,
     blockquote: (props) => (
-        <blockquote className="mb-2 border-l-4 border-gray-200 pl-3 italic dark:border-slate-600" {...props} />
+        <blockquote className="mb-2 border-l-4 border-gray-200 pl-3 italic" {...props} />
     ),
     code: (props) => (
-        <code className="rounded bg-gray-100 px-1 py-0.5 text-[0.85em] dark:bg-slate-700" {...props} />
+        <code className="rounded bg-gray-100 px-1 py-0.5 text-[0.85em]" {...props} />
     ),
-    a: (props) => <a className="text-blue-600 underline" target="_blank" rel="noreferrer noopener" {...props} />,
+    a: (props) => <a className="text-blue-700 underline" target="_blank" rel="noreferrer noopener" {...props} />,
     table: (props) => (
         <div className="mb-2 max-w-full overflow-x-auto">
             <table className="min-w-full border-collapse text-xs sm:text-sm" {...props} />
         </div>
     ),
     th: (props) => (
-        <th className="border border-gray-200 bg-gray-100 px-2 py-1 text-left font-semibold dark:border-slate-600 dark:bg-slate-700" {...props} />
+        <th className="border border-gray-200 bg-gray-100 px-2 py-1 text-left font-semibold" {...props} />
     ),
-    td: (props) => <td className="border border-gray-200 px-2 py-1 align-top dark:border-slate-600" {...props} />,
+    td: (props) => <td className="border border-gray-200 px-2 py-1 align-top" {...props} />,
 };
 
 export default function AiMarkdown({ children }) {

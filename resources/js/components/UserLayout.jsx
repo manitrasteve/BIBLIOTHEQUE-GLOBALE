@@ -22,11 +22,11 @@ const ITEM = {
     readings: { to: "/mes-lectures", label: "Mes lectures", icon: BookMarked },
     activities: { to: "/mes-activites", label: "Mes activités", icon: Activity },
     watch: { to: "/veille-scientifique", label: "Veille scientifique", icon: Radar },
-    favorites: { to: "/mes-favoris", label: "❤️ Mes favoris", icon: Heart },
+    favorites: { to: "/mes-favoris", label: "Mes favoris", icon: Heart },
     notifications: { to: "/notifications", label: "Notifications", icon: Bell },
     messages: { to: "/messages", label: "Messages", icon: Mail },
-    feedback: { to: "/avis-suggestions", label: "💬 Avis & Suggestions", icon: MessageSquare },
-    report: { to: "/signaler-un-probleme", label: "🆘 Signaler un problème", icon: LifeBuoy },
+    feedback: { to: "/avis-suggestions", label: "Avis & Suggestions", icon: MessageSquare },
+    report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
 };
 
 const COMMON_END = ["favorites", "notifications", "messages", "feedback", "report"];

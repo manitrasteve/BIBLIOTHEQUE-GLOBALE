@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Radar, Plus, Trash2, Tag, Hash } from "lucide-react";
 import { api } from "../lib/api";
 
-const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm";
+const inputClass = "w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm";
 
 function formatDate(value) {
     if (!value) return "";
@@ -99,7 +99,7 @@ export default function ScientificWatchPage() {
     return (
         <div>
             <div className="mb-6 flex items-center gap-2">
-                <Radar className="h-5 w-5 text-indigo-600" />
+                <Radar className="h-5 w-5 text-brass" />
                 <h2 className="font-display text-xl font-extrabold">Veille scientifique</h2>
             </div>
 
@@ -175,9 +175,9 @@ export default function ScientificWatchPage() {
                             >
                                 <span className="flex items-center gap-2 font-bold text-slate-900">
                                     {topic.type === "domaine" ? (
-                                        <Tag className="h-4 w-4 shrink-0 text-indigo-600" />
+                                        <Tag className="h-4 w-4 shrink-0 text-brass" />
                                     ) : (
-                                        <Hash className="h-4 w-4 shrink-0 text-indigo-600" />
+                                        <Hash className="h-4 w-4 shrink-0 text-brass" />
                                     )}
                                     <span className="break-words">{topic.label}</span>
                                 </span>

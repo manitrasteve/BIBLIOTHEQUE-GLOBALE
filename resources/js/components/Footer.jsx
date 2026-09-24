@@ -2,7 +2,7 @@ import { Sparkles, ShieldCheck, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="mt-8 border-t border-slate-200 bg-white/75">
+    <footer className="mt-8 border-t border-slate-200 bg-surface/75">
       <div className="mx-auto w-full px-4 sm:px-6 xl:px-8 py-6">
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
@@ -22,7 +22,7 @@ export default function Footer() {
           <div>
             <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Plateforme</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
-              <p className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-500" /> Assistant documentaire IA</p>
+              <p className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brass" /> Assistant documentaire IA</p>
               <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-500" /> Consultation sécurisée</p>
             </div>
           </div>
@@ -30,7 +30,7 @@ export default function Footer() {
             <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Informations</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
               <p className="flex items-center gap-2 md:justify-end">
-                <Mail className="h-4 w-4 shrink-0 text-indigo-500" />
+                <Mail className="h-4 w-4 shrink-0 text-brass" />
                 <a href="mailto:bibliothequenumeriquemahajanga@gmail.com" className="break-all hover:underline">bibliothequenumeriquemahajanga@gmail.com</a>
               </p>
               <p className="flex items-center gap-2 md:justify-end">

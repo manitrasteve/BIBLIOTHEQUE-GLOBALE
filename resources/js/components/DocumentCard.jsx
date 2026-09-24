@@ -45,17 +45,17 @@ function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
             className="h-24 w-auto max-w-[60%] rounded object-cover shadow-md ring-1 ring-black/5 transition-transform duration-300 group-hover:-translate-y-0.5"
           />
         ) : (
-          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-indigo-100 shadow-md transition-transform duration-300 group-hover:-translate-y-0.5">
+          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-white/85 shadow-md transition-transform duration-300 group-hover:-translate-y-0.5">
             <TypeIcon className="h-6 w-6" strokeWidth={1.5} />
           </span>
         )}
 
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700 shadow-sm">
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-brass-deep shadow-sm">
           <TypeIcon className="h-3 w-3" />
           {typeCfg.label}
         </span>
         <span
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-indigo-600 shadow-sm"
+          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-surface text-brass shadow-sm"
           title={isPublic ? 'Accès libre' : 'Connexion requise'}
           aria-label={isPublic ? 'Accès libre' : 'Connexion requise'}
         >
@@ -64,7 +64,7 @@ function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
       </div>
 
       <div className="flex flex-1 flex-col p-2.5">
-        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 [overflow-wrap:anywhere] group-hover:text-indigo-700">
+        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 [overflow-wrap:anywhere] group-hover:text-brass-deep">
           {document.title}
         </h3>
         <p className="mt-0.5 truncate text-xs text-slate-500" title={authors}>
@@ -79,7 +79,7 @@ function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
             </span>
           )}
           {language && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-brass-deep">
               <Languages className="h-3 w-3" />
               {language}
             </span>
@@ -119,17 +119,17 @@ export default function DocumentCard({ document, showCategory = false, variant =
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="badge-modern bg-indigo-50 text-indigo-700">
+            <span className="badge-modern bg-indigo-50 text-brass-deep">
               <TypeIcon className="h-3.5 w-3.5" />
               {typeCfg.label}
             </span>
             <span className="font-mono text-[10px] font-bold tracking-wider text-slate-400">{callNumber(document)}</span>
           </div>
           <div className="mt-3 flex items-start gap-2">
-            <h3 className="font-display text-xl font-extrabold leading-snug text-slate-900 group-hover:text-indigo-700">
+            <h3 className="font-display text-xl font-extrabold leading-snug text-slate-900 group-hover:text-brass-deep">
               {document.title}
             </h3>
-            <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 group-hover:text-indigo-600" />
+            <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 group-hover:text-brass" />
           </div>
           {showCategory && document.category && (
             <p className="mt-1 text-sm font-medium text-slate-600">Catégorie : {document.category}</p>
@@ -157,7 +157,7 @@ export default function DocumentCard({ document, showCategory = false, variant =
           <>
             <span className="text-slate-300">•</span>
             <span className="inline-flex items-center gap-1.5">
-              <GraduationCap className="h-3.5 w-3.5 text-indigo-500" />
+              <GraduationCap className="h-3.5 w-3.5 text-brass" />
               Niveau {document.niveau}
             </span>
           </>
@@ -166,14 +166,14 @@ export default function DocumentCard({ document, showCategory = false, variant =
           <>
             <span className="text-slate-300">•</span>
             <span className="inline-flex items-center gap-1.5">
-              <Languages className="h-3.5 w-3.5 text-indigo-500" />
+              <Languages className="h-3.5 w-3.5 text-brass" />
               {language}
             </span>
           </>
         )}
         <span className="text-slate-300">•</span>
         <span className="inline-flex items-center gap-1.5">
-          <AccessIcon className="h-3.5 w-3.5 text-indigo-500" />
+          <AccessIcon className="h-3.5 w-3.5 text-brass" />
           {document.access_level === 'public' ? 'Accès libre' : 'Connexion requise'}
         </span>
       </div>

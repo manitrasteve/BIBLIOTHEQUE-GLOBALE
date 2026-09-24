@@ -158,7 +158,7 @@ export default function ProfilePage() {
                             <p className="mt-1 text-sm text-slate-500">
                                 {user?.email || "Adresse e-mail non disponible"}
                             </p>
-                            {user?.photo_url && <button type="button" onClick={removePhoto} disabled={photoBusy} className="mt-2 text-xs font-semibold text-red-600">Supprimer la photo</button>}
+                            {user?.photo_url && <button type="button" onClick={removePhoto} disabled={photoBusy} className="mt-2 text-xs font-semibold text-red-700">Supprimer la photo</button>}
                         </div>
                     </div>
                 </div>
@@ -178,20 +178,20 @@ export default function ProfilePage() {
 
                     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Numéro de compte</p>
-                            <p className="mt-1 font-bold text-indigo-950">{user?.numero_compte || user?.matricule ||"Non renseigné"}</p>
+                            <p className="text-xs font-bold uppercase tracking-wide text-brass">Numéro de compte</p>
+                            <p className="mt-1 font-bold text-brass-deep">{user?.numero_compte || user?.matricule ||"Non renseigné"}</p>
                         </div>
                         <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Rôle</p>
-                            <p className="mt-1 font-bold text-indigo-950 capitalize">{({etudiant:"Étudiant", enseignant:"Enseignant", chercheur:"Chercheur", autres:"Autres", bibliothecaire:"Service Numérique", administrateur:"Administrateur"})[user?.role] || user?.role || "—"}</p>
+                            <p className="text-xs font-bold uppercase tracking-wide text-brass">Rôle</p>
+                            <p className="mt-1 font-bold text-brass-deep capitalize">{({etudiant:"Étudiant", enseignant:"Enseignant", chercheur:"Chercheur", autres:"Autres", bibliothecaire:"Service Numérique", administrateur:"Administrateur"})[user?.role] || user?.role || "—"}</p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {/* Nom / prénom */}
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-100 bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <User className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <User className="mt-0.5 h-5 w-5 text-blue-700" />
 
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -206,9 +206,9 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Email */}
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-100 bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <Mail className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <Mail className="mt-0.5 h-5 w-5 text-blue-700" />
 
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -223,9 +223,9 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Adresse */}
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-100 bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <MapPin className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <MapPin className="mt-0.5 h-5 w-5 text-blue-700" />
 
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -240,9 +240,9 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Téléphone */}
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-100 bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <Phone className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <Phone className="mt-0.5 h-5 w-5 text-blue-700" />
 
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -256,24 +256,24 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        {user?.school && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">École</p><p className="mt-1 font-semibold text-slate-900">{user.school}</p></div>}
-                        {user?.filiere && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Filière</p><p className="mt-1 font-semibold text-slate-900">{user.filiere}</p></div>}
-                        {user?.niveau_type && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Niveau</p><p className="mt-1 font-semibold text-slate-900">{user.niveau_type}{user.niveau_detail ? ` — ${user.niveau_detail}` : ""}</p></div>}
-                        {user?.specialty && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Spécialité</p><p className="mt-1 font-semibold text-slate-900">{user.specialty}</p></div>}
-                        {user?.diploma && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Diplôme</p><p className="mt-1 font-semibold text-slate-900">{user.diploma}</p></div>}
-                        {user?.workplace && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Entreprise de travail</p><p className="mt-1 font-semibold text-slate-900">{user.workplace}</p></div>}
-                        {user?.researcher_field && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Chercheur en</p><p className="mt-1 font-semibold text-slate-900">{user.researcher_field}</p></div>}
-                        {user?.profession && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Profession</p><p className="mt-1 font-semibold text-slate-900">{user.profession}</p></div>}
-                        {user?.date_of_birth && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Date de naissance</p><p className="mt-1 font-semibold text-slate-900">{new Date(user.date_of_birth).toLocaleDateString("fr-FR")}</p></div>}
-                        {user?.faculty && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Faculté / Institut</p><p className="mt-1 font-semibold text-slate-900">{user.faculty}</p></div>}
-                        {user?.department && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Département</p><p className="mt-1 font-semibold text-slate-900">{user.department}</p></div>}
-                        {user?.position && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Fonction / Grade</p><p className="mt-1 font-semibold text-slate-900">{user.position}</p></div>}
-                        {user?.teaching_specialty && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Domaine d’enseignement</p><p className="mt-1 font-semibold text-slate-900">{user.teaching_specialty}</p></div>}
-                        {user?.research_lab && <div className="rounded-2xl border border-slate-100 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Laboratoire / Centre</p><p className="mt-1 font-semibold text-slate-900">{user.research_lab}</p></div>}
+                        {user?.school && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">École</p><p className="mt-1 font-semibold text-slate-900">{user.school}</p></div>}
+                        {user?.filiere && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Filière</p><p className="mt-1 font-semibold text-slate-900">{user.filiere}</p></div>}
+                        {user?.niveau_type && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Niveau</p><p className="mt-1 font-semibold text-slate-900">{user.niveau_type}{user.niveau_detail ? ` — ${user.niveau_detail}` : ""}</p></div>}
+                        {user?.specialty && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Spécialité</p><p className="mt-1 font-semibold text-slate-900">{user.specialty}</p></div>}
+                        {user?.diploma && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Diplôme</p><p className="mt-1 font-semibold text-slate-900">{user.diploma}</p></div>}
+                        {user?.workplace && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Entreprise de travail</p><p className="mt-1 font-semibold text-slate-900">{user.workplace}</p></div>}
+                        {user?.researcher_field && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Chercheur en</p><p className="mt-1 font-semibold text-slate-900">{user.researcher_field}</p></div>}
+                        {user?.profession && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Profession</p><p className="mt-1 font-semibold text-slate-900">{user.profession}</p></div>}
+                        {user?.date_of_birth && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Date de naissance</p><p className="mt-1 font-semibold text-slate-900">{new Date(user.date_of_birth).toLocaleDateString("fr-FR")}</p></div>}
+                        {user?.faculty && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Faculté / Institut</p><p className="mt-1 font-semibold text-slate-900">{user.faculty}</p></div>}
+                        {user?.department && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Département</p><p className="mt-1 font-semibold text-slate-900">{user.department}</p></div>}
+                        {user?.position && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Fonction / Grade</p><p className="mt-1 font-semibold text-slate-900">{user.position}</p></div>}
+                        {user?.teaching_specialty && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Domaine d’enseignement</p><p className="mt-1 font-semibold text-slate-900">{user.teaching_specialty}</p></div>}
+                        {user?.research_lab && <div className="rounded-2xl border border-slate-100 bg-surface p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Laboratoire / Centre</p><p className="mt-1 font-semibold text-slate-900">{user.research_lab}</p></div>}
                         {/* Genre */}
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-100 bg-surface p-4">
                             <div className="flex items-start gap-3">
-                                <User className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <User className="mt-0.5 h-5 w-5 text-blue-700" />
 
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                                     <button
                                         type="button"
                                         onClick={cancelPasswordChange}
-                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-300"
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-surface px-5 py-3 font-semibold text-slate-700 hover:bg-slate-300"
                                     >
                                         <X className="h-4 w-4" />
                                         Annuler

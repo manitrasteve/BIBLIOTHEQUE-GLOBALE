@@ -17,7 +17,7 @@ const TYPES = [
 ];
 
 const FILTER_KEYS = ["author", "category_id", "type", "year", "library_id", "language"];
-const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm";
+const inputClass = "w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm";
 
 // Espace recherche du chercheur : même moteur que le catalogue (GET /documents),
 // avec des filtres avancés. Les résultats se mettent à jour pendant la saisie.
@@ -102,7 +102,7 @@ export default function ResearchSpacePage() {
     return (
         <div>
             <div className="mb-6 flex items-center gap-2">
-                <Microscope className="h-5 w-5 text-indigo-600" />
+                <Microscope className="h-5 w-5 text-brass" />
                 <h2 className="font-display text-xl font-extrabold">Espace recherche</h2>
             </div>
 

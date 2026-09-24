@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import StatCard from "../components/StatCard";
+import StatCard, { StatCardSkeleton } from "../components/StatCard";
 
 const ROLE_LABELS = {
     etudiant: "Étudiant",
@@ -42,21 +42,21 @@ export default function DashboardPage() {
                 <div className="relative z-10">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <span className="badge-modern bg-white/10 text-indigo-100 ring-1 ring-white/15">
+                            <span className="badge-modern bg-white/10 text-white/85 ring-1 ring-white/15">
                                 <LayoutDashboard className="h-3.5 w-3.5" />
                                 {ROLE_LABELS[user?.role] || "Compte"}
                             </span>
                             <h1 className="mt-4 font-display text-2xl sm:text-2xl font-extrabold tracking-tight">
                                 Bonjour, {user?.name?.split(" ")[0]}
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm sm:text-base leading-6 text-indigo-100">
+                            <p className="mt-2 max-w-2xl text-sm sm:text-base leading-6 text-white/85">
                                 Retrouvez ici vos consultations, vos questions à
                                 l’IA, vos favoris et vos activités récentes.
                             </p>
                         </div>
                         <Link
                             to="/recherche"
-                            className="btn-primary !bg-white/95 !text-indigo-700 "
+                            className="btn-primary !bg-[#ffffff] !text-[#162a45]"
                         >
                             Parcourir le catalogue{" "}
                             <ArrowRight className="h-4 w-4" />
@@ -66,9 +66,21 @@ export default function DashboardPage() {
             </section>
 
             {error && (
-                <p className="mt-5 rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                <p role="alert" className="mt-5 rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
                     {error}
                 </p>
+            )}
+
+            {!data && !error && (
+                <div
+                    role="status"
+                    aria-label="Chargement du tableau de bord"
+                    className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                >
+                    {Array.from({ length: 4 }, (_, index) => (
+                        <StatCardSkeleton key={index} />
+                    ))}
+                </div>
             )}
 
             {data && (

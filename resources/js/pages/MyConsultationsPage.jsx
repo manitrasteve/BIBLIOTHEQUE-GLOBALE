@@ -15,7 +15,7 @@ export default function MyConsultationsPage() {
     return (
         <div>
             <h2 className="mb-6 flex items-center gap-2 font-display text-xl font-extrabold">
-                <Eye className="h-5 w-5 text-indigo-600" /> Mes consultations
+                <Eye className="h-5 w-5 text-brass" /> Mes consultations
             </h2>
 
             {rows === null ? (

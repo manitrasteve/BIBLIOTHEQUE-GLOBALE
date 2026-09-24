@@ -4,7 +4,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 // Champ des pages d'accès (mot de passe oublié, réinitialisation, création du mot de passe) :
 // même présentation que la page de connexion — libellé, icône, hauteur et bordure visibles.
 const fieldClass =
-    "w-full rounded-xl border border-slate-200 py-3 pl-10 text-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
+    "w-full rounded-xl border border-slate-200 py-3 pl-10 text-sm transition focus:border-brass focus:ring-2 focus:ring-indigo-100";
 
 export default function AuthField({ label, type = "text", className = "", ...props }) {
     const id = useId();

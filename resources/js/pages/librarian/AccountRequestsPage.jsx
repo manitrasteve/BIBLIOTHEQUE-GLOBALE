@@ -206,7 +206,7 @@ export default function AccountRequestsPage() {
                         </button>
                         <button
                             onClick={() => reject(r.id)}
-                            className="text-sm font-bold text-rose-600"
+                            className="text-sm font-bold text-rose-700"
                         >
                             <XCircle className="mr-1 inline h-4 w-4" />
                             Rejeter
@@ -225,7 +225,7 @@ export default function AccountRequestsPage() {
                         </button>
                         <button
                             onClick={() => reject(r.id)}
-                            className="text-sm font-bold text-rose-600"
+                            className="text-sm font-bold text-rose-700"
                         >
                             <XCircle className="mr-1 inline h-4 w-4" />
                             Rejeter
@@ -278,7 +278,7 @@ export default function AccountRequestsPage() {
             {/* En-tête */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
-                    <Ticket className="h-5 w-5 text-indigo-600" />
+                    <Ticket className="h-5 w-5 text-brass" />
                     Demandes de création de compte
                 </h2>
 
@@ -298,7 +298,7 @@ export default function AccountRequestsPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Rechercher nom, e-mail, numéro de demande, numéro de compte…"
-                    className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                    className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"
                 />
                 <button className="btn-primary w-full sm:w-auto sm:shrink-0">
                     <Ticket className="h-4 w-4" /> Rechercher
@@ -318,8 +318,8 @@ export default function AccountRequestsPage() {
                         onClick={() => setFilter(key)}
                         className={`rounded-full border px-3 py-1.5 text-sm transition ${
                             filter === key
-                                ? "border-slate-900 bg-slate-900 text-white"
-                                : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700"
+                                ? "border-ink bg-ink text-paper"
+                                : "border-slate-200 bg-surface text-slate-600 hover:border-indigo-300 hover:text-brass-deep"
                         }`}
                     >
                         {LABELS[key]}
@@ -344,7 +344,7 @@ export default function AccountRequestsPage() {
                 </div>
             ) : (
                 <>
-                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white sm:block">
+                <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50">
                             <tr>
@@ -416,12 +416,12 @@ export default function AccountRequestsPage() {
                 </div>
                 <div className="space-y-3 sm:hidden">
                     {visibleRows.length === 0 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-500">
+                        <div className="rounded-2xl border border-slate-200 bg-surface p-5 text-center text-slate-500">
                             Aucun résultat.
                         </div>
                     )}
                     {visibleRows.map((r) => (
-                        <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div key={r.id} className="rounded-2xl border border-slate-200 bg-surface p-4">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                     <p className="font-semibold break-words">{r.first_name} {r.last_name}</p>

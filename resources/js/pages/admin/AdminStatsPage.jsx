@@ -16,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function AdminStatsPage() {
     const [s, setS] = useState(null);
+    const [error, setError] = useState(null);
     const { user } = useAuth();
     // Le bibliothécaire ayant « Voir les statistiques » consulte cette page en lecture seule :
     // les liens vers les pages réservées à l'administrateur sont masqués.
@@ -25,8 +26,16 @@ export default function AdminStatsPage() {
     useEffect(() => {
         api.getAdminDashboard()
             .then(setS)
-            .catch(() => {});
+            .catch(() => setError("Impossible de charger les statistiques pour le moment."));
     }, []);
+
+    if (error) {
+        return (
+            <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                {error}
+            </p>
+        );
+    }
 
     if (!s) {
         return <SkeletonDashboard />;
@@ -122,7 +131,7 @@ export default function AdminStatsPage() {
                         </p>
                     </div>
 
-                    <span className="text-sm font-bold text-indigo-600">
+                    <span className="text-sm font-bold text-brass">
                         Voir →
                     </span>
                 </Link>

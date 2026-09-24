@@ -11,15 +11,15 @@ import { Skeleton } from '../components/Skeleton';
 const chipClass = (active) =>
   `shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
     active
-      ? 'border-indigo-600 bg-indigo-600 text-white'
-      : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
+      ? 'border-brass bg-indigo-600 text-white'
+      : 'border-slate-200 bg-surface text-slate-600 hover:border-indigo-300 hover:text-brass-deep'
   }`;
 
 function SkeletonGrid() {
   return (
     <div role="status" aria-busy="true" aria-label="Chargement des documents" className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
       {Array.from({ length: 12 }, (_, index) => (
-        <div key={index} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div key={index} className="overflow-hidden rounded-xl border border-slate-200 bg-surface">
           <Skeleton className="block h-32 w-full rounded-none" />
           <div className="space-y-1.5 p-2.5">
             <Skeleton className="block h-4 w-5/6" />
@@ -91,7 +91,7 @@ export default function SearchResultsPage() {
         <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-3xl">
           {q ? (
             <>
-              Résultats pour <span className="text-indigo-600">« {q} »</span>
+              Résultats pour <span className="text-brass">« {q} »</span>
             </>
           ) : (
             'Catalogue documentaire'
@@ -132,7 +132,7 @@ export default function SearchResultsPage() {
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="rounded-full border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm font-semibold text-slate-700"
+                className="rounded-full border border-slate-200 bg-surface py-2 pl-9 pr-8 text-sm font-semibold text-slate-700"
               >
                 <option value="">Toutes les langues</option>
                 {LANGUAGES.map((l) => (
@@ -149,7 +149,7 @@ export default function SearchResultsPage() {
                   setCategoryId('');
                   setLanguage('');
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-500 hover:text-indigo-700"
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-500 hover:text-brass-deep"
               >
                 <RotateCcw className="h-4 w-4" />
                 Réinitialiser

@@ -3,7 +3,7 @@
 
 import { stripHtml } from "./utils";
 
-const ROLES = {
+export const ROLES = {
     etudiant: "Étudiant",
     enseignant: "Enseignant",
     chercheur: "Chercheur",
@@ -144,7 +144,7 @@ export function librarySections(library) {
                 [
                     "Lien de localisation (carte)",
                     library.map_link && (
-                        <a href={library.map_link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+                        <a href={library.map_link} target="_blank" rel="noopener noreferrer" className="text-brass underline">
                             {library.map_link}
                         </a>
                     ),

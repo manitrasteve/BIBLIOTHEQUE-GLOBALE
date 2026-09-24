@@ -185,7 +185,7 @@ function HeroSection({ section }) {
                     style={color}
                 >
                     {c.badge && (
-                        <span className="badge-modern w-fit max-w-full bg-white text-indigo-700">
+                        <span className="badge-modern w-fit max-w-full bg-surface text-brass-deep">
                             <LibraryBig className="h-3.5 w-3.5 shrink-0" />
                             <span className="[overflow-wrap:anywhere]">{c.badge}</span>
                         </span>
@@ -198,19 +198,19 @@ function HeroSection({ section }) {
                                 WEIGHTS[style.title_weight] ?? "font-extrabold",
                             )}
                         >
-                            {withHighlight(c.title, c.highlight, color ? "opacity-80" : "text-indigo-100")}
+                            {withHighlight(c.title, c.highlight, color ? "opacity-80" : "text-white/85")}
                         </h1>
                     )}
                     {c.description && (
                         <p
-                            className={cx("mt-5 max-w-2xl text-base leading-7 sm:text-lg [overflow-wrap:anywhere]", !color && "text-indigo-50")}
+                            className={cx("mt-5 max-w-2xl text-base leading-7 sm:text-lg [overflow-wrap:anywhere]", !color && "text-white/90")}
                             style={color}
                         >
                             {c.description}
                         </p>
                     )}
                     {c.show_search && (
-                        <div className={cx("mt-7 w-full max-w-2xl rounded-2xl bg-white p-2 text-left", centered && "mx-auto")}>
+                        <div className={cx("mt-7 w-full max-w-2xl rounded-2xl bg-surface p-2 text-left", centered && "mx-auto")}>
                             <SearchBar />
                         </div>
                     )}
@@ -218,7 +218,7 @@ function HeroSection({ section }) {
                         <div
                             className={cx(
                                 "mt-6 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold",
-                                !color && "text-indigo-50",
+                                !color && "text-white/90",
                                 centered && "justify-center",
                             )}
                             style={color}
@@ -235,10 +235,12 @@ function HeroSection({ section }) {
                     )}
                 </div>
                 {c.show_image && (
-                    <div className="relative hidden min-h-[430px] bg-white lg:block">
+                    <div className="relative hidden min-h-[430px] bg-indigo-100 lg:block">
                         <img
                             src={homepageImageUrl(c.image) || DEFAULT_HERO_IMAGE}
                             alt={c.image_alt || ""}
+                            fetchPriority="high"
+                            decoding="async"
                             className="h-full w-full object-cover object-center"
                         />
                     </div>
@@ -264,7 +266,7 @@ function CategoriesSection({ section, preview }) {
                     <Link
                         key={category.id}
                         to={`/recherche?category_id=${category.id}`}
-                        className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                        className="rounded-full border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-brass-deep"
                     >
                         {category.name}
                     </Link>
@@ -285,7 +287,7 @@ function DocumentsSection({ section, isLocked, preview }) {
     const action = section.content.link_text ? (
         <Link
             to="/recherche"
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-indigo-600 transition hover:text-indigo-700"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-brass transition hover:text-brass-deep"
         >
             {section.content.link_text}
             <ArrowRight className="h-4 w-4" />
@@ -345,7 +347,7 @@ function StatsSection({ section, preview }) {
             <div className="grid gap-4 sm:grid-cols-3">
                 {items.map((item) => (
                     <div key={item.label} className="modern-card p-5">
-                        <p className="font-display text-3xl font-extrabold text-indigo-600">
+                        <p className="font-display text-3xl font-extrabold text-brass">
                             {item.value ?? "—"}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-500">{item.label}</p>
@@ -421,7 +423,7 @@ function CardsSection({ section }) {
                         {item.text && <p className="mt-2 flex-1 text-sm leading-6 text-slate-500 [overflow-wrap:anywhere]">{item.text}</p>}
                         <SmartLink
                             to={item.link}
-                            className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-700"
+                            className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brass hover:text-brass-deep"
                         >
                             En savoir plus
                             <ArrowRight className="h-4 w-4" />

@@ -22,7 +22,8 @@ import {
 export const PREVIEW_MESSAGE = "homepage-preview";
 export const PREVIEW_READY = "homepage-preview-ready";
 
-export const DEFAULT_HERO_IMAGE = "/images/hero-student.png";
+// WebP 1200px (~100 Ko) : l'original PNG pesait 2 Mo et laissait le hero vide pendant le chargement.
+export const DEFAULT_HERO_IMAGE = "/images/hero-student.webp";
 
 // Styles contrôlés proposés à l'administrateur (valeurs prédéfinies uniquement).
 export const STYLE_OPTIONS = {

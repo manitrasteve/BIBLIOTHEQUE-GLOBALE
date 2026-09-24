@@ -11,7 +11,7 @@ export default function LibrarianDashboardPage() {
         <div className="space-y-6">
             <section className="hero-glow p-4 sm:p-9">
                 <div className="relative z-10">
-                    <span className="badge-modern bg-white/10 text-indigo-100 ring-1 ring-white/15">
+                    <span className="badge-modern bg-white/10 text-white/85 ring-1 ring-white/15">
                         <LayoutDashboard className="h-3.5 w-3.5" />
                         Tableau de bord
                     </span>
@@ -20,7 +20,7 @@ export default function LibrarianDashboardPage() {
                         Bienvenue dans votre espace de gestion 👋
                     </h2>
 
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/85">
                         Gérez les demandes de comptes, les documents et
                         consultez le catalogue de la Bibliothèque Numérique.
                     </p>
@@ -32,7 +32,7 @@ export default function LibrarianDashboardPage() {
                     to="/bibliothecaire/tickets-comptes"
                     className="modern-card p-4 transition hover:-translate-y-1"
                 >
-                    <Ticket className="h-7 w-7 text-indigo-600" />
+                    <Ticket className="h-7 w-7 text-brass" />
 
                     <h3 className="mt-4 font-display text-lg font-extrabold">
                         Demandes de compte
@@ -47,7 +47,7 @@ export default function LibrarianDashboardPage() {
                     to="/bibliothecaire/documents"
                     className="modern-card p-4 transition hover:-translate-y-1"
                 >
-                    <FileText className="h-7 w-7 text-indigo-600" />
+                    <FileText className="h-7 w-7 text-brass" />
 
                     <h3 className="mt-4 font-display text-lg font-extrabold">
                         Documents
@@ -62,7 +62,7 @@ export default function LibrarianDashboardPage() {
                     to="/bibliothecaire/catalogue"
                     className="modern-card p-4 transition hover:-translate-y-1"
                 >
-                    <LibraryBig className="h-7 w-7 text-indigo-600" />
+                    <LibraryBig className="h-7 w-7 text-brass" />
 
                     <h3 className="mt-4 font-display text-lg font-extrabold">
                         Catalogue

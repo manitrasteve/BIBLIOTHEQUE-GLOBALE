@@ -153,9 +153,9 @@ export default function DocumentDetailPage() {
                                         </span>
 
                                         {doc.niveau && (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10px] font-medium text-black">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10px] font-medium text-slate-950">
                                                 <GraduationCap
-                                                    className="h-3 w-3 text-black"
+                                                    className="h-3 w-3 text-slate-950"
                                                     strokeWidth={1.5}
                                                 />
                                                 {doc.niveau}
@@ -205,7 +205,7 @@ export default function DocumentDetailPage() {
                                                     Auteur(s)
                                                 </dt>
 
-                                                <dd className="text-xs text-black leading-relaxed">
+                                                <dd className="text-xs text-slate-950 leading-relaxed">
                                                     {doc.authors.join(", ")}
                                                 </dd>
                                             </div>
@@ -225,7 +225,7 @@ export default function DocumentDetailPage() {
                                                     Niveau
                                                 </dt>
 
-                                                <dd className="text-xs font-medium text-black">
+                                                <dd className="text-xs font-medium text-slate-950">
                                                     {doc.niveau}
                                                 </dd>
                                             </div>
@@ -244,7 +244,7 @@ export default function DocumentDetailPage() {
                                                 Bibliothèque
                                             </dt>
 
-                                            <dd className="text-xs text-black leading-relaxed">
+                                            <dd className="text-xs text-slate-950 leading-relaxed">
                                                 {doc.library || "Non précisée"}
                                             </dd>
                                         </div>
@@ -262,7 +262,7 @@ export default function DocumentDetailPage() {
                                                 Catégorie
                                             </dt>
 
-                                            <dd className="text-xs text-black">
+                                            <dd className="text-xs text-slate-950">
                                                 {doc.category || "Non précisée"}
                                             </dd>
                                         </div>
@@ -281,7 +281,7 @@ export default function DocumentDetailPage() {
                                                     Année
                                                 </dt>
 
-                                                <dd className="text-xs text-black">
+                                                <dd className="text-xs text-slate-950">
                                                     {doc.year}
                                                 </dd>
                                             </div>
@@ -301,7 +301,7 @@ export default function DocumentDetailPage() {
                                                     Éditeur
                                                 </dt>
 
-                                                <dd className="text-xs text-black leading-relaxed">
+                                                <dd className="text-xs text-slate-950 leading-relaxed">
                                                     {doc.publisher}
                                                 </dd>
                                             </div>
@@ -321,7 +321,7 @@ export default function DocumentDetailPage() {
                                                     ISBN
                                                 </dt>
 
-                                                <dd className="text-xs text-black font-mono break-all">
+                                                <dd className="text-xs text-slate-950 font-mono break-all">
                                                     {doc.isbn}
                                                 </dd>
                                             </div>

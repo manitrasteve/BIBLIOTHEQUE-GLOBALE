@@ -13,7 +13,7 @@ const NAV = [
     { to: "/administrateur/comptes", label: "Comptes à valider", icon: UserCheck },
     { to: "/administrateur/popularite", label: "Popularité", icon: Heart },
     { to: "/administrateur/avis", label: "Avis des utilisateurs", icon: MessageSquare },
-    { to: "/administrateur/signalements", label: "🆘 Signalements", icon: LifeBuoy },
+    { to: "/administrateur/signalements", label: "Signalements", icon: LifeBuoy },
     { to: "/administrateur/messages", label: "Messages", icon: Mail },
     { to: "/administrateur/activites", label: "Mes activités", icon: Activity },
     { to: "/administrateur/historique", label: "Historique global", icon: History },

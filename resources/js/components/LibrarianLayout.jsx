@@ -142,7 +142,7 @@ export default function LibrarianLayout() {
             {open && (
                 <button
                     type="button"
-                    className="fixed inset-0 z-40 cursor-default bg-slate-950/20 lg:hidden"
+                    className="fixed inset-0 z-40 cursor-default bg-black/20 lg:hidden"
                     aria-label="Fermer le menu de navigation"
                     onClick={() => setOpen(false)}
                 />
@@ -174,7 +174,7 @@ export default function LibrarianLayout() {
                             `relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
                                 isActive
                                     ? "bg-indigo-600 font-bold text-white"
-                                    : "text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                    : "text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                             }`
                         }
                     >
@@ -187,24 +187,23 @@ export default function LibrarianLayout() {
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
-                        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white  shadow-indigo-500/20">
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white sm:h-12 sm:w-12 sm:rounded-2xl">
                             <Landmark className="h-5 w-5" strokeWidth={1.75} />
                         </span>
-                        <div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-indigo-600">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-brass">
                                 Espace Service Numérique
                             </p>
-                            <h1 className="font-display text-2xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+                            <h1 className="font-display text-xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-2xl">
                                 Gestion de la Bibliothèque Globale
                             </h1>
                         </div>
-                    </div>
 
-                    <div className="mb-4 flex justify-end lg:hidden">
+                        {/* Mobile : le bouton du tiroir reste sur la ligne du titre, sans ligne vide dédiée. */}
                         <button
                             type="button"
                             onClick={() => setOpen((value) => !value)}
-                            className="btn-secondary"
+                            className="btn-secondary shrink-0 lg:!hidden"
                             aria-expanded={open}
                             aria-controls={navigationId}
                         >

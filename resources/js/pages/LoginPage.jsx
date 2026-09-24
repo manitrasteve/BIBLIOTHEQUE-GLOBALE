@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-    Mail,
-    Lock,
-    ArrowRight,
-    ShieldCheck,
-    Eye,
-    EyeOff,
-} from "lucide-react";
+import { Lock, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import AuthField from "../components/AuthField";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
@@ -61,13 +54,13 @@ export default function LoginPage() {
                     <h1 className="mt-7 font-display text-2xl font-extrabold leading-tight">
                         Bienvenue dans votre espace documentaire.
                     </h1>
-                    <p className="mt-4 text-sm leading-6 text-indigo-100">
+                    <p className="mt-4 text-sm leading-6 text-white/85">
                         Retrouvez vos consultations et votre assistant IA depuis
                         un seul tableau de bord.
                     </p>
                 </div>
-                <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-indigo-100">
-                    <ShieldCheck className="h-4 w-4 text-indigo-300" />{" "}
+                <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-white/85">
+                    <ShieldCheck className="h-4 w-4 text-white/60" />{" "}
                     Plateforme sécurisée
                 </div>
             </div>
@@ -84,59 +77,26 @@ export default function LoginPage() {
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-7 space-y-5">
-                    <div>
-                        <label
-                            htmlFor="email"
-                            className="mb-2 block text-sm font-bold text-slate-700"
-                        >
-                            Adresse e-mail
-                        </label>
-                        <div className="relative">
-                            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                                id="email"
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-xl py-3 pl-10 pr-3"
-                                placeholder="vous@exemple.com"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="mb-2 block text-sm font-bold text-slate-700"
-                        >
-                            Mot de passe
-                        </label>
-                        <div className="relative">
-                            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                                id="password"
-                                type={showPassword ? "text" : "password"}
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-xl py-3 pl-10 pr-11"
-                                placeholder="Votre mot de passe"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                ) : (
-                                    <Eye className="h-4 w-4" />
-                                )}
-                            </button>
-                        </div>
-                    </div>
+                    <AuthField
+                        label="Adresse e-mail"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="vous@exemple.com"
+                    />
+                    <AuthField
+                        label="Mot de passe"
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Votre mot de passe"
+                    />
                     {error && (
-                        <p className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">
+                        <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">
                             {error}
                         </p>
                     )}
@@ -153,7 +113,7 @@ export default function LoginPage() {
                 <div className="mt-4 text-center">
                     <Link
                         to="/mot-de-passe-oublie"
-                        className="text-sm font-bold text-indigo-600 hover:text-indigo-400"
+                        className="text-sm font-bold text-brass hover:text-brass-deep"
                     >
                         Mot de passe oublié ?
                     </Link>
@@ -162,7 +122,7 @@ export default function LoginPage() {
                     Pas encore de compte ?{" "}
                     <Link
                         to="/creer-un-compte"
-                        className="font-bold text-indigo-600 hover:text-indigo-400"
+                        className="font-bold text-brass hover:text-brass-deep"
                     >
                         Créer un compte
                     </Link>

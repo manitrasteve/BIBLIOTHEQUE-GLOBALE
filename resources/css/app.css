@@ -15,6 +15,10 @@
     --font-display:
         "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 
+    /* Fond de page et fond des cartes / panneaux (bg-canvas, bg-surface). */
+    --color-canvas: #f7f9fc;
+    --color-surface: #ffffff;
+
     --color-paper: #f7f8fa;
     --color-paper-dim: #eef0f3;
 
@@ -38,20 +42,150 @@
     --color-indigo-900: #111f33;
     --color-indigo-950: #0b1422;
 }
+
+/*
+ * =====================================================================
+ * THÈME SOMBRE (activé par ThemeToggle : classe .dark sur <html>)
+ * =====================================================================
+ * Tailwind v4 compile chaque utilitaire de couleur en var(--color-…).
+ * Plutôt que de surcharger les classes une à une, on redéfinit ici les
+ * variables de la palette : bg-*, text-*, border-*, ring-*, les variantes
+ * hover:/focus:/group-hover: et les opacités (/50…) suivent toutes seules.
+ *
+ * Conventions à respecter dans les composants pour que cela fonctionne :
+ *  - fond de carte / panneau : bg-surface (pas bg-white) ;
+ *  - texte de marque : text-brass / text-brass-deep (pas text-indigo-*) ;
+ *  - texte coloré d'état : nuance 700 (text-red-700…) ; les nuances
+ *    500-600 sont réservées aux fonds pleins (boutons) et ne changent pas ;
+ *  - voile de modale : bg-black/40 (pas bg-slate-950/40) ;
+ *  - bg-white / text-white restent blancs dans les deux thèmes
+ *    (texte sur bouton, pastille du logo, effet « verre » bg-white/10) ;
+ *  - bg-indigo-500…950 (marine) restent inchangés : boutons, menu actif.
+ * Aucune classe dark: n'est nécessaire.
+ */
+html.dark {
+    color-scheme: dark;
+
+    --color-canvas: #0b1220;
+    --color-surface: #111827;
+
+    --color-paper: #111827;
+    --color-paper-dim: #1e293b;
+    --color-ink: #e5e7eb;
+    --color-ink-soft: #94a3b8;
+    --color-line: #263244;
+    --color-brass: #7fb1e0;
+    --color-brass-deep: #a9cdf0;
+
+    /* Neutres : échelle inversée (50 = fond légèrement relevé, 950 = texte le plus clair). */
+    --color-slate-50: #151f30;
+    --color-slate-100: #1e293b;
+    --color-slate-200: #263244;
+    --color-slate-300: #334155;
+    --color-slate-400: #74839a;
+    --color-slate-500: #94a3b8;
+    --color-slate-600: #a8b5c7;
+    --color-slate-700: #cbd5e1;
+    --color-slate-800: #e2e8f0;
+    --color-slate-900: #f1f5f9;
+    --color-slate-950: #f8fafc;
+
+    --color-gray-50: #151f30;
+    --color-gray-100: #1e293b;
+    --color-gray-200: #263244;
+    --color-gray-300: #334155;
+    --color-gray-400: #74839a;
+    --color-gray-500: #94a3b8;
+    --color-gray-600: #a8b5c7;
+    --color-gray-700: #cbd5e1;
+    --color-gray-800: #e2e8f0;
+    --color-gray-900: #f1f5f9;
+
+    /* Marine : seules les teintes claires (fonds de puce, survols, bordures) passent en sombre. */
+    --color-indigo-50: #152238;
+    --color-indigo-100: #1b2c47;
+    --color-indigo-200: #263d5f;
+    --color-indigo-300: #3a5a85;
+
+    /*
+     * Couleurs d'état : 50-300 (fonds teintés, bordures) deviennent des teintes
+     * sombres, 700-900 (textes) des teintes claires. La couleur garde son sens
+     * (rouge = erreur, vert = succès…), seule sa luminosité s'inverse.
+     */
+    --color-red-50: #2a1216;
+    --color-red-100: #3b1220;
+    --color-red-200: #6b1d24;
+    --color-red-300: #8b2330;
+    --color-red-700: #fca5a5;
+    --color-red-800: #fecaca;
+    --color-red-900: #fee2e2;
+
+    --color-rose-50: #2b111b;
+    --color-rose-100: #3b0f1e;
+    --color-rose-200: #6d1d3a;
+    --color-rose-300: #8c2449;
+    --color-rose-700: #fda4af;
+    --color-rose-800: #fecdd3;
+    --color-rose-900: #ffe4e6;
+
+    --color-emerald-50: #0b271d;
+    --color-emerald-100: #0f2e22;
+    --color-emerald-200: #14533f;
+    --color-emerald-300: #1a6b51;
+    --color-emerald-700: #6ee7b7;
+    --color-emerald-800: #a7f3d0;
+    --color-emerald-900: #d1fae5;
+
+    --color-green-50: #0d2616;
+    --color-green-100: #10301c;
+    --color-green-200: #1b5230;
+    --color-green-300: #236b3e;
+    --color-green-700: #86efac;
+    --color-green-800: #bbf7d0;
+    --color-green-900: #dcfce7;
+
+    --color-amber-50: #2a1f09;
+    --color-amber-100: #3a2a0a;
+    --color-amber-200: #6b4a10;
+    --color-amber-300: #8a5f14;
+    --color-amber-700: #fcd34d;
+    --color-amber-800: #fde68a;
+    --color-amber-900: #fef3c7;
+
+    --color-yellow-50: #2a2408;
+    --color-yellow-100: #3a320a;
+    --color-yellow-200: #6b5c10;
+    --color-yellow-300: #8a7514;
+    --color-yellow-700: #fde047;
+    --color-yellow-800: #fef08a;
+    --color-yellow-900: #fef9c3;
+
+    --color-orange-50: #2c1a0b;
+    --color-orange-100: #3b220c;
+    --color-orange-200: #6e3a12;
+    --color-orange-300: #8c4a17;
+    --color-orange-700: #fdba74;
+    --color-orange-800: #fed7aa;
+    --color-orange-900: #ffedd5;
+
+    --color-blue-50: #0f1e33;
+    --color-blue-100: #132640;
+    --color-blue-200: #1e3a5f;
+    --color-blue-300: #28507f;
+    --color-blue-700: #93c5fd;
+    --color-blue-800: #bfdbfe;
+    --color-blue-900: #dbeafe;
+
+    --color-sky-50: #0c1f2e;
+    --color-sky-100: #0f2a3d;
+    --color-sky-200: #164766;
+    --color-sky-300: #1d5d85;
+    --color-sky-700: #7dd3fc;
+    --color-sky-800: #bae6fd;
+    --color-sky-900: #e0f2fe;
+}
+
 :root {
-    --primary: #1f3a5f;
-    --primary-2: #162a45;
-
-    --navy: #1f2937;
-    --muted: #6b7280;
-
-    --surface: #ffffff;
-    --border: #d9dee5;
-
-    --success: #2e7d32;
-    --warning: #b26a00;
-    --danger: #c62828;
-
     --app-sidebar-width: 15rem;
     --app-header-height: 4.25rem;
 }
@@ -77,8 +211,8 @@
     gap: 0.125rem;
     padding: 0.75rem 0.625rem max(0.75rem, env(safe-area-inset-bottom));
     overflow-y: auto;
-    background: #ffffff;
-    border-right: 1px solid var(--border);
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-line);
     overscroll-behavior: contain;
 }
 
@@ -149,22 +283,21 @@ html {
 }
 body {
     margin: 0;
-    background: #f7f9fc;
-    color: var(--navy);
+    background: var(--color-canvas);
+    color: var(--color-ink);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 ::selection {
-    background: #dbeafe;
-    color: var(--navy);
+    background: var(--color-blue-100);
+    color: var(--color-ink);
 }
 a {
     transition:
         color 0.2s ease,
         background-color 0.2s ease,
         border-color 0.2s ease,
-        transform 0.2s ease,
-        border-color 0.2s ease;
+        transform 0.2s ease;
 }
 button,
 a,
@@ -179,17 +312,21 @@ button {
 input,
 select,
 textarea {
-    border-color: var(--border);
-    background: #fff;
-    color: var(--navy);
+    border-color: var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
     transition:
         border-color 0.2s,
         transform 0.2s;
 }
+input::placeholder,
+textarea::placeholder {
+    color: var(--color-slate-400);
+}
 input:focus,
 select:focus,
 textarea:focus {
-    border-color: #1f3a5f !important;
+    border-color: var(--color-brass) !important;
 
     outline: none !important;
 }
@@ -200,14 +337,14 @@ button:active {
     transform: translateY(0);
 }
 .surface-card {
-    background: #ffffff;
-    border: 1px solid var(--border);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
 
     border-radius: 10px;
 }
 .modern-card {
-    background: #fff;
-    border: 1px solid var(--border);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
     border-radius: 12px;
     transition:
         transform 0.25s ease,
@@ -215,7 +352,7 @@ button:active {
 }
 .modern-card:hover {
     transform: translateY(-2px);
-    border-color: #bfdbfe;
+    border-color: var(--color-blue-200);
 }
 .btn-primary {
     display: inline-flex;
@@ -226,15 +363,15 @@ button:active {
     border-radius: 8px !important;
     padding: 0.5rem 0.8rem;
     color: #ffffff !important;
-    background: #1f3a5f !important;
+    background: var(--color-indigo-600) !important;
     font-weight: 700;
 }
 .btn-primary:hover {
-    background: #162a45 !important;
+    background: var(--color-indigo-700) !important;
 }
 
 .skeleton {
-    background: #e2e8f0;
+    background: var(--color-slate-200);
     animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
@@ -251,16 +388,16 @@ button:active {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border: 1px solid var(--border) !important;
+    border: 1px solid var(--color-line) !important;
     border-radius: 8px !important;
     padding: 0.5rem 0.8rem;
-    color: var(--navy) !important;
-    background: #fff !important;
+    color: var(--color-ink) !important;
+    background: var(--color-surface) !important;
     font-weight: 600;
 }
 .btn-secondary:hover {
-    border-color: #1f3a5f !important;
-    background: #f7f8fa !important;
+    border-color: var(--color-brass) !important;
+    background: var(--color-slate-50) !important;
 }
 .badge-modern {
     display: inline-flex;
@@ -278,11 +415,12 @@ button:active {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
 }
+/* Bandeau marine : identique dans les deux thèmes (le texte y reste blanc). */
 .hero-glow {
     position: relative;
     overflow: hidden;
     border-radius: 12px;
-    background: #1f3a5f;
+    background: var(--color-indigo-600);
     color: #ffffff;
 
 }
@@ -300,14 +438,14 @@ button:active {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    color: var(--primary);
+    color: var(--color-brass);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 .dashboard-bg {
-    background: #f7f8fa;
+    background: var(--color-canvas);
 }
 
 table {
@@ -315,7 +453,7 @@ table {
     border-spacing: 0;
 }
 thead th {
-    color: #475569;
+    color: var(--color-slate-600);
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -324,21 +462,21 @@ tbody tr {
     transition: background 0.2s ease;
 }
 tbody tr:hover {
-    background: #f7f8fa;
+    background: var(--color-slate-50);
 }
 ::-webkit-scrollbar {
     width: 9px;
     height: 9px;
 }
 ::-webkit-scrollbar-track {
-    background: #eef2f7;
+    background: var(--color-slate-100);
 }
 ::-webkit-scrollbar-thumb {
-    background: #c7cdd8;
+    background: var(--color-slate-300);
     border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #aab2c0;
+    background: var(--color-slate-400);
 }
 @media (max-width: 640px) {
     .page-shell {
@@ -362,233 +500,6 @@ tbody tr:hover {
     background: currentColor;
     opacity: 0.35;
     animation: ai-dot-bounce 1.1s infinite ease-in-out;
-}
-
-/* Thème sombre global : activé par ThemeToggle */
-html.dark body {
-    background: #0b1220;
-    color: #e5e7eb;
-}
-html.dark .dashboard-bg {
-    background: #0b1220;
-}
-html.dark .connected-sidebar {
-    background: #0b1220;
-    border-right-color: #263244;
-}
-html.dark .modern-card,
-html.dark .surface-card {
-    background: #111827;
-    border-color: #263244;
-    color: #e5e7eb;
-}
-html.dark input,
-html.dark select,
-html.dark textarea {
-    background: #111827;
-    color: #e5e7eb;
-    border-color: #334155;
-}
-html.dark input::placeholder,
-html.dark textarea::placeholder {
-    color: #94a3b8;
-}
-html.dark .btn-secondary {
-    background: #111827 !important;
-    color: #e5e7eb !important;
-    border-color: #334155 !important;
-}
-html.dark header {
-    background: #0f172a !important;
-    border-color: #263244 !important;
-}
-html.dark footer {
-    background: #0b1220 !important;
-    border-color: #263244 !important;
-}
-html.dark .text-slate-900 {
-    color: #f8fafc !important;
-}
-html.dark .text-slate-800 {
-    color: #e5e7eb !important;
-}
-html.dark .text-slate-700 {
-    color: #cbd5e1 !important;
-}
-html.dark .text-slate-600,
-html.dark .text-slate-500 {
-    color: #94a3b8 !important;
-}
-html.dark .text-black {
-    color: #e5e7eb !important;
-}
-html.dark .bg-white {
-    background: #111827 !important;
-}
-html.dark .bg-slate-50,
-html.dark .bg-slate-50\/70 {
-    background: #0f172a !important;
-}
-html.dark .border-slate-200,
-html.dark .border-slate-100 {
-    border-color: #263244 !important;
-}
-html.dark .bg-slate-100 {
-    background: #1e293b !important;
-}
-html.dark thead th {
-    color: #94a3b8;
-}
-html.dark tbody tr:hover {
-    background: #16202f;
-}
-html.dark .skeleton {
-    background: #1e293b;
-}
-html.dark ::-webkit-scrollbar-track {
-    background: #0f172a;
-}
-html.dark ::-webkit-scrollbar-thumb {
-    background: #334155;
-}
-html.dark ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-}
-html.dark input:focus,
-html.dark select:focus,
-html.dark textarea:focus {
-    border-color: #5b9bd5 !important;
-}
-html.dark .section-label {
-    color: #7fb1e0;
-}
-
-/*
- * Badges / bandeaux de statut (succès, erreur, avertissement, info).
- * On assombrit uniquement les fonds et bordures "clairs" et on éclaircit
- * le texte associé : la couleur (rouge = erreur, vert = succès, etc.)
- * garde exactement la même signification, seule sa nuance change.
- */
-html.dark .bg-red-50,
-html.dark .bg-red-100 {
-    background: #3b1220 !important;
-}
-html.dark .text-red-600,
-html.dark .text-red-700,
-html.dark .text-red-800 {
-    color: #fca5a5 !important;
-}
-html.dark .border-red-200,
-html.dark .border-red-100 {
-    border-color: #7f1d1d !important;
-}
-
-html.dark .bg-emerald-50,
-html.dark .bg-emerald-100,
-html.dark .bg-green-50,
-html.dark .bg-green-100 {
-    background: #0f2e22 !important;
-}
-html.dark .text-emerald-600,
-html.dark .text-emerald-700,
-html.dark .text-emerald-800,
-html.dark .text-green-600,
-html.dark .text-green-700,
-html.dark .text-green-800 {
-    color: #6ee7b7 !important;
-}
-html.dark .border-emerald-200,
-html.dark .border-green-200 {
-    border-color: #065f46 !important;
-}
-
-html.dark .bg-amber-50,
-html.dark .bg-amber-100,
-html.dark .bg-yellow-50,
-html.dark .bg-yellow-100,
-html.dark .bg-orange-50,
-html.dark .bg-orange-100 {
-    background: #3a2a0a !important;
-}
-html.dark .text-amber-600,
-html.dark .text-amber-700,
-html.dark .text-amber-800,
-html.dark .text-yellow-700,
-html.dark .text-yellow-800,
-html.dark .text-orange-600,
-html.dark .text-orange-700 {
-    color: #fcd34d !important;
-}
-html.dark .border-amber-200,
-html.dark .border-yellow-200,
-html.dark .border-orange-200 {
-    border-color: #78350f !important;
-}
-
-html.dark .bg-blue-50,
-html.dark .bg-blue-100,
-html.dark .bg-sky-50,
-html.dark .bg-sky-100 {
-    background: #0f1e33 !important;
-}
-html.dark .text-blue-600,
-html.dark .text-blue-700,
-html.dark .text-blue-800,
-html.dark .text-sky-600,
-html.dark .text-sky-700 {
-    color: #93c5fd !important;
-}
-html.dark .border-blue-200,
-html.dark .border-sky-200 {
-    border-color: #1e3a5f !important;
-}
-
-html.dark .bg-violet-50,
-html.dark .bg-violet-100 {
-    background: #241a3d !important;
-}
-html.dark .text-violet-600,
-html.dark .text-violet-700,
-html.dark .text-violet-800 {
-    color: #c4b5fd !important;
-}
-html.dark .border-violet-200,
-html.dark .border-violet-500 {
-    border-color: #4c1d95 !important;
-}
-
-html.dark .bg-indigo-50,
-html.dark .bg-indigo-100 {
-    background: #111827 !important;
-}
-html.dark .text-indigo-500,
-html.dark .text-indigo-600,
-html.dark .text-indigo-700,
-html.dark .text-indigo-800,
-html.dark .text-indigo-900,
-html.dark .text-indigo-950 {
-    color: #93c5fd !important;
-}
-html.dark .border-indigo-200,
-html.dark .border-indigo-100 {
-    border-color: #263244 !important;
-}
-
-html.dark .bg-rose-50,
-html.dark .bg-rose-100 {
-    background: #3b0f1e !important;
-}
-html.dark .border-rose-200 {
-    border-color: #7f1d3f !important;
-}
-
-/* Éditeur de texte enrichi (RichTextEditor) : bg-white/60 n'est pas ciblé par les
-   règles "html.dark input/textarea" puisque la zone éditable est un <div>, pas un champ natif. */
-html.dark .rte-shell {
-    background: #111827;
-}
-html.dark .rte-shell:focus-within {
-    border-color: #5b9bd5;
 }
 
 /*
@@ -630,30 +541,14 @@ html.dark .rte-shell:focus-within {
     text-decoration: underline;
 }
 
-/* Cartes de statistiques (StatCard) : anneaux et pastille décorative adaptés au mode sombre. */
-html.dark .ring-indigo-100,
-html.dark .ring-amber-100,
-html.dark .ring-rose-100,
-html.dark .ring-emerald-100 {
-    --tw-ring-color: #111827;
+/* Points « l'assistant écrit… » : l'animation était référencée sans être définie. */
+@keyframes ai-dot-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+    40% { transform: translateY(-3px); opacity: 1; }
 }
-html.dark .bg-indigo-50\/70 {
-    background: #162033 !important;
-}
+.ai-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.ai-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
 
-/*
- * Système de couleurs "paper / ink / line / brass" (voir @theme plus haut).
- * Redéfinition des variables en mode sombre : toutes les classes
- * bg-paper, text-ink, text-ink-soft, border-line, text-brass, etc.
- * utilisées dans les composants et pages s'adaptent automatiquement,
- * sans modification de chaque fichier.
- */
-html.dark {
-    --color-paper: #111827;
-    --color-paper-dim: #1e293b;
-    --color-ink: #e5e7eb;
-    --color-ink-soft: #94a3b8;
-    --color-line: #263244;
-    --color-brass: #5b9bd5;
-    --color-brass-deep: #3f7cb8;
+@media (prefers-reduced-motion: reduce) {
+    .ai-typing-dots span { animation: none; }
 }

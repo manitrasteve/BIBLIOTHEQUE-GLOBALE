@@ -13,7 +13,7 @@ const TYPE_OPTIONS = ["Mémoire", "Livre", "Thèse", "Rapport", "Document", "Aut
 const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
 
-const inputClass = "w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm";
+const inputClass = "w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm";
 
 const ACCESS_LEVELS = [
     { value: "public", label: "Public (aucune connexion requise)" },
@@ -210,7 +210,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, title: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
                         />
                     </div>
 
@@ -223,7 +223,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, subtitle: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
                         />
                     </div>
                 </div>
@@ -340,7 +340,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, library_id: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm"
                         >
                             <option value="">—</option>
                             {libraries.map((l) => (
@@ -417,7 +417,7 @@ export default function DocumentFormPage() {
                             onChange={(e) =>
                                 setForm({ ...form, access_level: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-white/60 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm"
                         >
                             {ACCESS_LEVELS.map((a) => (
                                 <option key={a.value} value={a.value}>

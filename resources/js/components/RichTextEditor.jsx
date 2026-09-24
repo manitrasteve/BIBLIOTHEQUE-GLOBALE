@@ -57,7 +57,7 @@ export default function RichTextEditor({ value, onChange }) {
     if (!editor) return null;
 
     return (
-        <div className="rte-shell overflow-hidden rounded-lg border border-line bg-white/60 focus-within:ring-2 focus-within:ring-brass/40">
+        <div className="rte-shell overflow-hidden rounded-lg border border-line bg-surface/60 focus-within:ring-2 focus-within:ring-brass/40">
             <div className="rte-toolbar flex flex-wrap items-center gap-1 border-b border-line bg-paper-dim/40 px-2 py-1.5">
                 <ToolbarButton
                     label="Gras"

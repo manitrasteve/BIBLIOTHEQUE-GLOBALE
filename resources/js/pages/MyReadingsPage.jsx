@@ -49,7 +49,7 @@ export default function MyReadingsPage() {
     return (
         <div>
             <div className="mb-6 flex items-center gap-2">
-                <BookMarked className="h-5 w-5 text-indigo-600" />
+                <BookMarked className="h-5 w-5 text-brass" />
                 <h2 className="font-display text-xl font-extrabold">Mes lectures</h2>
             </div>
 
@@ -61,7 +61,7 @@ export default function MyReadingsPage() {
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Filtrer par titre ou auteur…"
                     aria-label="Filtrer mes lectures"
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-surface py-2.5 pl-9 pr-3 text-sm"
                 />
             </div>
 
@@ -97,7 +97,7 @@ export default function MyReadingsPage() {
                                         {row.views > 1 ? ` · ${row.views} consultations` : ""}
                                     </p>
                                     {position && (
-                                        <p className="mt-1 text-xs font-semibold text-indigo-600">
+                                        <p className="mt-1 text-xs font-semibold text-brass">
                                             Dernière page consultée : {position}
                                         </p>
                                     )}

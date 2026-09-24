@@ -46,7 +46,7 @@ export default function TicketReceiptPage() {
     if (error) {
         return (
             <main className="min-h-screen bg-paper px-4 py-10">
-                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-5 text-center">
+                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-surface p-5 text-center">
                     <h1 className="text-2xl font-bold text-ink">
                         Demande introuvable
                     </h1>
@@ -67,7 +67,7 @@ export default function TicketReceiptPage() {
     if (!ticket) {
         return (
             <main className="min-h-screen bg-paper px-4 py-10">
-                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-5 text-center">
+                <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-surface p-5 text-center">
                     <p className="text-sm text-ink-soft">
                         Chargement de votre demande...
                     </p>
@@ -124,7 +124,7 @@ export default function TicketReceiptPage() {
                 {/* EN-TÊTE */}
                 <div className="text-center">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-50">
-                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                        <CheckCircle2 className="h-8 w-8 text-green-700" />
                     </div>
 
                     <h1 className="mt-5 text-2xl font-bold text-ink md:text-2xl">
@@ -138,7 +138,7 @@ export default function TicketReceiptPage() {
                 </div>
 
                 {/* CARTE PRINCIPALE */}
-                <div className="mt-8 rounded-2xl border border-line bg-white p-5 md:p-5">
+                <div className="mt-8 rounded-2xl border border-line bg-surface p-5 md:p-5">
                     {/* INFORMATIONS DE LA DEMANDE */}
                     <div className="grid gap-4 md:grid-cols-3">
                         {/* N° DEMANDE */}
@@ -172,7 +172,7 @@ export default function TicketReceiptPage() {
                                 Statut
                             </p>
 
-                            <p className="mt-2 text-sm font-bold text-amber-600">
+                            <p className="mt-2 text-sm font-bold text-amber-700">
                                 {statusLabel}
                             </p>
                         </div>
@@ -329,7 +329,7 @@ export default function TicketReceiptPage() {
                     <div className="mt-8 flex justify-center">
                         <Link
                             to="/"
-                            className="inline-flex items-center justify-center rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-paper"
+                            className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink transition hover:bg-paper"
                         >
                             Retour à l'accueil
                         </Link>

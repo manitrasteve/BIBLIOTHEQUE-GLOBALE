@@ -97,16 +97,16 @@ function Inbox({ kind }) {
             <div className="flex items-center justify-between gap-4 mb-6">
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
                     {isFeedback ? (
-                        <MessageSquare className="h-5 w-5 text-indigo-600" />
+                        <MessageSquare className="h-5 w-5 text-brass" />
                     ) : (
-                        <LifeBuoy className="h-5 w-5 text-indigo-600" />
+                        <LifeBuoy className="h-5 w-5 text-brass" />
                     )}
                     {isFeedback ? "Avis des utilisateurs" : "Signalements"}
                 </h2>
                 {isAdmin && !!rows?.length && (
                     <button
                         onClick={clearAll}
-                        className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                         Effacer tout l'historique
@@ -170,7 +170,7 @@ function Inbox({ kind }) {
                                 <button
                                     onClick={() => removeOne(r)}
                                     title="Supprimer"
-                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>

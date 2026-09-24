@@ -21,11 +21,11 @@ export function SkeletonList({ count = 4 }) {
 }
 
 export function SkeletonDashboard() {
-    return <div role="status" aria-busy="true" aria-label="Chargement du tableau de bord"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="rounded-2xl border border-slate-200 bg-white p-5"><Skeleton className="block h-3 w-2/3" /><Skeleton className="mt-4 block h-8 w-1/2" /></div>)}</div><SkeletonList count={3} className="mt-6" /></div>;
+    return <div role="status" aria-busy="true" aria-label="Chargement du tableau de bord"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="rounded-2xl border border-slate-200 bg-surface p-5"><Skeleton className="block h-3 w-2/3" /><Skeleton className="mt-4 block h-8 w-1/2" /></div>)}</div><SkeletonList count={3} className="mt-6" /></div>;
 }
 
 export function SkeletonProfile() {
-    return <div role="status" aria-busy="true" aria-label="Chargement du profil" className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-center gap-4"><Skeleton className="h-20 w-20 rounded-full" /><div className="flex-1"><Skeleton className="block h-6 w-1/3" /><Skeleton className="mt-3 block h-4 w-1/2" /></div></div><div className="mt-7 grid gap-4 md:grid-cols-2">{Array.from({ length: 6 }, (_, index) => <div key={index}><Skeleton className="block h-3 w-1/3" /><Skeleton className="mt-2 block h-10 w-full rounded-xl" /></div>)}</div></div>;
+    return <div role="status" aria-busy="true" aria-label="Chargement du profil" className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-surface p-4"><div className="flex items-center gap-4"><Skeleton className="h-20 w-20 rounded-full" /><div className="flex-1"><Skeleton className="block h-6 w-1/3" /><Skeleton className="mt-3 block h-4 w-1/2" /></div></div><div className="mt-7 grid gap-4 md:grid-cols-2">{Array.from({ length: 6 }, (_, index) => <div key={index}><Skeleton className="block h-3 w-1/3" /><Skeleton className="mt-2 block h-10 w-full rounded-xl" /></div>)}</div></div>;
 }
 
 export function SkeletonDocumentDetail() {
@@ -33,5 +33,5 @@ export function SkeletonDocumentDetail() {
 }
 
 export function SkeletonPermissions() {
-    return <div role="status" aria-busy="true" aria-label="Chargement des permissions" className="grid gap-6 lg:grid-cols-[280px_1fr]"><div className="rounded-2xl border border-slate-200 bg-white p-4"><Skeleton className="block h-10 w-full rounded-xl" /><SkeletonList count={4} className="mt-4" /></div><div className="rounded-2xl border border-slate-200 bg-white p-4"><Skeleton className="block h-7 w-1/3" /><SkeletonText lines={2} className="mt-4" /><div className="mt-6 space-y-4">{Array.from({ length: 3 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 p-4"><Skeleton className="block h-4 w-1/4" /><SkeletonText lines={3} className="mt-4" /></div>)}</div></div></div>;
+    return <div role="status" aria-busy="true" aria-label="Chargement des permissions" className="grid gap-6 lg:grid-cols-[280px_1fr]"><div className="rounded-2xl border border-slate-200 bg-surface p-4"><Skeleton className="block h-10 w-full rounded-xl" /><SkeletonList count={4} className="mt-4" /></div><div className="rounded-2xl border border-slate-200 bg-surface p-4"><Skeleton className="block h-7 w-1/3" /><SkeletonText lines={2} className="mt-4" /><div className="mt-6 space-y-4">{Array.from({ length: 3 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 p-4"><Skeleton className="block h-4 w-1/4" /><SkeletonText lines={3} className="mt-4" /></div>)}</div></div></div>;
 }

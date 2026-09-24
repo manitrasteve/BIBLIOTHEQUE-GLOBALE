@@ -71,20 +71,20 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
         }));
     };
 
-    const inputClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100";
-    const labelClass = "block text-sm font-semibold text-slate-700 dark:text-slate-200";
+    const inputClass = "mt-2 w-full rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 outline-none focus:border-brass focus:ring-2 focus:ring-indigo-500/20";
+    const labelClass = "block text-sm font-semibold text-slate-700";
 
     if (step === 1) return <div className="grid gap-5 md:grid-cols-2">
         <label className={labelClass}>Nom *<input required value={form.last_name} onChange={update("last_name")} className={inputClass} /></label>
         <label className={labelClass}>Prénom<input value={form.first_name} onChange={update("first_name")} className={inputClass} /></label>
         <label className={labelClass}>Né(e), le *<input required type="date" value={form.date_of_birth} onChange={updateBirthDate} className={inputClass} /></label>
         <label className={labelClass}>Lieu de naissance *<input required value={form.birth_place} onChange={update("birth_place")} className={inputClass} /></label>
-        <fieldset className="rounded-xl border border-slate-200 p-3 dark:border-slate-600"><legend className="px-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Genre *</legend><div className="flex gap-5 pt-1">{[["masculin", "Masculin"], ["feminin", "Féminin"]].map(([value, label]) => <label key={value} className="flex items-center gap-2 text-sm dark:text-slate-200"><input required type="radio" name="admin-gender" value={value} checked={form.gender === value} onChange={update("gender")} />{label}</label>)}</div></fieldset>
+        <fieldset className="rounded-xl border border-slate-200 p-3"><legend className="px-1 text-sm font-semibold text-slate-700">Genre *</legend><div className="flex gap-5 pt-1">{[["masculin", "Masculin"], ["feminin", "Féminin"]].map(([value, label]) => <label key={value} className="flex items-center gap-2 text-sm"><input required type="radio" name="admin-gender" value={value} checked={form.gender === value} onChange={update("gender")} />{label}</label>)}</div></fieldset>
         {adult ? <>
             <label className={labelClass}>CIN n° *<input required inputMode="numeric" pattern="[0-9]{12}" maxLength={12} placeholder="Taper le n° de CIN à 12 chiffres" value={form.cin_number} onChange={(event) => setForm((current) => ({ ...current, cin_number: event.target.value.replace(/\D/g, "").slice(0, 12) }))} className={inputClass} /></label>
             <label className={labelClass}>Délivré le *<input required type="date" value={form.cin_issued_at} onChange={update("cin_issued_at")} className={inputClass} /></label>
         </> : isCompleteBirthDate(form.date_of_birth) && (
-            <p className="self-end rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <p className="self-end rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
                 Moins de 18 ans : la CIN n'est pas demandée.
             </p>
         )}
@@ -94,9 +94,9 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
     </div>;
 
     return <div className="space-y-6">
-        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Quel est votre centre ? *</legend><p className="mb-2 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Instituts</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(0, 5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-600 dark:text-slate-200"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div><p className="mb-2 mt-4 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Facultés</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-600 dark:text-slate-200"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div></fieldset>
+        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700">Quel est votre centre ? *</legend><p className="mb-2 text-xs font-bold uppercase text-slate-500">Instituts</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(0, 5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div><p className="mb-2 mt-4 text-xs font-bold uppercase text-slate-500">Facultés</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div></fieldset>
         <div className="grid gap-5 md:grid-cols-2"><label className={labelClass}>Filière *<input required value={form.filiere} onChange={update("filiere")} className={inputClass} /></label><label className={labelClass}>N° de carte d'étudiant *<input required value={form.student_card_number} onChange={update("student_card_number")} className={inputClass} /></label></div>
-        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Niveau{requireLevel ? " *" : ""}</legend><div className="flex flex-wrap gap-4">{STUDENT_LEVELS.map((level) => <label key={level} className="flex items-center gap-2 text-sm dark:text-slate-200"><input type="radio" required={requireLevel} name="niveau_detail" value={level} checked={form.niveau_detail === level} onChange={update("niveau_detail")} />{level}</label>)}</div></fieldset>
+        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700">Niveau{requireLevel ? " *" : ""}</legend><div className="flex flex-wrap gap-4">{STUDENT_LEVELS.map((level) => <label key={level} className="flex items-center gap-2 text-sm"><input type="radio" required={requireLevel} name="niveau_detail" value={level} checked={form.niveau_detail === level} onChange={update("niveau_detail")} />{level}</label>)}</div></fieldset>
     </div>;
 }
 
@@ -204,7 +204,7 @@ export default function CreateUserForm({
         <div className="w-full">
             <div className="w-full">
                 <div className="mb-4">
-                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[.2em] text-violet-600">
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[.2em] text-brass">
                         {eyebrow}
                     </p>
                     <h1 className="font-display text-2xl font-extrabold text-slate-900">
@@ -216,7 +216,7 @@ export default function CreateUserForm({
                 </div>
                 <form
                     onSubmit={submit}
-                    className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 sm:p-5"
+                    className="rounded-3xl border border-slate-200 bg-surface p-5 sm:p-5"
                 >
                     {notice && (
                         <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -236,7 +236,7 @@ export default function CreateUserForm({
                             {roles.map((r) => (
                                 <label
                                     key={r.value}
-                                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 font-semibold ${form.role === r.value ? "border-violet-500 bg-violet-50 text-violet-700" : "border-slate-200"}`}
+                                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 font-semibold ${form.role === r.value ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200"}`}
                                 >
                                     <input
                                         type="radio"

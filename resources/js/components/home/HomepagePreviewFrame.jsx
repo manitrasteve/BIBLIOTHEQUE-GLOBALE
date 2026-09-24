@@ -56,7 +56,7 @@ export default function HomepagePreviewFrame({ sections, label }) {
         <div className="flex h-full flex-col">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-bold text-slate-700">Aperçu</p>
-                <div className="flex rounded-lg border border-slate-200 bg-white p-0.5" role="group" aria-label="Taille d'écran de l'aperçu">
+                <div className="flex rounded-lg border border-slate-200 bg-surface p-0.5" role="group" aria-label="Taille d'écran de l'aperçu">
                     {Object.entries(DEVICES).map(([key, { label: deviceLabel, icon: Icon }]) => (
                         <button
                             key={key}
@@ -80,7 +80,7 @@ export default function HomepagePreviewFrame({ sections, label }) {
                     ref={frameRef}
                     src="/apercu-page-accueil"
                     title="Aperçu de la page d'accueil"
-                    className="absolute left-0 top-0 border-0 bg-white"
+                    className="absolute left-0 top-0 border-0 bg-surface"
                     style={{
                         width,
                         height: box.height / scale || "100%",

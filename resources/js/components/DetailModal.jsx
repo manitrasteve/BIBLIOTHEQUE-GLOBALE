@@ -10,7 +10,7 @@ export function ViewButton({ onClick, label = "Voir" }) {
             onClick={onClick}
             title={label}
             aria-label={label}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-700"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-brass-deep"
         >
             <Eye className="h-4 w-4" />
         </button>
@@ -41,7 +41,7 @@ export default function DetailModal({ title, subtitle, media, sections, onClose 
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
-                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 sm:p-4"
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-5 text-slate-900 sm:p-4"
             >
                 <div className="mb-5 flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -58,7 +58,7 @@ export default function DetailModal({ title, subtitle, media, sections, onClose 
                 <div className="space-y-6">
                     {visible.map((section) => (
                         <section key={section.title}>
-                            <h4 className="mb-3 border-b border-slate-100 pb-2 text-xs font-extrabold uppercase tracking-wide text-indigo-600">
+                            <h4 className="mb-3 border-b border-slate-100 pb-2 text-xs font-extrabold uppercase tracking-wide text-brass">
                                 {section.title}
                             </h4>
                             <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
