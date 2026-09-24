@@ -13,6 +13,7 @@ import {
     X,
     Settings,
     LayoutTemplate,
+    Palette,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -35,6 +36,7 @@ const ROLE_LABELS = {
 const SETTINGS_PATH = "/administrateur/parametres";
 const SETTINGS_LINKS = [
     { to: "/administrateur/parametres/page-accueil", label: "Modifier la page d'accueil", icon: LayoutTemplate },
+    { to: "/administrateur/parametres/apparence", label: "Apparence du site", icon: Palette },
 ];
 
 // Petit menu déroulant de la photo de profil : Profil + (Paramètres pour l'admin) + Déconnexion

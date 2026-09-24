@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Landmark, Plus, UserX, UserCheck, X, Search } from "lucide-react";
+import { Landmark, Plus, UserX, UserCheck, X, Search, RefreshCw } from "lucide-react";
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
@@ -20,7 +20,7 @@ function Form({ onClose, onCreated }) {
         setError(null);
         try {
             const response = await api.createLibrarian(form);
-            onCreated(response.user);
+            onCreated(response);
         } catch (requestError) {
             setError(requestError?.data?.message || Object.values(requestError?.data?.errors || {})[0]?.[0] || "Création impossible.");
         } finally {
@@ -74,6 +74,8 @@ export default function AdminLibrariansPage() {
     const [error, setError] = useState(null);
     const [viewing, setViewing] = useState(null);
     const [query, setQuery] = useState("");
+    const [notice, setNotice] = useState(null); // résultat d'une création ou d'un renvoi de lien
+    const [resending, setResending] = useState(null);
 
     // Recherche pendant la saisie sur le nom (partielle, sans casse ni accents) : filtre uniquement l'affichage.
     const visibleRows = rows.filter((user) => matchesSearch(user.name, query));
@@ -96,5 +98,20 @@ export default function AdminLibrariansPage() {
         catch (requestError) { setError(requestError?.data?.message || "Désactivation impossible."); }
     }
 
-    return <div><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-display text-xl font-extrabold"><Landmark className="h-5 w-5 text-brass" /> Service Numérique</h2><p className="mt-1 text-sm text-slate-500">Gérez les membres du Service Numérique.</p></div><button onClick={() => setCreate(true)} className="btn-primary"><Plus className="h-4 w-4" /> Ajouter un Service Numérique</button></div><CounterBar total={loaded ? rows.length : null} items={[{ label: "Actifs", value: activeCount }, { label: "Désactivés", value: rows.length - activeCount }]} /><div className="relative mb-5 w-full sm:max-w-[600px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un bibliothécaire…" aria-label="Rechercher un bibliothécaire" className="w-full rounded-xl border border-slate-200 bg-surface py-3 pl-9 pr-4 text-sm" /></div>{error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="space-y-3">{visibleRows.map((user) => <div key={user.id} className="modern-card flex flex-wrap items-center justify-between gap-4 p-4"><div><p className="font-bold">{user.name}</p><p className="text-xs text-slate-500">{user.email} · Numéro de compte {user.matricule ||"—"}</p></div><div className="flex flex-wrap items-center gap-2"><ViewButton onClick={() => setViewing(user)} /><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{user.is_active ? "Actif" : "Désactivé"}</span>{user.is_active ? <button onClick={() => setModal({ type: "deactivate", user })} className="flex items-center gap-1.5 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700"><UserX className="h-3.5 w-3.5" /> Désactiver</button> : <button onClick={() => api.reactivateUser(user.id).then(load)} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700"><UserCheck className="h-3.5 w-3.5" /> Réactiver</button>}</div></div>)}{rows.length === 0 && <div className="modern-card p-10 text-center text-slate-500">Aucun bibliothécaire.</div>}{rows.length > 0 && visibleRows.length === 0 && <div className="modern-card p-10 text-center text-slate-500">Aucun bibliothécaire trouvé.</div>}</div>{create && <Form onClose={() => setCreate(false)} onCreated={(user) => { setRows((current) => [user, ...current]); setCreate(false); }} />}{viewing && <DetailModal title={viewing.name} subtitle={viewing.email} sections={userSections(viewing, libraries.find((library) => library.id === viewing.library_id)?.name)} onClose={() => setViewing(null)} />}{modal?.type === "deactivate" && <ReasonModal title="Êtes-vous sûr de désactiver ce compte ?" onCancel={() => setModal(null)} onConfirm={deactivate} />}</div>;
+    // Lien de création du mot de passe renvoyé à un bibliothécaire qui ne l'a pas encore créé.
+    async function resendLink(user) {
+        setResending(user.id);
+        setError(null);
+        setNotice(null);
+        try {
+            const response = await api.resendLibrarianSetupLink(user.id);
+            setNotice({ text: response.message, warning: false });
+        } catch (requestError) {
+            setError(requestError?.data?.message || "Envoi impossible.");
+        } finally {
+            setResending(null);
+        }
+    }
+
+    return <div><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-display text-xl font-extrabold"><Landmark className="h-5 w-5 text-brass" /> Service Numérique</h2><p className="mt-1 text-sm text-slate-500">Gérez les membres du Service Numérique.</p></div><button onClick={() => setCreate(true)} className="btn-primary"><Plus className="h-4 w-4" /> Ajouter un Service Numérique</button></div><CounterBar total={loaded ? rows.length : null} items={[{ label: "Actifs", value: activeCount }, { label: "Désactivés", value: rows.length - activeCount }]} /><div className="relative mb-5 w-full sm:max-w-[600px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un bibliothécaire…" aria-label="Rechercher un bibliothécaire" className="w-full rounded-xl border border-slate-200 bg-surface py-3 pl-9 pr-4 text-sm" /></div>{notice && <p role={notice.warning ? "alert" : "status"} className={`mb-4 rounded-xl border p-3 text-sm font-medium ${notice.warning ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{notice.text}</p>}{error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="space-y-3">{visibleRows.map((user) => <div key={user.id} className="modern-card flex flex-wrap items-center justify-between gap-4 p-4"><div><p className="font-bold">{user.name}</p><p className="text-xs text-slate-500">{user.email} · Numéro de compte {user.matricule ||"—"}</p></div><div className="flex flex-wrap items-center gap-2"><ViewButton onClick={() => setViewing(user)} />{!user.password_set_at ? <><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Mot de passe non créé</span><button onClick={() => resendLink(user)} disabled={resending !== null} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${resending === user.id ? "animate-spin" : ""}`} /> {resending === user.id ? "Envoi…" : "Renvoyer le lien"}</button></> : <><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{user.is_active ? "Actif" : "Désactivé"}</span>{user.is_active ? <button onClick={() => setModal({ type: "deactivate", user })} className="flex items-center gap-1.5 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700"><UserX className="h-3.5 w-3.5" /> Désactiver</button> : <button onClick={() => api.reactivateUser(user.id).then(load)} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700"><UserCheck className="h-3.5 w-3.5" /> Réactiver</button>}</>}</div></div>)}{rows.length === 0 && <div className="modern-card p-10 text-center text-slate-500">Aucun bibliothécaire.</div>}{rows.length > 0 && visibleRows.length === 0 && <div className="modern-card p-10 text-center text-slate-500">Aucun bibliothécaire trouvé.</div>}</div>{create && <Form onClose={() => setCreate(false)} onCreated={(response) => { setRows((current) => [response.user, ...current]); setNotice(response.message ? { text: response.message, warning: response.mail_sent === false } : null); setCreate(false); }} />}{viewing && <DetailModal title={viewing.name} subtitle={viewing.email} sections={userSections(viewing, libraries.find((library) => library.id === viewing.library_id)?.name)} onClose={() => setViewing(null)} />}{modal?.type === "deactivate" && <ReasonModal title="Êtes-vous sûr de désactiver ce compte ?" onCancel={() => setModal(null)} onConfirm={deactivate} />}</div>;
 }

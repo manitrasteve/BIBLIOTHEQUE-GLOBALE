@@ -25,8 +25,9 @@
 
     <style>
         /* Écran d'attente affiché avant le chargement de React (remplacé au démarrage de l'app). */
-        body { margin: 0; background: #f7f8fa; }
-        html.dark body { background: #0b1220; }
+        /* Fond de l'écran d'attente : couleur publiée dans Apparence du site, sinon celle d'origine. */
+        body { margin: 0; background: var(--site-light-background, #f7f8fa); }
+        html.dark body { background: var(--site-dark-background, #0b1220); }
         .boot-loading {
             margin: 0;
             min-height: 100vh;
@@ -45,6 +46,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
+
+    {{-- Couleurs publiées depuis Paramètres → Apparence du site (variables --site-* construites
+         uniquement à partir de valeurs HEX validées ; vide = couleurs d'origine). --}}
+    @php($siteThemeCss = \App\Http\Controllers\Api\ThemeController::activeCss())
+    @if ($siteThemeCss !== '')
+        <style id="site-theme">{!! $siteThemeCss !!}</style>
+    @endif
 </head>
 <body>
     <div id="app">

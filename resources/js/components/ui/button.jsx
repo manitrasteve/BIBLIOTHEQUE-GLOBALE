@@ -1,7 +1,7 @@
 import { cn } from "../../lib/utils";
 
 const variants = {
- default: "bg-[#1f3a5f] text-white hover:bg-[#162a45]",
+ default: "bg-indigo-600 text-white hover:bg-indigo-700",
  secondary: "border border-slate-200 bg-surface text-slate-800 hover:border-brass hover:bg-slate-50",
  outline: "border border-slate-200 bg-transparent text-slate-800 hover:bg-slate-50",
  ghost: "text-slate-700 hover:bg-slate-100",

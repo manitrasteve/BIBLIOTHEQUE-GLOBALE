@@ -352,6 +352,15 @@ export const api = {
             body: formData,
         }),
 
+    // Paramètres → Apparence du site (administrateur).
+    getThemeSettings: () => request("/admin/theme"),
+    previewTheme: (colors) => request("/admin/theme/preview", { method: "POST", body: { colors } }),
+    saveThemeDraft: (colors) => request("/admin/theme/draft", { method: "PUT", body: { colors } }),
+    discardThemeDraft: () => request("/admin/theme/draft", { method: "DELETE" }),
+    publishTheme: () => request("/admin/theme/publish", { method: "POST" }),
+    restoreDefaultTheme: () => request("/admin/theme/restore-default", { method: "POST" }),
+    getThemeVersions: () => request("/admin/theme/versions"),
+
     // Importation par Excel : modèle à télécharger (fichier binaire) et vérification d'un lot.
     downloadDocumentImportTemplate: async () => {
         const response = await fetch(`${API_URL}/document-imports/template`, {
@@ -427,6 +436,7 @@ export const api = {
         }),
 
     getLibrarians: () => request("/librarians"),
+    resendLibrarianSetupLink: (id) => request(`/librarians/${id}/resend-setup-link`, { method: "POST" }),
 
     createLibrarian: (data) =>
         request("/librarians", {

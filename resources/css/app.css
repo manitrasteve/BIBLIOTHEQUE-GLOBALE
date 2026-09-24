@@ -15,32 +15,55 @@
     --font-display:
         "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-    /* Fond de page et fond des cartes / panneaux (bg-canvas, bg-surface). */
-    --color-canvas: #f7f9fc;
-    --color-surface: #ffffff;
-
-    --color-paper: #f7f8fa;
-    --color-paper-dim: #eef0f3;
-
-    --color-ink: #1f2937;
-    --color-ink-soft: #6b7280;
-
-    --color-brass: #1f3a5f;
-    --color-brass-deep: #162a45;
-
-    --color-line: #d9dee5;
-
-    --color-indigo-50: #f7f8fa;
-    --color-indigo-100: #eef0f3;
-    --color-indigo-200: #d9dee5;
-    --color-indigo-300: #b8c0cc;
+    /*
+     * Couleurs personnalisables (Paramètres → Apparence du site) : chaque variable vaut
+     * var(--site-light-{rôle}, couleur d'origine). Sans thème publié, aucune variable --site-*
+     * n'existe et la couleur d'origine s'applique (voir app/Support/ThemePalette.php).
+     * Fond de page et fond des cartes / panneaux : bg-canvas, bg-surface.
+     */
+    --color-canvas: var(--site-light-background, #f7f9fc);
+    --color-surface: var(--site-light-surface, #ffffff);
+    --color-paper: var(--site-light-paper, #f7f8fa);
+    --color-paper-dim: var(--site-light-paper-dim, #eef0f3);
+    --color-ink: var(--site-light-foreground, #1f2937);
+    --color-ink-soft: var(--site-light-fg-muted, #6b7280);
+    --color-brass: var(--site-light-secondary, #1f3a5f);
+    --color-brass-deep: var(--site-light-secondary-deep, #162a45);
+    --color-line: var(--site-light-border, #d9dee5);
+    --color-indigo-50: var(--site-light-accent, #f7f8fa);
+    --color-indigo-100: var(--site-light-accent-2, #eef0f3);
+    --color-indigo-200: var(--site-light-accent-3, #d9dee5);
+    --color-indigo-300: var(--site-light-accent-4, #b8c0cc);
     --color-indigo-400: #7d8796;
-    --color-indigo-500: #1f3a5f;
-    --color-indigo-600: #1f3a5f;
-    --color-indigo-700: #162a45;
-    --color-indigo-800: #162a45;
+    --color-indigo-500: var(--site-light-primary, #1f3a5f);
+    --color-indigo-600: var(--site-light-primary, #1f3a5f);
+    --color-indigo-700: var(--site-light-primary-deep, #162a45);
+    --color-indigo-800: var(--site-light-primary-deep, #162a45);
     --color-indigo-900: #111f33;
     --color-indigo-950: #0b1422;
+
+    /* Neutres Tailwind (valeurs par défaut de Tailwind), rattachés aux couleurs du texte, des bordures et des cartes. */
+    --color-slate-50: var(--site-light-surface-2, oklch(98.4% 0.003 247.858));
+    --color-slate-100: var(--site-light-surface-3, oklch(96.8% 0.007 247.896));
+    --color-slate-200: var(--site-light-border, oklch(92.9% 0.013 255.508));
+    --color-slate-300: var(--site-light-border-strong, oklch(86.9% 0.022 252.894));
+    --color-slate-400: var(--site-light-fg-subtle, oklch(70.4% 0.04 256.788));
+    --color-slate-500: var(--site-light-fg-muted, oklch(55.4% 0.046 257.417));
+    --color-slate-600: var(--site-light-fg-muted, oklch(44.6% 0.043 257.281));
+    --color-slate-700: var(--site-light-fg-soft, oklch(37.2% 0.044 257.287));
+    --color-slate-800: var(--site-light-fg-soft, oklch(27.9% 0.041 260.031));
+    --color-slate-900: var(--site-light-foreground, oklch(20.8% 0.042 265.755));
+    --color-slate-950: var(--site-light-foreground, oklch(12.9% 0.042 264.695));
+    --color-gray-50: var(--site-light-surface-2, oklch(98.5% 0.002 247.839));
+    --color-gray-100: var(--site-light-surface-3, oklch(96.7% 0.003 264.542));
+    --color-gray-200: var(--site-light-border, oklch(92.8% 0.006 264.531));
+    --color-gray-300: var(--site-light-border-strong, oklch(87.2% 0.01 258.338));
+    --color-gray-400: var(--site-light-fg-subtle, oklch(70.7% 0.022 261.325));
+    --color-gray-500: var(--site-light-fg-muted, oklch(55.1% 0.027 264.364));
+    --color-gray-600: var(--site-light-fg-muted, oklch(44.6% 0.03 256.802));
+    --color-gray-700: var(--site-light-fg-soft, oklch(37.3% 0.034 259.733));
+    --color-gray-800: var(--site-light-fg-soft, oklch(27.8% 0.033 256.848));
+    --color-gray-900: var(--site-light-foreground, oklch(21% 0.034 264.665));
 }
 
 /*
@@ -66,46 +89,48 @@
 html.dark {
     color-scheme: dark;
 
-    --color-canvas: #0b1220;
-    --color-surface: #111827;
-
-    --color-paper: #111827;
-    --color-paper-dim: #1e293b;
-    --color-ink: #e5e7eb;
-    --color-ink-soft: #94a3b8;
-    --color-line: #263244;
-    --color-brass: #7fb1e0;
-    --color-brass-deep: #a9cdf0;
+    /* Couleurs personnalisables : var(--site-dark-{rôle}, couleur d'origine du mode sombre). */
+    --color-canvas: var(--site-dark-background, #0b1220);
+    --color-surface: var(--site-dark-surface, #111827);
+    --color-paper: var(--site-dark-paper, #111827);
+    --color-paper-dim: var(--site-dark-paper-dim, #1e293b);
+    --color-ink: var(--site-dark-foreground, #e5e7eb);
+    --color-ink-soft: var(--site-dark-fg-muted, #94a3b8);
+    --color-brass: var(--site-dark-secondary, #7fb1e0);
+    --color-brass-deep: var(--site-dark-secondary-deep, #a9cdf0);
+    --color-line: var(--site-dark-border, #263244);
+    --color-indigo-50: var(--site-dark-accent, #152238);
+    --color-indigo-100: var(--site-dark-accent-2, #1b2c47);
+    --color-indigo-200: var(--site-dark-accent-3, #263d5f);
+    --color-indigo-300: var(--site-dark-accent-4, #3a5a85);
+    --color-indigo-500: var(--site-dark-primary, #1f3a5f);
+    --color-indigo-600: var(--site-dark-primary, #1f3a5f);
+    --color-indigo-700: var(--site-dark-primary-deep, #162a45);
+    --color-indigo-800: var(--site-dark-primary-deep, #162a45);
 
     /* Neutres : échelle inversée (50 = fond légèrement relevé, 950 = texte le plus clair). */
-    --color-slate-50: #151f30;
-    --color-slate-100: #1e293b;
-    --color-slate-200: #263244;
-    --color-slate-300: #334155;
-    --color-slate-400: #74839a;
-    --color-slate-500: #94a3b8;
-    --color-slate-600: #a8b5c7;
-    --color-slate-700: #cbd5e1;
-    --color-slate-800: #e2e8f0;
-    --color-slate-900: #f1f5f9;
-    --color-slate-950: #f8fafc;
+    --color-slate-50: var(--site-dark-surface-2, #151f30);
+    --color-slate-100: var(--site-dark-surface-3, #1e293b);
+    --color-slate-200: var(--site-dark-border, #263244);
+    --color-slate-300: var(--site-dark-border-strong, #334155);
+    --color-slate-400: var(--site-dark-fg-subtle, #74839a);
+    --color-slate-500: var(--site-dark-fg-muted, #94a3b8);
+    --color-slate-600: var(--site-dark-fg-muted, #a8b5c7);
+    --color-slate-700: var(--site-dark-fg-soft, #cbd5e1);
+    --color-slate-800: var(--site-dark-fg-soft, #e2e8f0);
+    --color-slate-900: var(--site-dark-foreground, #f1f5f9);
+    --color-slate-950: var(--site-dark-foreground, #f8fafc);
 
-    --color-gray-50: #151f30;
-    --color-gray-100: #1e293b;
-    --color-gray-200: #263244;
-    --color-gray-300: #334155;
-    --color-gray-400: #74839a;
-    --color-gray-500: #94a3b8;
-    --color-gray-600: #a8b5c7;
-    --color-gray-700: #cbd5e1;
-    --color-gray-800: #e2e8f0;
-    --color-gray-900: #f1f5f9;
-
-    /* Marine : seules les teintes claires (fonds de puce, survols, bordures) passent en sombre. */
-    --color-indigo-50: #152238;
-    --color-indigo-100: #1b2c47;
-    --color-indigo-200: #263d5f;
-    --color-indigo-300: #3a5a85;
+    --color-gray-50: var(--site-dark-surface-2, #151f30);
+    --color-gray-100: var(--site-dark-surface-3, #1e293b);
+    --color-gray-200: var(--site-dark-border, #263244);
+    --color-gray-300: var(--site-dark-border-strong, #334155);
+    --color-gray-400: var(--site-dark-fg-subtle, #74839a);
+    --color-gray-500: var(--site-dark-fg-muted, #94a3b8);
+    --color-gray-600: var(--site-dark-fg-muted, #a8b5c7);
+    --color-gray-700: var(--site-dark-fg-soft, #cbd5e1);
+    --color-gray-800: var(--site-dark-fg-soft, #e2e8f0);
+    --color-gray-900: var(--site-dark-foreground, #f1f5f9);
 
     /*
      * Couleurs d'état : 50-300 (fonds teintés, bordures) deviennent des teintes

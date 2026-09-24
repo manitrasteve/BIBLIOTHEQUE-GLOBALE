@@ -66,6 +66,27 @@ class User extends Authenticatable
         });
     }
 
+    /**
+     * Une adresse e-mail identifie un seul compte. Un compte dans la corbeille (restaurable)
+     * la réserve encore ; après sa suppression définitive, l'adresse est de nouveau libre.
+     * Renvoie le message à afficher si l'adresse est déjà prise, null si elle est libre.
+     */
+    public static function emailUnavailableMessage(?string $email, ?int $exceptUserId = null): ?string
+    {
+        $owner = static::withTrashed()
+            ->where('email', trim((string) $email))
+            ->when($exceptUserId, fn ($query) => $query->whereKeyNot($exceptUserId))
+            ->first();
+
+        if (! $owner) {
+            return null;
+        }
+
+        return $owner->trashed()
+            ? 'Un compte supprimé utilisant cette adresse e-mail se trouve encore dans la corbeille. Restaurez-le, ou supprimez-le définitivement pour pouvoir réutiliser l’adresse.'
+            : 'Un compte existe déjà avec cette adresse e-mail.';
+    }
+
     // Génère le numéro de compte du type ETU-2026-0001, unique par rôle et par année.
     // Le numéro est stocké dans la colonne historique `matricule` (renommer la colonne
     // serait risqué pour les données et contraintes existantes).

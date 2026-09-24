@@ -62,6 +62,8 @@ import AdminLibrariansPage from "./pages/admin/AdminLibrariansPage";
 import AdminPermissionsPage from "./pages/admin/AdminPermissionsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminHomepageEditorPage from "./pages/admin/AdminHomepageEditorPage";
+import AdminThemeEditorPage from "./pages/admin/AdminThemeEditorPage";
+import ThemePreviewPage from "./pages/admin/ThemePreviewPage";
 import MessagesPage from "./pages/MessagesPage";
 import StaffDiscussionPage from "./pages/StaffDiscussionPage";
 
@@ -79,6 +81,11 @@ export default function App() {
                             <Route
                                 path="/apercu-page-accueil"
                                 element={<RoleRoute roles={["administrateur"]}><HomePage preview /></RoleRoute>}
+                            />
+                            {/* Aperçu des couleurs de l'Apparence du site (administrateur) */}
+                            <Route
+                                path="/apercu-theme"
+                                element={<RoleRoute roles={["administrateur"]}><ThemePreviewPage /></RoleRoute>}
                             />
                             <Route
                                 path="/recherche"
@@ -328,6 +335,7 @@ export default function App() {
                                 />
                                 <Route path="parametres" element={<AdminSettingsPage />} />
                                 <Route path="parametres/page-accueil" element={<AdminHomepageEditorPage />} />
+                                <Route path="parametres/apparence" element={<AdminThemeEditorPage />} />
                             </Route>
 
                             {/* Adresse inconnue */}

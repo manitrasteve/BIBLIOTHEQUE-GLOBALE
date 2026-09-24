@@ -56,6 +56,7 @@ export default function AccountRequestsPage() {
     // Compteurs du périmètre autorisé (mêmes demandes que la liste, tous statuts confondus).
     const [counts, setCounts] = useState(null);
     const [error, setError] = useState(null);
+    const [notice, setNotice] = useState(null); // confirmation d'un renvoi de lien
     const [query, setQuery] = useState("");
     const [viewing, setViewing] = useState(null);
     const [busyId, setBusyId] = useState(null);
@@ -161,8 +162,10 @@ export default function AccountRequestsPage() {
         setBusyId(id);
         try {
             setError(null);
+            setNotice(null);
 
-            await api.resendSetupLink(id);
+            const response = await api.resendSetupLink(id);
+            setNotice(response.message);
 
             await load();
         } catch (e) {
@@ -327,6 +330,12 @@ export default function AccountRequestsPage() {
                     </button>
                 ))}
             </div>
+
+            {notice && (
+                <div role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
+                    {notice}
+                </div>
+            )}
 
             {/* Erreur */}
             {error && (

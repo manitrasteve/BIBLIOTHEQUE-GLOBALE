@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccountRequest;
 use App\Models\MemberRegistry;
 use App\Models\User;
+use App\Rules\AvailableEmail;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use App\Support\QueueKicker;
@@ -183,12 +184,9 @@ class AccountRequestController extends Controller
         $validated['role'] = $validated['role'] ?? 'etudiant';
         $validated['niveau_type'] = $validated['niveau_type'] ?? 'Université';
 
-        $emailExists = User::where('email', $validated['email'])->exists();
-
-        if ($emailExists) {
-            return response()->json([
-                'message' => 'Un compte existe déjà avec cette adresse e-mail.',
-            ], 422);
+        // Compte existant, y compris dans la corbeille (adresse libre après suppression définitive).
+        if ($emailMessage = User::emailUnavailableMessage($validated['email'])) {
+            return response()->json(['message' => $emailMessage], 422);
         }
 
         $requestExists = AccountRequest::where('email', $validated['email'])
@@ -341,12 +339,9 @@ class AccountRequestController extends Controller
         /**
          * Vérification du compte existant.
          */
-        $emailExists = User::where('email', $validated['email'])->exists();
-
-        if ($emailExists) {
-            return response()->json([
-                'message' => 'Un compte existe déjà avec cette adresse e-mail.',
-            ], 422);
+        // Compte existant, y compris dans la corbeille (adresse libre après suppression définitive).
+        if ($emailMessage = User::emailUnavailableMessage($validated['email'])) {
+            return response()->json(['message' => $emailMessage], 422);
         }
 
         /**
@@ -487,7 +482,7 @@ class AccountRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', new AvailableEmail()],
             'role' => ['required', Rule::in(['etudiant', 'enseignant', 'chercheur'])],
             'password' => ['required', 'string', 'min:8'],
         ]);
@@ -888,6 +883,12 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
+        // Un compte supprimé mais encore dans la corbeille utilise cette adresse : aucun nouveau
+        // compte ne peut être créé tant qu'il n'est pas restauré ou supprimé définitivement.
+        if (User::onlyTrashed()->where('email', $accountRequest->email)->exists()) {
+            return response()->json(['message' => User::emailUnavailableMessage($accountRequest->email)], 422);
+        }
+
         $result = DB::transaction(function () use ($accountRequest, $admin) {
             $accountRequest = AccountRequest::whereKey($accountRequest->id)
                 ->lockForUpdate()
@@ -1008,7 +1009,7 @@ class AccountRequestController extends Controller
         if (!$result['already_processed']) {
             ActivityLogService::log($admin->id, 'validation_compte', "{$result['user']->name} — {$result['user']->role}", $result['user']);
 
-            $this->queueMail(function () use ($result, $accountRequest) {
+            $this->queueMail(function () use ($result, $accountRequest, $admin) {
                 try {
                     Mail::send(
                         'emails.account-setup',
@@ -1025,6 +1026,14 @@ class AccountRequestController extends Controller
                     );
                 } catch (\Throwable $e) {
                     report($e);
+                    // Envoi en arrière-plan : l'administrateur est prévenu, sinon l'échec passerait inaperçu.
+                    NotificationService::send(
+                        $admin,
+                        'envoi_email_echoue',
+                        'E-mail non envoyé',
+                        "Le lien de création du mot de passe n’a pas pu être envoyé à {$result['user']->email} (serveur de messagerie injoignable). Utilisez « Renvoyer le lien » dans Comptes à valider.",
+                        $accountRequest
+                    );
                 }
             });
         }
@@ -1228,8 +1237,8 @@ class AccountRequestController extends Controller
             return response()->json(['message' => 'Ce membre possède déjà un compte numérique.'], 422);
         }
 
-        if (User::where('email', $validated['email'])->exists()) {
-            return response()->json(['message' => 'Un compte existe déjà avec cette adresse e-mail.'], 422);
+        if ($emailMessage = User::emailUnavailableMessage($validated['email'])) {
+            return response()->json(['message' => $emailMessage], 422);
         }
 
         $existingRequest = AccountRequest::where('library_id', $member->library_id)
@@ -1333,26 +1342,34 @@ class AccountRequestController extends Controller
             'setup_expires_at' => now()->addHours(24),
         ]);
 
-        $this->queueMail(function () use ($accountRequest, $createdUser, $token) {
-            try {
-                Mail::send(
-                    'emails.account-setup',
-                    [
-                        'user' => $createdUser,
-                        'request' => $accountRequest,
-                        'token' => $token,
-                        'variant' => 'new_link',
-                    ],
-                    function ($message) use ($accountRequest) {
-                        $message
-                            ->to($accountRequest->email)
-                            ->subject('Création de votre mot de passe');
-                    }
-                );
-            } catch (\Throwable $e) {
-                report($e);
-            }
-        });
+        // Envoi immédiat (et non en file) : un seul e-mail, demandé explicitement ; l'administrateur
+        // doit savoir s'il est réellement parti, pour ne pas croire à tort que le lien a été reçu.
+        try {
+            Mail::send(
+                'emails.account-setup',
+                [
+                    'user' => $createdUser,
+                    'request' => $accountRequest,
+                    'token' => $token,
+                    'variant' => 'new_link',
+                ],
+                function ($message) use ($accountRequest) {
+                    $message
+                        ->to($accountRequest->email)
+                        ->subject('Création de votre mot de passe');
+                }
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Renvoi du lien de création du mot de passe impossible.', [
+                'account_request_id' => $accountRequest->id,
+                'email' => $accountRequest->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'L’e-mail n’a pas pu être envoyé : le serveur de messagerie est injoignable. Vérifiez la connexion Internet du serveur, puis réessayez.',
+            ], 503);
+        }
 
         ActivityLogService::log(
             $admin->id,
@@ -1362,7 +1379,7 @@ class AccountRequestController extends Controller
         );
 
         return response()->json([
-            'message' => 'Le lien de création du mot de passe a été renvoyé.',
+            'message' => "Le lien de création du mot de passe a été renvoyé à {$accountRequest->email}.",
             'request' => $accountRequest->fresh()->load([
                 'library',
                 'createdUser',
@@ -1420,7 +1437,7 @@ class AccountRequestController extends Controller
         $validated = $request->validate([
             'first_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', new AvailableEmail()],
             'phone' => ['required', 'string', 'max:50'],
             // L'adresse est facultative pour un chercheur, obligatoire pour les autres rôles.
             'address' => [Rule::requiredIf($request->input('role') !== 'chercheur'), 'nullable', 'string', 'max:255'],
@@ -1704,15 +1721,18 @@ class AccountRequestController extends Controller
 
             return response()->json([
                 'message' =>
-                    'Le compte a été créé, mais l’e-mail de création du mot de passe n’a pas pu être envoyé.',
+                    'Le compte a été créé, mais l’e-mail de création du mot de passe n’a pas pu être envoyé (serveur de messagerie injoignable). '
+                    . 'Renvoyez le lien depuis « Comptes à valider » avec le bouton « Renvoyer le lien ».',
                 'user' => $result['user'],
+                'mail_sent' => false,
             ], 201);
         }
 
         return response()->json([
             'message' =>
-                'Utilisateur créé avec succès. Un lien de création du mot de passe a été envoyé par e-mail.',
+                "Utilisateur créé avec succès. Un lien de création du mot de passe a été envoyé à {$result['user']->email}.",
             'user' => $result['user'],
+            'mail_sent' => true,
         ], 201);
     }
 }

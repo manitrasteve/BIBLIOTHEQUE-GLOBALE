@@ -56,7 +56,7 @@ export default function DashboardPage() {
                         </div>
                         <Link
                             to="/recherche"
-                            className="btn-primary !bg-[#ffffff] !text-[#162a45]"
+                            className="btn-primary !bg-[#ffffff] !text-indigo-700"
                         >
                             Parcourir le catalogue{" "}
                             <ArrowRight className="h-4 w-4" />

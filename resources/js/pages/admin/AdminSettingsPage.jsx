@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, LayoutTemplate, Settings } from "lucide-react";
+import { ArrowRight, LayoutTemplate, Palette, Settings } from "lucide-react";
 
 // Paramètres de la plateforme (administrateur). Chaque réglage est une carte vers sa page.
 const SETTINGS = [
@@ -8,6 +8,12 @@ const SETTINGS = [
         title: "Modifier la page d'accueil",
         description: "Sections, textes, images, ordre et styles de la page d'accueil publique, avec brouillon, aperçu et historique des versions.",
         icon: LayoutTemplate,
+    },
+    {
+        to: "/administrateur/parametres/apparence",
+        title: "Apparence du site",
+        description: "Couleurs du thème pour le mode clair et le mode sombre, avec aperçu, brouillon, publication et retour au thème par défaut.",
+        icon: Palette,
     },
 ];
 

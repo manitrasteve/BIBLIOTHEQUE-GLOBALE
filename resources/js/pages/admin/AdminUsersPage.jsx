@@ -110,6 +110,8 @@ export default function AdminUsersPage() {
     const [meta, setMeta] = useState(null);
     const [sort, setSort] = useState({ key: null, dir: "asc" });
     const [error, setError] = useState(null);
+    // Résultat de la dernière création : e-mail du lien envoyé ou non.
+    const [notice, setNotice] = useState(null);
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
@@ -187,6 +189,7 @@ export default function AdminUsersPage() {
                 onCancel={() => setShowCreate(false)}
                 onCreated={(res) => {
                     setUsers((list) => [res.user, ...(list || [])]);
+                    setNotice(res.message ? { text: res.message, warning: res.mail_sent === false } : null);
                     setShowCreate(false);
                     load(); // compteurs à jour
                 }}
@@ -221,6 +224,20 @@ export default function AdminUsersPage() {
             />
 
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
+
+            {notice && (
+                <div
+                    role={notice.warning ? "alert" : "status"}
+                    className={`mb-4 flex items-start justify-between gap-3 rounded-xl border p-3 text-sm font-medium ${
+                        notice.warning ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
+                >
+                    <span>{notice.text}</span>
+                    <button type="button" onClick={() => setNotice(null)} aria-label="Fermer le message" className="shrink-0 font-bold">
+                        ×
+                    </button>
+                </div>
+            )}
 
             {error && (
                 <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">

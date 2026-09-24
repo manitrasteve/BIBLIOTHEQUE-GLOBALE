@@ -1,7 +1,7 @@
 import { cn } from "../../lib/utils";
 
 const variants = {
- default: "border-transparent bg-[#1f3a5f] text-white",
+ default: "border-transparent bg-indigo-600 text-white",
  secondary: "border-transparent bg-slate-100 text-slate-700",
  outline: "border-slate-200 text-slate-700",
  destructive: "border-transparent bg-red-100 text-red-700",

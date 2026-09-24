@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DocumentImportController;
+use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EngagementController;
@@ -203,6 +204,7 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::post('/assistant/admin', [AdminAssistantController::class, 'ask'])->middleware('throttle:20,1');
        Route::get('/librarians', [LibrarianManagementController::class, 'index']);
        Route::post('/librarians', [LibrarianManagementController::class, 'store']);
+       Route::post('/librarians/{librarian}/resend-setup-link', [LibrarianManagementController::class, 'resendSetupLink']);
        Route::get('/permissions', [PermissionManagementController::class, 'permissions']);
        Route::get('/bibliothecaires', [PermissionManagementController::class, 'librarians']);
        Route::get('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'show']);
@@ -218,6 +220,17 @@ Route::middleware('auth:sanctum')->group(function () {
            Route::get('/versions', [HomepageController::class, 'versions']);
            Route::get('/versions/{version}', [HomepageController::class, 'version'])->whereNumber('version');
            Route::post('/versions/{version}/restore', [HomepageController::class, 'restore'])->whereNumber('version');
+       });
+
+       // Paramètres → Apparence du site (couleurs du thème : brouillon, aperçu, publication, défaut).
+       Route::prefix('admin/theme')->group(function () {
+           Route::get('/', [ThemeController::class, 'show']);
+           Route::post('/preview', [ThemeController::class, 'preview'])->middleware('throttle:120,1');
+           Route::put('/draft', [ThemeController::class, 'saveDraft']);
+           Route::delete('/draft', [ThemeController::class, 'discardDraft']);
+           Route::post('/publish', [ThemeController::class, 'publish']);
+           Route::post('/restore-default', [ThemeController::class, 'restoreDefault']);
+           Route::get('/versions', [ThemeController::class, 'versions']);
        });
     });
 
