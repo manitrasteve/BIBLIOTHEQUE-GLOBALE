@@ -222,6 +222,15 @@ export default function DocumentImportPage() {
         }
     }
 
+    // Retour à la sélection : seul le rapport est abandonné ; l'Excel, les PDF et les couvertures
+    // choisis restent sélectionnés (on peut en remplacer ou en ajouter, puis revérifier).
+    function backToSelection() {
+        setReport(null);
+        setError(null);
+        setStep("select");
+        document.querySelector(".connected-main")?.scrollTo({ top: 0 });
+    }
+
     function startProcessing() {
         setIndex(0);
         setCreated([]);
@@ -266,6 +275,17 @@ export default function DocumentImportPage() {
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                         Ajout manuel
                     </Link>
+                )}
+                {step === "report" && (
+                    <button
+                        type="button"
+                        onClick={backToSelection}
+                        className="btn-secondary"
+                        title="Revenir à la sélection : l'Excel, les PDF et les couvertures choisis sont conservés"
+                    >
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        Retour à la sélection
+                    </button>
                 )}
             </div>
 
@@ -473,10 +493,7 @@ export default function DocumentImportPage() {
                             {(summary.errors > 0 || summary.duplicates > 0) && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setReport(null);
-                                        setStep("select");
-                                    }}
+                                    onClick={backToSelection}
                                     className="btn-secondary"
                                     title="Revenir à la sélection pour corriger l'Excel ou ajouter les fichiers manquants"
                                 >
