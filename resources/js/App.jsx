@@ -42,6 +42,7 @@ import AccountRequestsPage from "./pages/librarian/AccountRequestsPage";
 import DocumentsManagePage from "./pages/librarian/DocumentsManagePage";
 import LibrarianDashboardPage from "./pages/librarian/LibrarianDashboardPage";
 import DocumentFormPage from "./pages/librarian/DocumentFormPage";
+import DocumentImportPage from "./pages/librarian/DocumentImportPage";
 import ServiceCreateAccountRequestPage from "./pages/librarian/ServiceCreateAccountRequestPage";
 
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
@@ -231,6 +232,7 @@ export default function App() {
                                     path="documents/nouveau"
                                     element={<DocumentFormPage />}
                                 />
+                                <Route path="documents/importer" element={<DocumentImportPage />} />
                                 <Route
                                     path="documents/:id/modifier"
                                     element={<DocumentFormPage />}
@@ -292,6 +294,7 @@ export default function App() {
                                 />
                                 <Route path="documents" element={<DocumentsManagePage />} />
                                 <Route path="documents/nouveau" element={<DocumentFormPage />} />
+                                <Route path="documents/importer" element={<DocumentImportPage />} />
                                 <Route path="documents/:id/modifier" element={<DocumentFormPage />} />
                                 <Route path="permissions" element={<AdminPermissionsPage />} />
                                 <Route

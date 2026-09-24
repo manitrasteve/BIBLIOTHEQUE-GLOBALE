@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { UploadCloud, Image as ImageIcon, FileSpreadsheet, X } from "lucide-react";
 import { api } from "../../lib/api";
 import RichTextEditor from "../../components/RichTextEditor";
 
@@ -9,6 +9,7 @@ import RichTextEditor from "../../components/RichTextEditor";
 const LEGACY_TYPE_LABELS = { livre: "Livre", memoire: "Mémoire", these: "Thèse", rapport: "Rapport", autre: "Autre" };
 const LEGACY_LANGUAGE_LABELS = { fr: "Français", mg: "Malgache", en: "Anglais", es: "Espagnol", pt: "Portugais", it: "Italien", ru: "Russe", autre: "Autre" };
 
+// Listes également utilisées par l'importation Excel (DocumentImportService.php) : à garder synchronisées.
 const TYPE_OPTIONS = ["Mémoire", "Livre", "Thèse", "Rapport", "Document", "Autre"];
 const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
@@ -39,7 +40,15 @@ const emptyForm = {
     author_ids: [],
 };
 
-export default function DocumentFormPage() {
+/**
+ * Formulaire « Ajouter / Modifier un document ».
+ *
+ * Importation Excel : la page d'import réutilise ce même formulaire en lui passant
+ * `importItem` (valeurs initiales d'une ligne Excel + PDF / couverture associés par nom
+ * + auteurs à créer) ; `onImported` est alors appelé après la création au lieu de
+ * revenir à la liste. Sans ces props, le comportement est celui de l'ajout manuel.
+ */
+export default function DocumentFormPage({ importItem = null, onImported = null }) {
     const { id } = useParams();
     const isEditing = Boolean(id);
     const navigate = useNavigate();
@@ -47,17 +56,29 @@ export default function DocumentFormPage() {
         ? "/administrateur/documents"
         : "/bibliothecaire/documents";
 
-    const [form, setForm] = useState(() => ({ ...emptyForm, library_id: "" }));
+    const [form, setForm] = useState(() => ({
+        ...emptyForm,
+        ...(importItem?.form || {}),
+        library_id: importItem?.form?.library_id ? String(importItem.form.library_id) : "",
+    }));
     const [libraries, setLibraries] = useState([]);
     const [authors, setAuthors] = useState([]);
-    const [file, setFile] = useState(null);
-    const [cover, setCover] = useState(null);
+    const [file, setFile] = useState(importItem?.file || null);
+    const [cover, setCover] = useState(importItem?.cover || null);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [newAuthor, setNewAuthor] = useState("");
     const [authorError, setAuthorError] = useState(null);
-    const [typeOther, setTypeOther] = useState(false);
-    const [categoryOther, setCategoryOther] = useState(false);
+    // Auteurs de la ligne Excel inconnus de la base : créés à l'enregistrement du document.
+    const [pendingAuthors, setPendingAuthors] = useState(importItem?.newAuthors || []);
+    const [typeOther, setTypeOther] = useState(() => {
+        const type = importItem?.form?.type || "";
+        return type !== "" && !TYPE_OPTIONS.includes(type);
+    });
+    const [categoryOther, setCategoryOther] = useState(() => {
+        const category = importItem?.form?.category || "";
+        return category !== "" && !CATEGORY_OPTIONS.includes(category);
+    });
 
     useEffect(() => {
         api.getLibraries()
@@ -143,6 +164,28 @@ export default function DocumentFormPage() {
         }
     }
 
+    // Crée les auteurs en attente (importation) avec l'endpoint habituel et renvoie leurs identifiants.
+    // Un auteur créé est aussitôt coché : en cas d'échec du document, un nouvel essai ne le recrée pas.
+    async function createPendingAuthors() {
+        const ids = [];
+        for (const name of pendingAuthors) {
+            let author;
+            try {
+                author = await api.createAuthor({ name });
+            } catch (err) {
+                // Nom déjà pris entre-temps : on reprend l'auteur existant.
+                const list = (await api.getAuthors({ per_page: 500 })).data;
+                author = list.find((a) => a.name.trim().toLowerCase() === name.trim().toLowerCase());
+                if (!author) throw err;
+            }
+            ids.push(author.id);
+            setAuthors((prev) => (prev.some((a) => a.id === author.id) ? prev : [...prev, author]));
+            setPendingAuthors((prev) => prev.filter((n) => n !== name));
+            setForm((prev) => ({ ...prev, author_ids: [...new Set([...prev.author_ids, author.id])] }));
+        }
+        return ids;
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError(null);
@@ -166,8 +209,9 @@ export default function DocumentFormPage() {
                     setSubmitting(false);
                     return;
                 }
+                const authorIds = [...new Set([...form.author_ids, ...(await createPendingAuthors())])];
                 const payload = new FormData();
-                Object.entries(form).forEach(([key, value]) => {
+                Object.entries({ ...form, author_ids: authorIds }).forEach(([key, value]) => {
                     if (key === "author_ids") {
                         value.forEach((v) => payload.append("author_ids[]", v));
                     } else if (value !== "" && value !== null) {
@@ -177,8 +221,9 @@ export default function DocumentFormPage() {
                 payload.append("file", file);
                 if (cover) payload.append("cover", cover);
 
-                await api.createDocument(payload);
-                navigate(listPath);
+                const created = await api.createDocument(payload);
+                if (onImported) onImported(created);
+                else navigate(listPath);
             }
         } catch (err) {
             setError(
@@ -195,6 +240,14 @@ export default function DocumentFormPage() {
 
     return (
         <div>
+            {!isEditing && !importItem && (
+                <div className="mx-auto mb-3 flex w-full max-w-5xl justify-end">
+                    <Link to={`${listPath}/importer`} className="btn-secondary">
+                        <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+                        Importer des documents
+                    </Link>
+                </div>
+            )}
             <form
                 onSubmit={handleSubmit}
                 className="mx-auto w-full max-w-5xl space-y-2.5 rounded-xl border border-line bg-paper p-3.5"
@@ -447,6 +500,23 @@ export default function DocumentFormPage() {
                                 {a.name}
                             </button>
                         ))}
+                        {pendingAuthors.map((name) => (
+                            <span
+                                key={name}
+                                title="Nouvel auteur : il sera créé à l'enregistrement du document"
+                                className="inline-flex items-center gap-1 rounded-full border border-dashed border-brass bg-brass/10 px-3 py-1 text-sm text-ink"
+                            >
+                                Nouveau : {name}
+                                <button
+                                    type="button"
+                                    onClick={() => setPendingAuthors((prev) => prev.filter((n) => n !== name))}
+                                    className="rounded-full text-ink-soft hover:text-ink"
+                                    aria-label={`Retirer l'auteur ${name}`}
+                                >
+                                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                </button>
+                            </span>
+                        ))}
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <input
@@ -489,13 +559,13 @@ export default function DocumentFormPage() {
                                 />
                                 <span className="text-sm text-ink-soft">
                                     {file
-                                        ? file.name
+                                        ? `${importItem ? "✓ " : ""}${file.name}`
                                         : "PDF (obligatoire, 50 Mo max)"}
                                 </span>
                                 <input
                                     type="file"
                                     accept="application/pdf"
-                                    required
+                                    required={!file}
                                     onChange={(e) => setFile(e.target.files[0])}
                                     className="sr-only"
                                 />
@@ -512,7 +582,7 @@ export default function DocumentFormPage() {
                                 />
                                 <span className="text-sm text-ink-soft">
                                     {cover
-                                        ? cover.name
+                                        ? `${importItem ? "✓ " : ""}${cover.name}`
                                         : "Choisir une image"}
                                 </span>
                                 <input

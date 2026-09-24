@@ -352,6 +352,30 @@ export const api = {
             body: formData,
         }),
 
+    // Importation par Excel : modèle à télécharger (fichier binaire) et vérification d'un lot.
+    downloadDocumentImportTemplate: async () => {
+        const response = await fetch(`${API_URL}/document-imports/template`, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        if (!response.ok) {
+            const error = new Error("Téléchargement du modèle impossible.");
+            error.status = response.status;
+            throw error;
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "modele-import-documents.xlsx";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000); // révoqué après le démarrage du téléchargement
+    },
+
+    analyzeDocumentImport: (formData) =>
+        request("/document-imports/analyze", {
+            method: "POST",
+            body: formData,
+        }),
+
     updateDocument: (id, data) =>
         request(`/documents/${id}`, {
             method: data instanceof FormData ? "POST" : "PUT",

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthorController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\DocumentImportController;
 use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EngagementController;
@@ -148,6 +149,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/documents-manage', [DocumentController::class, 'manageIndex']);
         Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow']);
         Route::post('/documents', [DocumentController::class, 'store']);
+        // Importation par Excel : prépare les valeurs du formulaire ; la création reste POST /documents.
+        Route::get('/document-imports/template', [DocumentImportController::class, 'template']);
+        Route::post('/document-imports/analyze', [DocumentImportController::class, 'analyze'])->middleware('throttle:30,1');
         Route::put('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');

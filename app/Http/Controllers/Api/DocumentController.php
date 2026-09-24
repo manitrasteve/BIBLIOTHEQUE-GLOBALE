@@ -243,10 +243,13 @@ class DocumentController extends Controller
         abort_unless($request->user()->managesLibrary($libraryId), 403, 'Ce document appartient à une autre bibliothèque.');
     }
 
-    // Bibliothécaire / Admin : création d'un document (statut brouillon par défaut)
-    public function store(Request $request)
+    /**
+     * Règles de création d'un document : source unique partagée par la création
+     * manuelle (store) et la vérification d'un lot importé (DocumentImportService).
+     */
+    public static function creationRules(): array
     {
-        $data = $request->validate([
+        return [
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'abstract' => ['nullable', 'string'],
@@ -267,7 +270,13 @@ class DocumentController extends Controller
             'author_ids.*' => ['exists:authors,id'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
             'cover' => ['nullable', 'image', 'max:5120'],
-        ]);
+        ];
+    }
+
+    // Bibliothécaire / Admin : création d'un document (statut brouillon par défaut)
+    public function store(Request $request)
+    {
+        $data = $request->validate(self::creationRules());
 
         $this->authorizeLibrary($request, (int) $data['library_id']); // pas de création dans une autre bibliothèque
 
