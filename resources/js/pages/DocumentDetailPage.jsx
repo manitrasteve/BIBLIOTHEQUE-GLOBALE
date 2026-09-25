@@ -79,16 +79,9 @@ export default function DocumentDetailPage() {
         return <SkeletonDocumentDetail />;
     }
 
-    const canRead =
-        user &&
-        (doc?.can_view_content ||
-            user?.role === "admin" ||
-            user?.role === "administrateur" ||
-            user?.role === "librarian" ||
-            user?.role === "bibliothecaire" ||
-            user?.is_active === 1 ||
-            user?.is_active === "true" ||
-            user?.is_active === true);
+    // Même règle que le serveur (Document::isAccessibleBy) : un document restreint
+    // n'est lisible que par les membres de sa bibliothèque (ou le personnel).
+    const canRead = Boolean(user && doc?.can_view_content);
 
     return (
         <div className="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-7 xl:flex xl:h-[calc(100dvh-var(--app-header-height))] xl:flex-col xl:overflow-hidden xl:py-4">
@@ -390,6 +383,14 @@ export default function DocumentDetailPage() {
                                             ({favoriteCount})
                                         </span>
                                     </button>
+                                )}
+
+                                {user && !canRead && (
+                                    <p className="rounded-lg border border-line bg-paper-dim px-3 py-2 text-xs text-ink-soft">
+                                        {doc.access_level === "restreint"
+                                            ? "Ce document est réservé aux membres de sa bibliothèque."
+                                            : "Votre compte n'a pas accès à la lecture de ce document."}
+                                    </p>
                                 )}
 
                                 {favoriteError && (
