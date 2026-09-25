@@ -137,8 +137,12 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
                     );
                 }
                 const buffer = await r.arrayBuffer();
-                const doc = await pdfjsLib.getDocument({ data: buffer })
-                    .promise;
+                // Fichier corrompu ou qui n'est pas un vrai PDF : message lisible plutôt que l'erreur technique de pdf.js.
+                const doc = await pdfjsLib.getDocument({ data: buffer }).promise.catch(() => {
+                    throw new Error(
+                        "Ce fichier PDF est endommagé ou illisible. Signalez-le au Service Numérique pour qu'il soit remplacé.",
+                    );
+                });
                 if (cancelled) return;
                 const saved = sessionMemory.getReaderPage(slug);
                 setPdf(doc);

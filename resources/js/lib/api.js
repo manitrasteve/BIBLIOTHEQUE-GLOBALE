@@ -79,10 +79,8 @@ export const api = {
         return request(`/documents?${query}`);
     },
 
-    getDocument: (slug) =>
-        request(`/documents/${slug}`, {
-            auth: false,
-        }),
+    // Jeton envoyé s'il existe : le serveur (optional.auth) en déduit can_view_content et is_favorited.
+    getDocument: (slug) => request(`/documents/${slug}`),
 
     // ---------------------------------------------------------
     // Demande publique de création de compte
