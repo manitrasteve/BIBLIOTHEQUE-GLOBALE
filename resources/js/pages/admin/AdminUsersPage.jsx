@@ -32,7 +32,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
     const [sending, setSending] = useState(false);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">
             <div className="w-full max-w-md rounded-2xl bg-surface p-4 ">
                 {step === "confirm" ? (
                     <>
@@ -48,7 +48,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                             </button>
                             <button
                                 onClick={() => setStep("reason")}
-                                className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white ${danger ? "bg-red-600 hover:brightness-90" : "bg-indigo-600 hover:bg-indigo-700"}`}
+                                className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white ${danger ? "bg-red-600 hover:bg-red-500" : "bg-indigo-600 hover:bg-indigo-700"}`}
                             >
                                 <Check className="h-4 w-4" /> {confirmLabel}
                             </button>
@@ -87,7 +87,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                                     await onConfirm(reason.trim());
                                     setSending(false);
                                 }}
-                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:brightness-90" : "bg-indigo-600 hover:bg-indigo-700"}`}
+                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:bg-red-500" : "bg-indigo-600 hover:bg-indigo-700"}`}
                             >
                                 {sending ? "Envoi..." : "Envoyer"}
                             </button>

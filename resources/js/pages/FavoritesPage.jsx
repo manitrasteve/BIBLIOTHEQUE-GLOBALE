@@ -86,7 +86,7 @@ export default function FavoritesPage() {
                                     type="button"
                                     onClick={() => remove(document)}
                                     disabled={removingId === document.id}
-                                    className="absolute right-4 top-4 rounded-full bg-surface/95 p-2 text-rose-700  disabled:opacity-50"
+                                    className="absolute right-4 top-4 rounded-full bg-surface p-2 text-rose-700  disabled:opacity-50"
                                     title="Retirer des favoris"
                                     aria-label="Retirer des favoris"
                                 >

@@ -140,12 +140,12 @@ export default function ThemePreviewPage() {
                         </p>
                     </div>
 
-                    <section className="hero-glow p-5 sm:p-7">
+                    <section className="hero-banner p-5 sm:p-7">
                         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
                             <div>
-                                <span className="badge-modern bg-white/10 text-white/85 ring-1 ring-white/15">Étudiant</span>
+                                <span className="badge-modern bg-indigo-700 text-on-primary-soft">Étudiant</span>
                                 <p className="mt-3 font-display text-xl font-extrabold">Bonjour, Steve</p>
-                                <p className="mt-1 text-sm text-white/85">Bandeau d'en-tête sur la couleur principale.</p>
+                                <p className="mt-1 text-sm text-on-primary-soft">Bandeau d'en-tête sur la couleur principale.</p>
                             </div>
                             <span className="btn-primary !bg-[#ffffff] !text-indigo-700">Parcourir le catalogue</span>
                         </div>

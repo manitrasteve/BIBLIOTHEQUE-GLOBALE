@@ -506,14 +506,14 @@ export default function AdminActivityPage() {
 
                 <div className="relative">
                     <ListFilter
-                        className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft/60"
+                        className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
                         strokeWidth={1.75}
                     />
 
                     <select
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
-                        className="rounded-lg border border-line bg-surface/60 py-2 pl-8 pr-3 text-sm"
+                        className="rounded-lg border border-line bg-surface py-2 pl-8 pr-3 text-sm"
                     >
                         <option value="">Toutes les actions</option>
 
@@ -590,7 +590,7 @@ export default function AdminActivityPage() {
                                     )}
                                 </div>
 
-                                <p className="shrink-0 text-xs text-ink-soft/70">
+                                <p className="shrink-0 text-xs text-slate-400">
                                     {new Date(log.created_at).toLocaleString(
                                         "fr-FR",
                                     )}

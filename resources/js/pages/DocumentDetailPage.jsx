@@ -130,7 +130,7 @@ export default function DocumentDetailPage() {
                                                 className="w-full aspect-[3/4] object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full aspect-[3/4] flex flex-col items-center justify-center text-ink-soft/50 px-2 text-center">
+                                            <div className="w-full aspect-[3/4] flex flex-col items-center justify-center text-slate-400 px-2 text-center">
                                                 <BookOpen
                                                     className="h-7 w-7 mb-2"
                                                     strokeWidth={1.25}
@@ -148,7 +148,7 @@ export default function DocumentDetailPage() {
                                 <div className="flex-1 min-w-0">
                                     {/* TYPE + NIVEAU */}
                                     <div className="flex flex-wrap gap-1.5">
-                                        <span className="inline-flex items-center rounded-full border border-brass/40 bg-brass/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-brass">
+                                        <span className="inline-flex items-center rounded-full border border-brass bg-indigo-50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-brass">
                                             {doc.type}
                                         </span>
 
@@ -196,7 +196,7 @@ export default function DocumentDetailPage() {
                                     {doc.authors?.length > 0 && (
                                         <div className="flex items-start gap-2.5">
                                             <Users
-                                                className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                                className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                                 strokeWidth={1.5}
                                             />
 
@@ -216,7 +216,7 @@ export default function DocumentDetailPage() {
                                     {doc.niveau && (
                                         <div className="flex items-start gap-2.5">
                                             <GraduationCap
-                                                className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                                className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                                 strokeWidth={1.5}
                                             />
 
@@ -235,7 +235,7 @@ export default function DocumentDetailPage() {
                                     {/* BIBLIOTHÈQUE */}
                                     <div className="flex items-start gap-2.5">
                                         <Building2
-                                            className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                            className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                             strokeWidth={1.5}
                                         />
 
@@ -253,7 +253,7 @@ export default function DocumentDetailPage() {
                                     {/* CATÉGORIE */}
                                     <div className="flex items-start gap-2.5">
                                         <Tag
-                                            className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                            className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                             strokeWidth={1.5}
                                         />
 
@@ -272,7 +272,7 @@ export default function DocumentDetailPage() {
                                     {doc.year && (
                                         <div className="flex items-start gap-2.5">
                                             <Calendar
-                                                className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                                className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                                 strokeWidth={1.5}
                                             />
 
@@ -292,7 +292,7 @@ export default function DocumentDetailPage() {
                                     {doc.publisher && (
                                         <div className="flex items-start gap-2.5">
                                             <Building
-                                                className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                                className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                                 strokeWidth={1.5}
                                             />
 
@@ -312,7 +312,7 @@ export default function DocumentDetailPage() {
                                     {doc.isbn && (
                                         <div className="flex items-start gap-2.5">
                                             <Hash
-                                                className="h-3.5 w-3.5 flex-shrink-0 text-ink-soft/55 mt-0.5"
+                                                className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5"
                                                 strokeWidth={1.5}
                                             />
 

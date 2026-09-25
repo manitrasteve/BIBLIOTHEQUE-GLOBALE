@@ -71,7 +71,7 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
         }));
     };
 
-    const inputClass = "mt-2 w-full rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 outline-none focus:border-brass focus:ring-2 focus:ring-indigo-500/20";
+    const inputClass = "mt-2 w-full rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 outline-none focus:border-brass focus:ring-2 focus:ring-indigo-200";
     const labelClass = "block text-sm font-semibold text-slate-700";
 
     if (step === 1) return <div className="grid gap-5 md:grid-cols-2">

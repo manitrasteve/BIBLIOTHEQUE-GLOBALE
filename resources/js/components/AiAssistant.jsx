@@ -186,7 +186,7 @@ export default function AiAssistant({ slug }) {
             className={
                 fullscreen
                     ? "fixed inset-0 z-[60] flex h-screen w-screen flex-col rounded-none border-0 bg-paper p-4 sm:p-4"
-                    : "rounded-xl border border-line bg-paper-dim/40 p-4 flex flex-col reader-panel-height"
+                    : "rounded-xl border border-line bg-paper-dim p-4 flex flex-col reader-panel-height"
             }
         >
             {/* En-tête */}
@@ -194,7 +194,7 @@ export default function AiAssistant({ slug }) {
                 <div>
                     <p className="flex items-center gap-2 font-display text-lg text-ink">
                         <Sparkles
-                            className="h-4 w-4 text-brass/70"
+                            className="h-4 w-4 text-brass"
                             strokeWidth={1.75}
                         />
                         Assistant IA
@@ -278,7 +278,7 @@ export default function AiAssistant({ slug }) {
                                         {/* Icône IA */}
                                         <div className="flex items-center gap-2 mb-2">
                                             <Sparkles
-                                                className="h-3.5 w-3.5 text-brass/70"
+                                                className="h-3.5 w-3.5 text-brass"
                                                 strokeWidth={1.75}
                                             />
 
@@ -367,7 +367,7 @@ export default function AiAssistant({ slug }) {
                                 <div className="bg-surface border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 ">
                                     <div className="flex items-center gap-2">
                                         <Sparkles
-                                            className="h-3.5 w-3.5 text-brass/70"
+                                            className="h-3.5 w-3.5 text-brass"
                                             strokeWidth={1.75}
                                         />
 
@@ -417,7 +417,7 @@ export default function AiAssistant({ slug }) {
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="Poser une question sur ce document…"
                     disabled={loading}
-                    className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-slate-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-60"
+                    className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-slate-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-60"
                 />
 
                 {/* Bouton Envoyer */}

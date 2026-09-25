@@ -2,7 +2,7 @@ import { Sparkles, ShieldCheck, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="mt-8 border-t border-slate-200 bg-surface/75">
+    <footer className="mt-8 border-t border-slate-200 bg-surface">
       <div className="mx-auto w-full px-4 sm:px-6 xl:px-8 py-6">
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>

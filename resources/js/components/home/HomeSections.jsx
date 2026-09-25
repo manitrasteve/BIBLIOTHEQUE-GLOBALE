@@ -198,12 +198,12 @@ function HeroSection({ section }) {
                                 WEIGHTS[style.title_weight] ?? "font-extrabold",
                             )}
                         >
-                            {withHighlight(c.title, c.highlight, color ? "opacity-80" : "text-white/85")}
+                            {withHighlight(c.title, c.highlight, color ? "underline decoration-4 underline-offset-8" : "text-on-primary-soft")}
                         </h1>
                     )}
                     {c.description && (
                         <p
-                            className={cx("mt-5 max-w-2xl text-base leading-7 sm:text-lg [overflow-wrap:anywhere]", !color && "text-white/90")}
+                            className={cx("mt-5 max-w-2xl text-base leading-7 sm:text-lg [overflow-wrap:anywhere]", !color && "text-on-primary-soft")}
                             style={color}
                         >
                             {c.description}
@@ -218,7 +218,7 @@ function HeroSection({ section }) {
                         <div
                             className={cx(
                                 "mt-6 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold",
-                                !color && "text-white/90",
+                                !color && "text-on-primary-soft",
                                 centered && "justify-center",
                             )}
                             style={color}

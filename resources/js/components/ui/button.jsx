@@ -5,7 +5,7 @@ const variants = {
  secondary: "border border-slate-200 bg-surface text-slate-800 hover:border-brass hover:bg-slate-50",
  outline: "border border-slate-200 bg-transparent text-slate-800 hover:bg-slate-50",
  ghost: "text-slate-700 hover:bg-slate-100",
- destructive: "bg-red-600 text-white hover:brightness-90",
+ destructive: "bg-red-600 text-white hover:bg-red-500",
  link: "text-brass underline-offset-4 hover:underline",
 };
 
@@ -22,7 +22,7 @@ export function Button({ className, variant = "default", size = "default", type 
  type={type}
  className={cn(
  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50",
- "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass/30",
+ "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200",
  variants[variant] || variants.default,
  sizes[size] || sizes.default,
  className,

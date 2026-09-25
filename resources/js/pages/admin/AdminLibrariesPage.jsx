@@ -30,7 +30,7 @@ const emptyForm = {
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 
-const inputClass = 'w-full rounded-lg border border-line bg-surface/60 px-3 py-2.5';
+const inputClass = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5';
 
 export default function AdminLibrariesPage() {
   const { user } = useAuth();
@@ -187,7 +187,7 @@ export default function AdminLibrariesPage() {
                 </thead>
                 <tbody>
                   {filtered.map((lib) => (
-                    <tr key={lib.id} className={`border-b border-line last:border-0 ${editing?.id === lib.id ? 'bg-brass/5' : ''}`}>
+                    <tr key={lib.id} className={`border-b border-line last:border-0 ${editing?.id === lib.id ? 'bg-indigo-50' : ''}`}>
                       <td className="px-4 py-3 font-medium text-ink">{lib.name}</td>
                       <td className="px-4 py-3 text-ink-soft">{lib.address || '—'}</td>
                       <td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td>
@@ -208,7 +208,7 @@ export default function AdminLibrariesPage() {
             </div>
             <div className="space-y-3 sm:hidden">
               {filtered.map((lib) => (
-                <div key={lib.id} className={`rounded-2xl border border-line bg-paper p-4 ${editing?.id === lib.id ? 'bg-brass/5' : ''}`}>
+                <div key={lib.id} className={`rounded-2xl border border-line bg-paper p-4 ${editing?.id === lib.id ? 'bg-indigo-50' : ''}`}>
                   <p className="font-medium text-ink break-words">{lib.name}</p>
                   <p className="mt-1 text-xs text-ink-soft break-words">{lib.address || '—'}</p>
                   <p className="mt-1 text-xs text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</p>
@@ -229,7 +229,7 @@ export default function AdminLibrariesPage() {
 
       {canManage && (
         <aside className="mt-6 w-full lg:fixed lg:right-4 lg:top-[calc(var(--app-header-height)_+_1.5rem)] lg:z-10 lg:mt-0 lg:w-96 lg:max-h-[calc(100vh_-_var(--app-header-height)_-_3rem)] lg:overflow-y-auto xl:right-8">
-          <form onSubmit={handleSubmit} className="w-full space-y-4 rounded-xl border border-line bg-paper p-5 shadow-lg lg:shadow-xl">
+          <form onSubmit={handleSubmit} className="w-full space-y-4 rounded-xl border border-line bg-paper p-5">
             <div className="flex items-center justify-between">
               <p className="font-display text-lg text-ink">{editing ? `Modifier « ${editing.name} »` : 'Nouvelle bibliothèque'}</p>
               {editing && (

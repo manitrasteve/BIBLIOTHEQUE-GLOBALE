@@ -14,7 +14,7 @@ const TYPE_OPTIONS = ["Mémoire", "Livre", "Thèse", "Rapport", "Document", "Aut
 const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
 
-const inputClass = "w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm";
+const inputClass = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm";
 
 const ACCESS_LEVELS = [
     { value: "public", label: "Public (aucune connexion requise)" },
@@ -263,7 +263,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             onChange={(e) =>
                                 setForm({ ...form, title: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                         />
                     </div>
 
@@ -276,7 +276,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             onChange={(e) =>
                                 setForm({ ...form, subtitle: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass/40"
+                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                         />
                     </div>
                 </div>
@@ -393,7 +393,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             onChange={(e) =>
                                 setForm({ ...form, library_id: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
                         >
                             <option value="">—</option>
                             {libraries.map((l) => (
@@ -470,7 +470,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             onChange={(e) =>
                                 setForm({ ...form, access_level: e.target.value })
                             }
-                            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm"
+                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
                         >
                             {ACCESS_LEVELS.map((a) => (
                                 <option key={a.value} value={a.value}>
@@ -504,7 +504,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             <span
                                 key={name}
                                 title="Nouvel auteur : il sera créé à l'enregistrement du document"
-                                className="inline-flex items-center gap-1 rounded-full border border-dashed border-brass bg-brass/10 px-3 py-1 text-sm text-ink"
+                                className="inline-flex items-center gap-1 rounded-full border border-dashed border-brass bg-indigo-50 px-3 py-1 text-sm text-ink"
                             >
                                 Nouveau : {name}
                                 <button
@@ -552,9 +552,9 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             <label className="block text-sm text-ink-soft mb-1.5">
                                 Fichier PDF *
                             </label>
-                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim/40 px-3 py-3 cursor-pointer hover:border-brass/60 transition-colors">
+                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim px-3 py-3 cursor-pointer hover:border-brass transition-colors">
                                 <UploadCloud
-                                    className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
+                                    className="h-5 w-5 flex-shrink-0 text-slate-400"
                                     strokeWidth={1.5}
                                 />
                                 <span className="text-sm text-ink-soft">
@@ -575,9 +575,9 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                             <label className="block text-sm text-ink-soft mb-1.5">
                                 Couverture (optionnel)
                             </label>
-                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim/40 px-3 py-3 cursor-pointer hover:border-brass/60 transition-colors">
+                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim px-3 py-3 cursor-pointer hover:border-brass transition-colors">
                                 <ImageIcon
-                                    className="h-5 w-5 flex-shrink-0 text-ink-soft/60"
+                                    className="h-5 w-5 flex-shrink-0 text-slate-400"
                                     strokeWidth={1.5}
                                 />
                                 <span className="text-sm text-ink-soft">

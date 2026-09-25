@@ -9,9 +9,9 @@ import { Link } from "react-router-dom";
 export default function LibrarianDashboardPage() {
     return (
         <div className="space-y-6">
-            <section className="hero-glow p-4 sm:p-9">
+            <section className="hero-banner p-4 sm:p-9">
                 <div className="relative z-10">
-                    <span className="badge-modern bg-white/10 text-white/85 ring-1 ring-white/15">
+                    <span className="badge-modern bg-indigo-700 text-on-primary-soft">
                         <LayoutDashboard className="h-3.5 w-3.5" />
                         Tableau de bord
                     </span>
@@ -20,7 +20,7 @@ export default function LibrarianDashboardPage() {
                         Bienvenue dans votre espace de gestion 👋
                     </h2>
 
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/85">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-on-primary-soft">
                         Gérez les demandes de comptes, les documents et
                         consultez le catalogue de la Bibliothèque Numérique.
                     </p>

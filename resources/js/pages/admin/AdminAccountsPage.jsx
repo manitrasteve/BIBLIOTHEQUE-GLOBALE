@@ -77,7 +77,7 @@ export default function AdminAccountsPage() {
             ) : users.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-line p-10 text-center">
                     <GraduationCap
-                        className="h-6 w-6 mx-auto text-ink-soft/50 mb-2"
+                        className="h-6 w-6 mx-auto text-slate-400 mb-2"
                         strokeWidth={1.5}
                     />
                     <p className="text-ink-soft text-sm">

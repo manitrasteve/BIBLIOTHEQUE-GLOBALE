@@ -217,7 +217,7 @@ export default function DocumentsManagePage() {
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
       ) : documents.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line p-10 text-center">
-          <Inbox className="h-6 w-6 mx-auto text-ink-soft/50 mb-2" strokeWidth={1.5} />
+          <Inbox className="h-6 w-6 mx-auto text-slate-400 mb-2" strokeWidth={1.5} />
           <p className="text-ink-soft text-sm">
             {searchTerm ? 'Aucun document trouvé.' : 'Aucun document dans cette catégorie.'}
           </p>
@@ -227,7 +227,7 @@ export default function DocumentsManagePage() {
         <div className="hidden overflow-x-auto rounded-xl border border-line bg-paper sm:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-ink-soft/70 text-xs uppercase tracking-wide">
+              <tr className="border-b border-line text-left text-slate-400 text-xs uppercase tracking-wide">
                 <SortTh label="Titre" sortKey="title" sort={sort} setSort={setSort} />
                 <SortTh label="Catégorie" sortKey="category" sort={sort} setSort={setSort} />
                 <SortTh label="Année" sortKey="year" sort={sort} setSort={setSort} />
@@ -241,7 +241,7 @@ export default function DocumentsManagePage() {
                 <tr key={doc.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 text-ink font-medium">
                     <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 flex-shrink-0 text-ink-soft/50" strokeWidth={1.5} />
+                      <FileText className="h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.5} />
                       {doc.title}
                     </span>
                   </td>
@@ -266,7 +266,7 @@ export default function DocumentsManagePage() {
             <div key={doc.id} className="rounded-xl border border-line bg-paper p-4">
               <div className="flex items-start justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2 font-medium text-ink">
-                  <FileText className="h-4 w-4 flex-shrink-0 text-ink-soft/50" strokeWidth={1.5} />
+                  <FileText className="h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.5} />
                   <span className="break-words">{doc.title}</span>
                 </span>
                 <StatusBadge status={doc.status} />

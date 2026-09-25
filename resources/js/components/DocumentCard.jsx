@@ -42,20 +42,20 @@ function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
             src={document.cover_url}
             alt=""
             loading="lazy"
-            className="h-24 w-auto max-w-[60%] rounded object-cover shadow-md ring-1 ring-black/5 transition-transform duration-300 group-hover:-translate-y-0.5"
+            className="h-24 w-auto max-w-[60%] rounded object-cover transition-transform duration-300 group-hover:-translate-y-0.5"
           />
         ) : (
-          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-white/85 shadow-md transition-transform duration-300 group-hover:-translate-y-0.5">
+          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-on-primary-soft transition-transform duration-300 group-hover:-translate-y-0.5">
             <TypeIcon className="h-6 w-6" strokeWidth={1.5} />
           </span>
         )}
 
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-brass-deep shadow-sm">
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-brass-deep">
           <TypeIcon className="h-3 w-3" />
           {typeCfg.label}
         </span>
         <span
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-surface text-brass shadow-sm"
+          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-surface text-brass"
           title={isPublic ? 'Accès libre' : 'Connexion requise'}
           aria-label={isPublic ? 'Accès libre' : 'Connexion requise'}
         >

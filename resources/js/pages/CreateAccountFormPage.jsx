@@ -60,7 +60,7 @@ function Field({ label, value, onChange, required = false, type = "text", placeh
                 readOnly={readOnly}
                 placeholder={placeholder}
                 onChange={(event) => onChange(event.target.value)}
-                className="w-full rounded-lg border border-line bg-paper px-4 py-3 text-sm text-ink outline-none focus:border-brass focus:ring-2 focus:ring-brass/20"
+                className="w-full rounded-lg border border-line bg-paper px-4 py-3 text-sm text-ink outline-none focus:border-brass focus:ring-2 focus:ring-indigo-200"
             />
         </label>
     );
@@ -162,7 +162,7 @@ export default function CreateAccountFormPage() {
                             </>
                         ) : (
                             isCompleteBirthDate(form.date_of_birth) && (
-                                <p className="self-end rounded-lg border border-line bg-paper-dim/40 px-4 py-3 text-sm text-ink-soft md:col-span-2">
+                                <p className="self-end rounded-lg border border-line bg-paper-dim px-4 py-3 text-sm text-ink-soft md:col-span-2">
                                     Moins de 18 ans : la CIN n'est pas demandée.
                                 </p>
                             )
@@ -176,7 +176,7 @@ export default function CreateAccountFormPage() {
                         <fieldset>
                             <legend className="mb-3 text-sm font-semibold text-ink">Quel est votre centre ?</legend>
                             <div className="grid gap-3 sm:grid-cols-2">
-                                {CENTERS.map((center) => <label key={center} className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${form.school === center ? "border-brass bg-brass/10 text-ink" : "border-line"}`}><input type="radio" name="school" value={center} checked={form.school === center} onChange={() => update("school", center)} />{center}</label>)}
+                                {CENTERS.map((center) => <label key={center} className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${form.school === center ? "border-brass bg-indigo-50 text-ink" : "border-line"}`}><input type="radio" name="school" value={center} checked={form.school === center} onChange={() => update("school", center)} />{center}</label>)}
                             </div>
                         </fieldset>
                         <Field label="Filière" value={form.filiere} onChange={(value) => update("filiere", value)} required />

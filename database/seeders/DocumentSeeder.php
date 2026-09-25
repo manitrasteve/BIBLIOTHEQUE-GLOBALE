@@ -41,9 +41,10 @@ class DocumentSeeder extends Seeder
             if (\Illuminate\Support\Facades\File::exists($samplePdfPath)){
             Storage::disk('local')->put($fakePdfPath, \Illuminate\Support\Facades\File::get($samplePdfPath));
             }else{
-               $validPdfStructure = "%PDF-1.4\n1 0 obj<</type/catalog/pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0obj<</Type/Page/MediaBox[0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n00000000118 00000 n\ntrailer<</Size 4/Root 1 0 R>>\instartxref\n221\n%%EOF";
-
-               Storage::disk('local')->put($fakePdfPath, $validPdfStructure);
+               Storage::disk('local')->put($fakePdfPath, $this->buildDemoPdf([
+                   $sample['title'],
+                   'Document de démonstration généré par le seeder.',
+               ]));
             }
 
             $document = Document::firstOrCreate(
@@ -65,5 +66,46 @@ class DocumentSeeder extends Seeder
 
             $document->authors()->syncWithoutDetaching([$author->id]);
         }
+    }
+
+    // Construit un PDF valide d'une page contenant les lignes données : les
+    // offsets de la table xref sont calculés, sinon le parseur PDF (extraction
+    // de texte, RAG) et la visionneuse refusent le fichier.
+    private function buildDemoPdf(array $lines): string
+    {
+        $escape = fn (string $s) => strtr(
+            iconv('UTF-8', 'Windows-1252//TRANSLIT', $s) ?: $s,
+            ['\\' => '\\\\', '(' => '\\(', ')' => '\\)']
+        );
+
+        $content = "BT\n/F1 14 Tf\n72 720 Td\n18 TL\n";
+        foreach ($lines as $line) {
+            $content .= '(' . $escape($line) . ") Tj T*\n";
+        }
+        $content .= "ET";
+
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+            '<< /Type /Page /MediaBox [0 0 612 792] /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+            '<< /Length ' . strlen($content) . " >>\nstream\n" . $content . "\nendstream",
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objects as $i => $object) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($i + 1) . " 0 obj\n" . $object . "\nendobj\n";
+        }
+
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+        $pdf .= 'trailer << /Size ' . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n" . $xref . "\n%%EOF";
+
+        return $pdf;
     }
 }

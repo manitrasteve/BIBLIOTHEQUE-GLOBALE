@@ -314,7 +314,7 @@ export default function Header() {
         <>
             {/* ================= HEADER ================= */}
             <header
-                className={`sticky top-0 z-40 border-b border-slate-200/80 bg-surface/85 backdrop-blur-xl  ${
+                className={`sticky top-0 z-40 border-b border-slate-200 bg-surface  ${
                     isLoggingOut ? "pointer-events-none" : ""
                 }`}
             >
@@ -645,7 +645,7 @@ export default function Header() {
                 sans dépendre de la position de défilement de la page. */}
             {isLoggingOut && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 px-4 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-overlay px-4"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="logout-title"
@@ -684,7 +684,7 @@ export default function Header() {
                                 type="button"
                                 onClick={confirmLogout}
                                 disabled={isConfirmingLogout}
-                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white  shadow-rose-600/20 transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-80"
+                                className="w-auto min-w-[150px] rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white  transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-80"
                             >
                                 {isConfirmingLogout ? (
                                     <span>

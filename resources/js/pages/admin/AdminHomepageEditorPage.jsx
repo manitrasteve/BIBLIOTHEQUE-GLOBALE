@@ -47,7 +47,7 @@ function AddSectionDialog({ onAdd, onClose }) {
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
             <div role="dialog" aria-modal="true" aria-label="Ajouter une section" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-5">
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <h3 className="font-display text-lg font-extrabold">Ajouter une section</h3>

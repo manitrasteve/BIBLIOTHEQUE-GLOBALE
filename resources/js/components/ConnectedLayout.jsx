@@ -27,7 +27,7 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
             {open && (
                 <button
                     type="button"
-                    className="fixed inset-0 z-40 cursor-default bg-black/20 lg:hidden"
+                    className="fixed inset-0 z-40 cursor-default bg-overlay lg:hidden"
                     aria-label="Fermer le menu de navigation"
                     onClick={() => setOpen(false)}
                 />

@@ -41,7 +41,7 @@ export default function LoginPage() {
 
     return (
         <div className="mx-auto grid max-w-[1000px] gap-6 px-4 sm:px-6 py-10 lg:grid-cols-[.85fr_1fr] lg:items-stretch">
-            <div className="hero-glow hidden p-9 lg:flex lg:flex-col lg:justify-between">
+            <div className="hero-banner hidden p-9 lg:flex lg:flex-col lg:justify-between">
                 <div className="relative z-10">
                     {/* bg-[#ffffff] : pastille toujours blanche (le logo bleu reste visible sur le fond bleu et en mode sombre) */}
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffffff] p-1.5">
@@ -54,13 +54,13 @@ export default function LoginPage() {
                     <h1 className="mt-7 font-display text-2xl font-extrabold leading-tight">
                         Bienvenue dans votre espace documentaire.
                     </h1>
-                    <p className="mt-4 text-sm leading-6 text-white/85">
+                    <p className="mt-4 text-sm leading-6 text-on-primary-soft">
                         Retrouvez vos consultations et votre assistant IA depuis
                         un seul tableau de bord.
                     </p>
                 </div>
-                <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-white/85">
-                    <ShieldCheck className="h-4 w-4 text-white/60" />{" "}
+                <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-on-primary-soft">
+                    <ShieldCheck className="h-4 w-4 text-on-primary-soft" />{" "}
                     Plateforme sécurisée
                 </div>
             </div>

@@ -38,18 +38,18 @@ export default function DashboardPage() {
 
     return (
         <div className="w-full px-0 py-0">
-            <section className="hero-glow p-4 sm:p-9">
+            <section className="hero-banner p-4 sm:p-9">
                 <div className="relative z-10">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <span className="badge-modern bg-white/10 text-white/85 ring-1 ring-white/15">
+                            <span className="badge-modern bg-indigo-700 text-on-primary-soft">
                                 <LayoutDashboard className="h-3.5 w-3.5" />
                                 {ROLE_LABELS[user?.role] || "Compte"}
                             </span>
                             <h1 className="mt-4 font-display text-2xl sm:text-2xl font-extrabold tracking-tight">
                                 Bonjour, {user?.name?.split(" ")[0]}
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm sm:text-base leading-6 text-white/85">
+                            <p className="mt-2 max-w-2xl text-sm sm:text-base leading-6 text-on-primary-soft">
                                 Retrouvez ici vos consultations, vos questions à
                                 l’IA, vos favoris et vos activités récentes.
                             </p>

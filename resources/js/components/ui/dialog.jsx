@@ -13,7 +13,7 @@ export function Dialog({ open, onOpenChange, children }) {
 }
 export function DialogContent({ className, children, onClose }) {
  const ref = useRef(null);
- return <><div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" /><div ref={ref} className={cn("relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-surface p-5 text-slate-900", className)}>{children}</div></>;
+ return <><div className="absolute inset-0 bg-overlay" onClick={onClose} aria-hidden="true" /><div ref={ref} className={cn("relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-surface p-5 text-slate-900", className)}>{children}</div></>;
 }
 export function DialogHeader({ className, ...props }) { return <div className={cn("flex flex-col gap-1.5 text-left", className)} {...props} />; }
 export function DialogTitle({ className, ...props }) { return <h2 className={cn("text-base font-semibold", className)} {...props} />; }

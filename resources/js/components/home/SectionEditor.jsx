@@ -9,7 +9,7 @@ import { SECTION_TYPES, STYLE_OPTIONS, homepageImageUrl, safeLink } from "../../
  * errors : messages du serveur indexés par chemin relatif (« content.title », « style.bg_color »).
  */
 
-const inputClass = "w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm";
+const inputClass = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold text-slate-600";
 
 const STYLE_LABELS = {

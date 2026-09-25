@@ -121,7 +121,7 @@ export default function NotificationsPage() {
             {notifications?.length === 0 && (
                 <div className="rounded-xl border border-dashed border-line p-10 text-center">
                     <Inbox
-                        className="h-6 w-6 mx-auto text-ink-soft/50 mb-2"
+                        className="h-6 w-6 mx-auto text-slate-400 mb-2"
                         strokeWidth={1.5}
                     />
                     <p className="text-ink-soft text-sm">
@@ -139,8 +139,8 @@ export default function NotificationsPage() {
                                 key={n.id}
                                 onClick={() => openNotification(n)}
                                 className={`p-4 flex gap-3 cursor-pointer transition-colors ${
-                                    n.read_at ? "bg-paper" : "bg-brass/5"
-                                } hover:bg-paper-dim/50`}
+                                    n.read_at ? "bg-paper" : "bg-indigo-50"
+                                } hover:bg-paper-dim`}
                             >
                                 <span className="flex-shrink-0 h-8 w-8 rounded-full bg-paper-dim flex items-center justify-center text-ink-soft mt-0.5">
                                     <Icon
@@ -159,7 +159,7 @@ export default function NotificationsPage() {
                                             {n.message}
                                         </p>
                                     )}
-                                    <p className="text-[11px] text-ink-soft/60 mt-1">
+                                    <p className="text-[11px] text-slate-400 mt-1">
                                         {timeAgo(n.created_at)}
                                     </p>
                                 </div>

@@ -139,12 +139,12 @@ export default function ProfilePage() {
             {/* Carte principale */}
             <div className="modern-card overflow-hidden">
                 {/* En-tête du profil */}
-                <div className="border-b border-slate-100 bg-slate-50/70 p-4">
+                <div className="border-b border-slate-100 bg-slate-50 p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         {/* Avatar */}
                         <div className="relative shrink-0">
                             {user?.photo_url ? <img src={user.photo_url} alt="Photo de profil" className="h-20 w-20 rounded-2xl object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100 text-blue-700"><User className="h-8 w-8" /></div>}
-                            <label className="absolute -bottom-2 -right-2 cursor-pointer rounded-full bg-blue-600 p-2 text-white shadow" title="Modifier la photo">
+                            <label className="absolute -bottom-2 -right-2 cursor-pointer rounded-full bg-blue-600 p-2 text-white" title="Modifier la photo">
                                 <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={photoBusy} onChange={e => uploadPhoto(e.target.files?.[0])} />
                                 ✎
                             </label>

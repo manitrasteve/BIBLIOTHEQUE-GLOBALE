@@ -30,6 +30,13 @@
     --color-brass: var(--site-light-secondary, #1f3a5f);
     --color-brass-deep: var(--site-light-secondary-deep, #162a45);
     --color-line: var(--site-light-border, #d9dee5);
+
+    /*
+     * Couleurs pleines (le site n'utilise ni dégradé, ni rgba / transparence, ni ombre ou lueur) :
+     * texte secondaire posé sur la couleur principale, et fond derrière les fenêtres modales.
+     */
+    --color-on-primary-soft: #d8e0ea;
+    --color-overlay: #334155;
     --color-indigo-50: var(--site-light-accent, #f7f8fa);
     --color-indigo-100: var(--site-light-accent-2, #eef0f3);
     --color-indigo-200: var(--site-light-accent-3, #d9dee5);
@@ -88,6 +95,8 @@
  */
 html.dark {
     color-scheme: dark;
+
+    --color-overlay: #020617;
 
     /* Couleurs personnalisables : var(--site-dark-{rôle}, couleur d'origine du mode sombre). */
     --color-canvas: var(--site-dark-background, #0b1220);
@@ -440,24 +449,13 @@ button:active {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
 }
-/* Bandeau marine : identique dans les deux thèmes (le texte y reste blanc). */
-.hero-glow {
+/* Bandeau sur la couleur principale : aplat de couleur, sans dégradé, transparence ni effet lumineux. */
+.hero-banner {
     position: relative;
     overflow: hidden;
     border-radius: 12px;
     background: var(--color-indigo-600);
     color: #ffffff;
-
-}
-.hero-glow::after {
-    content: "";
-    position: absolute;
-    width: 18rem;
-    height: 18rem;
-    right: -7rem;
-    bottom: -8rem;
-    border: 1px solid #ffffff24;
-    border-radius: 50%;
 }
 .section-label {
     display: inline-flex;
@@ -508,7 +506,7 @@ tbody tr:hover {
         padding-left: 1rem;
         padding-right: 1rem;
     }
-    .hero-glow {
+    .hero-banner {
         border-radius: 22px;
     }
 }

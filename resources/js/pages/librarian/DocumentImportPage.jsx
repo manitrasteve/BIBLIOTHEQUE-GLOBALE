@@ -82,7 +82,7 @@ function FilePicker({ icon: Icon, title, hint, accept, multiple, onChange, child
                 {title}
             </p>
             <p className="mt-1 text-xs text-ink-soft">{hint}</p>
-            <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim/40 px-3 py-4 text-sm text-ink-soft transition-colors hover:border-brass/60">
+            <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim px-3 py-4 text-sm text-ink-soft transition-colors hover:border-brass">
                 {multiple ? "Choisir des fichiers" : "Choisir un fichier"}
                 <input
                     type="file"

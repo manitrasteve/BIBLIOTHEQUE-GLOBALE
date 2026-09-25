@@ -29,7 +29,7 @@ function Form({ onClose, onCreated }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">
             <form onSubmit={submit} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-slate-200 bg-surface p-5 text-slate-900 sm:p-5">
                 <div className="mb-5 flex items-center justify-between">
                     <h3 className="font-display text-xl font-extrabold">Ajouter un Service Numérique</h3>
@@ -63,7 +63,7 @@ function Form({ onClose, onCreated }) {
 function ReasonModal({ title, onCancel, onConfirm }) {
     const [reason, setReason] = useState("");
     const [busy, setBusy] = useState(false);
-    return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-md rounded-3xl bg-surface p-4 "><h3 className="font-display text-lg font-extrabold">{title}</h3><textarea autoFocus required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Expliquez la raison ici..." rows="4" className="mt-4 w-full rounded-xl" /><div className="mt-5 flex justify-end gap-2"><button onClick={onCancel} className="btn-secondary">Annuler</button><button disabled={!reason.trim() || busy} onClick={async () => { setBusy(true); await onConfirm(reason.trim()); setBusy(false); }} className="btn-primary">{busy ? "Envoi…" : "Envoyer"}</button></div></div></div>;
+    return <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"><div className="w-full max-w-md rounded-3xl bg-surface p-4 "><h3 className="font-display text-lg font-extrabold">{title}</h3><textarea autoFocus required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Expliquez la raison ici..." rows="4" className="mt-4 w-full rounded-xl" /><div className="mt-5 flex justify-end gap-2"><button onClick={onCancel} className="btn-secondary">Annuler</button><button disabled={!reason.trim() || busy} onClick={async () => { setBusy(true); await onConfirm(reason.trim()); setBusy(false); }} className="btn-primary">{busy ? "Envoi…" : "Envoyer"}</button></div></div></div>;
 }
 
 export default function AdminLibrariansPage() {
