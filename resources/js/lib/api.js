@@ -280,7 +280,7 @@ export const api = {
     // Notifications
     // ---------------------------------------------------------
 
-    getNotifications: () => request("/notifications"),
+    getNotifications: (page = 1) => request(`/notifications?page=${page}`),
 
     getUnreadNotificationCount: () => request("/notifications/unread-count"),
 
@@ -600,7 +600,7 @@ export const api = {
     // Messages administrateur
     // ---------------------------------------------------------
 
-    getAdminMessages: () => request("/admin-messages"),
+    getAdminMessages: (page = 1) => request(`/admin-messages?page=${page}`),
 
     getMessageRecipients: () => request("/admin-messages/recipients"),
 
@@ -624,7 +624,7 @@ export const api = {
     // Messages utilisateur
     // ---------------------------------------------------------
 
-    getMessages: () => request("/messages"),
+    getMessages: (page = 1) => request(`/messages?page=${page}`),
 
     markMessageRead: (id) =>
         request(`/messages/${id}/read`, {
@@ -680,8 +680,8 @@ export const api = {
     // Actualités du site
     // ---------------------------------------------------------
 
-    getSiteUpdates: () =>
-        request("/site-updates", {
+    getSiteUpdates: (page = 1) =>
+        request(`/site-updates?page=${page}`, {
             auth: false,
         }),
 
@@ -695,7 +695,7 @@ export const api = {
     // Favoris
     // ---------------------------------------------------------
 
-    getFavorites: () => request("/favorites"),
+    getFavorites: (page = 1) => request(`/favorites?page=${page}`),
 
     // ---------------------------------------------------------
     // Consultations / IA

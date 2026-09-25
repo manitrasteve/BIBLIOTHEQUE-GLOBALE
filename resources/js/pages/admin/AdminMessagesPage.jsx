@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Mail, MessageCircle, Send, Trash2, Users } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import Pager from "../../components/Pager";
 
 export default function AdminMessagesPage() {
     const { user } = useAuth();
@@ -12,18 +13,22 @@ export default function AdminMessagesPage() {
     const [form, setForm] = useState({ subject: "", message: "", send_to_all: true, recipient_ids: [] });
     const [notice, setNotice] = useState(null);
     const [loading, setLoading] = useState(false);
+    // Historique paginé par le serveur (20 par page).
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState(null);
 
     async function load() {
         try {
-            const [recipients, messages] = await Promise.all([api.getMessageRecipients(), api.getAdminMessages()]);
+            const [recipients, messages] = await Promise.all([api.getMessageRecipients(), api.getAdminMessages(page)]);
             setUsers(recipients || []);
             setHistory(messages.data || []);
+            setMeta(messages);
         } catch (e) {
             setNotice(e?.data?.message || "Impossible de charger la messagerie.");
         }
     }
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [page]);
 
     async function send(e) {
         e.preventDefault();
@@ -98,6 +103,7 @@ export default function AdminMessagesPage() {
                     ))}
                     {history.length === 0 && <div className="modern-card p-5 text-center text-sm text-slate-500">Aucun message envoyé.</div>}
                 </div>
+                <Pager meta={meta} onChange={setPage} />
             </section>
         </div>
     );

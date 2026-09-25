@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Mail, Trash2, UserRound, CheckCheck } from "lucide-react";
 import { api } from "../lib/api";
+import Pager from "../components/Pager";
 
 export default function MessagesPage() {
     const [items, setItems] = useState(null);
     const [params] = useSearchParams();
     const [error, setError] = useState(null);
+    // Pagination du serveur (30 par page) : sans elle, les messages plus anciens étaient inaccessibles.
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState(null);
 
     async function load() {
-        try { const response = await api.getMessages(); setItems(response.data || []); }
+        try { const response = await api.getMessages(page); setItems(response.data || []); setMeta(response); }
         catch (e) { setError(e?.data?.message || "Impossible de charger vos messages."); setItems([]); }
     }
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [page]);
 
     useEffect(() => {
         const id = params.get("message");
@@ -61,6 +65,7 @@ export default function MessagesPage() {
                     </article>
                 ))}
             </div>
+            <Pager meta={meta} onChange={setPage} />
         </div>
     );
 }

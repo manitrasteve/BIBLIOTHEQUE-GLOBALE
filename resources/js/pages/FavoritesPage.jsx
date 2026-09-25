@@ -2,18 +2,23 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { api } from "../lib/api";
 import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../components/CatalogueCard";
+import Pager from "../components/Pager";
 import { useFavoriteToggle } from "../lib/useFavoriteToggle";
 
 export default function FavoritesPage() {
     const [items, setItems] = useState(null);
     const [error, setError] = useState(null);
+    // Pagination du serveur (20 par page) : sans elle, seuls les 20 derniers favoris étaient visibles.
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState(null);
 
     async function load() {
         setError(null);
 
         try {
-            const response = await api.getFavorites();
+            const response = await api.getFavorites(page);
             setItems(Array.isArray(response?.data) ? response.data : []);
+            setMeta(response);
         } catch (err) {
             setError(
                 err?.data?.message || "Impossible de charger vos favoris.",
@@ -24,7 +29,7 @@ export default function FavoritesPage() {
 
     useEffect(() => {
         load();
-    }, []);
+    }, [page]);
 
     // Le cœur retire le document de la liste ; il y revient à sa place si le serveur refuse.
     const toggleFavorite = useFavoriteToggle((slug, favorited) =>
@@ -71,6 +76,8 @@ export default function FavoritesPage() {
                     ))}
                 </div>
             )}
+
+            <Pager meta={meta} onChange={setPage} />
         </div>
     );
 }

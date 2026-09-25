@@ -14,6 +14,7 @@ import {
     Trash2,
 } from "lucide-react";
 import { api } from "../lib/api";
+import Pager from "../components/Pager";
 import { SkeletonList } from "../components/Skeleton";
 
 const TYPE_ICONS = {
@@ -39,15 +40,21 @@ function timeAgo(dateStr) {
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState(null);
     const [error, setError] = useState(null);
+    // Pagination du serveur (20 par page) : sans elle, les notifications plus anciennes étaient inaccessibles.
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         load();
-    }, []);
+    }, [page]);
 
     function load() {
-        api.getNotifications()
-            .then((res) => setNotifications(res.data))
+        api.getNotifications(page)
+            .then((res) => {
+                setNotifications(res.data);
+                setMeta(res);
+            })
             .catch(() => setError("Impossible de charger vos notifications."));
     }
 
@@ -171,6 +178,8 @@ export default function NotificationsPage() {
                     })}
                 </ul>
             )}
+
+            <Pager meta={meta} onChange={setPage} />
         </div>
     );
 }
