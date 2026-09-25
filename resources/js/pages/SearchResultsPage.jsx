@@ -8,6 +8,7 @@ import CatalogueCard, { CATALOGUE_GRID_CLASS as GRID_CLASS } from '../components
 import Pager from '../components/Pager';
 import { Skeleton } from '../components/Skeleton';
 import { useFavoriteToggle } from '../lib/useFavoriteToggle';
+import { useAuth } from '../context/AuthContext';
 
 const tabClass = (active) =>
   `inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
@@ -126,6 +127,8 @@ export default function SearchResultsPage() {
   }
 
   const toggleFavorite = useFavoriteToggle(setFavorited);
+  // Les favoris demandent un compte : pas de cœur sur les cartes pour un visiteur non connecté.
+  const { user } = useAuth();
 
   function clearQuery() {
     setSearchKey((k) => k + 1);
@@ -150,7 +153,7 @@ export default function SearchResultsPage() {
   return (
     <div ref={topRef} className={`w-full ${inLayout ? '' : 'px-4 py-6 sm:px-6 sm:py-8 xl:px-8'}`}>
       <header className="mb-2">
-        <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-5xl lg:text-6xl">
+        <h1 className="font-display text-3xl font-extrabold leading-none tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-4xl">
           {q ? (
             <>
               Résultats pour <span className="text-brass">« {q} »</span>
@@ -159,13 +162,8 @@ export default function SearchResultsPage() {
             'Catalogue'
           )}
         </h1>
-        <p className="mt-3 text-base text-slate-500 sm:text-lg" role="status">
-          {loading
-            ? 'Recherche en cours…'
-            : `${total} document${total > 1 ? 's' : ''} disponible${total > 1 ? 's' : ''} dans le catalogue documentaire.`}
-        </p>
 
-        <div className="mt-6">
+        <div className="mt-5 max-w-3xl">
           <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
         </div>
 
@@ -299,7 +297,7 @@ export default function SearchResultsPage() {
               <>
                 <div className={view === 'list' ? 'grid gap-2.5' : GRID_CLASS}>
                   {results.data.map((doc) => (
-                    <CatalogueCard key={doc.slug} document={doc} query={q} view={view} onToggleFavorite={toggleFavorite} />
+                    <CatalogueCard key={doc.slug} document={doc} query={q} view={view} onToggleFavorite={user ? toggleFavorite : undefined} />
                   ))}
                 </div>
                 <Pager meta={results} onChange={changePage} />

@@ -44,7 +44,7 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit }
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Titre, auteur, catégorie ou mot-clé"
         aria-label="Rechercher dans le catalogue"
-        className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 sm:py-3 sm:text-lg"
+        className="min-w-0 flex-1 border-0 bg-transparent py-2 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 sm:py-2.5"
       />
       <kbd className="hidden shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 lg:inline">
         {isMac ? '⌘ K' : 'Ctrl K'}
