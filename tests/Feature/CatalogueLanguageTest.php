@@ -49,3 +49,18 @@ test('le catalogue reste public : visiteur ou jeton invalide donnent is_favorite
     $this->getJson('/api/documents')->assertOk()->assertJsonPath('data.0.is_favorited', false);
     $this->withToken('jeton-invalide')->getJson('/api/documents')->assertOk()->assertJsonPath('data.0.is_favorited', false);
 });
+
+test('« Rechercher dans » restreint la recherche au champ choisi', function () {
+    $droit = \App\Models\Category::factory()->create(['name' => 'Droit']);
+    $parTitre = Document::factory()->create(['status' => 'publie', 'title' => 'Le droit des affaires', 'keywords' => 'commerce']);
+    $parCategorie = Document::factory()->create(['status' => 'publie', 'title' => 'Contrats et obligations', 'keywords' => 'civil', 'category_id' => $droit->id]);
+    $parMotCle = Document::factory()->create(['status' => 'publie', 'title' => 'Économie rurale', 'keywords' => 'droit foncier']);
+
+    $slugs = fn ($by) => collect($this->getJson('/api/documents?q=droit' . ($by ? "&by={$by}" : ''))->assertOk()->json('data'))->pluck('slug')->sort()->values()->all();
+
+    expect($slugs('title'))->toBe([$parTitre->slug]);
+    expect($slugs('category'))->toBe([$parCategorie->slug]);
+    expect($slugs('keyword'))->toBe([$parMotCle->slug]);
+    // Sans « by » : recherche large inchangée (titre, mots-clés, auteurs).
+    expect($slugs(null))->toBe(collect([$parTitre->slug, $parMotCle->slug])->sort()->values()->all());
+});

@@ -77,22 +77,23 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit }
 }
 
 // variant « catalogue » : grande barre de la page catalogue ; par défaut, barre « tiroir » de l'accueil.
-export default function SearchBar({ initialQuery = '', live = false, variant = 'default' }) {
+// initialBy : champ de recherche lu dans l'adresse (?by=), pour le garder affiché après rechargement.
+export default function SearchBar({ initialQuery = '', initialBy = 'title', live = false, variant = 'default' }) {
   const [query, setQuery] = useState(initialQuery);
-  const [filter, setFilter] = useState('title');
+  const [filter, setFilter] = useState(FILTERS.some((f) => f.key === initialBy) ? initialBy : 'title');
   const navigate = useNavigate();
   const debouncedQuery = useDebouncedValue(query.trim(), 350);
 
-  // Recherche dès la saisie (page de résultats) ; champ vide => état initial.
+  // Recherche dès la saisie ou au changement de champ (page de résultats) ; champ vide => état initial.
   useEffect(() => {
-    if (!live || debouncedQuery === initialQuery.trim()) return;
+    if (!live || (debouncedQuery === initialQuery.trim() && filter === initialBy)) return;
     if (!debouncedQuery) {
       navigate('/recherche', { replace: true });
       return;
     }
     const params = new URLSearchParams({ q: debouncedQuery, by: filter });
     navigate(`/recherche?${params.toString()}`, { replace: true });
-  }, [debouncedQuery]);
+  }, [debouncedQuery, filter]);
 
   function handleSubmit(e) {
     e.preventDefault();

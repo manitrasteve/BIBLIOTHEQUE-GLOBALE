@@ -51,11 +51,18 @@ class DocumentController extends Controller
             ->where('status', 'publie');
 
         if ($search = $request->get('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('keywords', 'like', "%{$search}%")
-                  ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%"));
-            });
+            // « Rechercher dans » (by) : un seul champ ; sans by, recherche large (titre, mots-clés, auteurs).
+            match ($request->get('by')) {
+                'title' => $query->where('title', 'like', "%{$search}%"),
+                'author' => $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%")),
+                'category' => $query->whereHas('category', fn ($c) => $c->where('name', 'like', "%{$search}%")),
+                'keyword' => $query->where('keywords', 'like', "%{$search}%"),
+                default => $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('keywords', 'like', "%{$search}%")
+                      ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%"));
+                }),
+            };
         }
 
         // Filtre optionnel par auteur (Espace recherche du chercheur).

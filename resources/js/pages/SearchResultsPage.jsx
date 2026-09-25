@@ -63,6 +63,7 @@ export default function SearchResultsPage() {
   // Dans l'espace bibliothécaire, le layout fournit déjà les marges.
   const inLayout = location.pathname.startsWith('/bibliothecaire');
   const q = searchParams.get('q') || '';
+  const by = searchParams.get('by') || '';
   const topRef = useRef(null);
   const [view, setView] = useState(readView);
   // Change quand l'étiquette de recherche est retirée : la barre de recherche repart vide.
@@ -75,7 +76,7 @@ export default function SearchResultsPage() {
   const [categoryId, setCategoryId] = useState(searchParams.get('category_id') || '');
   const [language, setLanguage] = useState(searchParams.get('language') || '');
   // La page est liée aux critères : une nouvelle recherche ou un nouveau filtre repart de la page 1.
-  const criteria = `${q}|${categoryId}|${language}`;
+  const criteria = `${q}|${by}|${categoryId}|${language}`;
   const [paging, setPaging] = useState({ criteria, page: 1 });
   const page = paging.criteria === criteria ? paging.page : 1;
 
@@ -91,6 +92,7 @@ export default function SearchResultsPage() {
       .searchDocuments({
         q,
         page,
+        ...(q && by ? { by } : {}),
         ...(categoryId ? { category_id: categoryId } : {}),
         ...(language ? { language } : {}),
       })
@@ -100,7 +102,7 @@ export default function SearchResultsPage() {
     return () => {
       active = false;
     };
-  }, [q, categoryId, language, page]);
+  }, [q, by, categoryId, language, page]);
 
   function changePage(next) {
     setPaging({ criteria, page: next });
@@ -164,7 +166,7 @@ export default function SearchResultsPage() {
         </p>
 
         <div className="mt-6">
-          <SearchBar key={searchKey} initialQuery={q} live variant="catalogue" />
+          <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
         </div>
 
         {categories.length > 0 && (
