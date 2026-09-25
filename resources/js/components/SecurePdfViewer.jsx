@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     FileText,
     Maximize2,
@@ -6,6 +6,10 @@ import {
     ZoomOut,
     ChevronLeft,
     ChevronRight,
+    ChevronUp,
+    ChevronDown,
+    Search,
+    X,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
@@ -13,6 +17,34 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+// Texte d'une page, en minuscules et aux espaces normalisés, avec pour chaque
+// caractère l'élément de texte pdf.js d'origine (item) et sa position (offset) :
+// cela permet de retrouver l'emplacement exact d'une occurrence sur la page.
+function indexPageText(items) {
+    let text = "";
+    const map = [];
+    const push = (c, item, offset) => {
+        if (/\s/.test(c)) {
+            if (text === "" || text.endsWith(" ")) return;
+            c = " ";
+        }
+        text += c;
+        map.push({ item, offset });
+    };
+    items.forEach((it, i) => {
+        if (typeof it.str !== "string") return;
+        for (let k = 0; k < it.str.length; k++) {
+            for (const c of it.str[k].toLowerCase()) push(c, i, k);
+        }
+        if (it.hasEOL) push(" ", -1, 0);
+    });
+    return { items, text, map };
+}
+
+function normalizeQuery(q) {
+    return q.trim().replace(/\s+/g, " ").toLowerCase();
+}
 
 // Lecteur PDF "sécurisé" : le document est dessiné page par page sur un
 // <canvas> (jamais chargé comme un vrai fichier par le navigateur), donc
@@ -33,12 +65,32 @@ export default function SecurePdfViewer({ slug }) {
     const scrollRef = useRef(null);
     const renderTaskRef = useRef(null);
 
+    // Recherche dans le document ouvert : texte extrait localement par pdf.js, sans requête serveur.
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState([]); // { page, start, end }
+    const [current, setCurrent] = useState(0);
+    const [searchState, setSearchState] = useState("idle"); // idle | searching | done | notext
+    const [pageViewport, setPageViewport] = useState(null); // { pageNum, viewport } en pixels CSS
+    const textIndexRef = useRef(null); // Promise du texte indexé de toutes les pages
+    const textPagesRef = useRef(null); // même contenu, une fois l'extraction terminée
+    const pendingScrollRef = useRef(false);
+    const activeHighlightRef = useRef(null);
+
     useEffect(() => {
         let cancelled = false;
 
         async function load() {
             setLoading(true);
             setError(null);
+            // Nouveau document : aucune recherche précédente ne doit subsister.
+            textIndexRef.current = null;
+            textPagesRef.current = null;
+            pendingScrollRef.current = false;
+            setQuery("");
+            setResults([]);
+            setCurrent(0);
+            setSearchState("idle");
+            setPageViewport(null);
             try {
                 const token = localStorage.getItem("bm_token");
                 const r = await fetch(api.streamDocumentUrl(slug), {
@@ -129,6 +181,12 @@ export default function SecurePdfViewer({ slug }) {
             renderTaskRef.current = task;
             try {
                 await task.promise;
+                if (!cancelled) {
+                    setPageViewport({
+                        pageNum,
+                        viewport: page.getViewport({ scale: cssScale }),
+                    });
+                }
             } catch {
                 // rendu annulé (page/zoom changé pendant le rendu) — sans danger
             }
@@ -139,6 +197,167 @@ export default function SecurePdfViewer({ slug }) {
             cancelled = true;
         };
     }, [pdf, pageNum, zoom, availableWidth]);
+
+    // Extraction du texte de toutes les pages, une seule fois par document ouvert.
+    function getTextIndex() {
+        if (!textIndexRef.current) {
+            const doc = pdf;
+            const promise = (async () => {
+                const pages = [];
+                for (let n = 1; n <= doc.numPages; n++) {
+                    const page = await doc.getPage(n);
+                    const content = await page.getTextContent();
+                    pages.push(indexPageText(content.items));
+                }
+                return pages;
+            })();
+            textIndexRef.current = promise;
+            promise.then(
+                (pages) => {
+                    if (textIndexRef.current === promise) textPagesRef.current = pages;
+                },
+                () => {
+                    if (textIndexRef.current === promise) textIndexRef.current = null;
+                },
+            );
+        }
+        return textIndexRef.current;
+    }
+
+    // Recherche, avec un court délai pour ne pas relancer le calcul à chaque frappe.
+    useEffect(() => {
+        const q = normalizeQuery(query);
+        if (!pdf || !q) {
+            pendingScrollRef.current = false;
+            setResults([]);
+            setCurrent(0);
+            setSearchState("idle");
+            return undefined;
+        }
+        let cancelled = false;
+        setSearchState("searching");
+        const timer = setTimeout(async () => {
+            let pages;
+            try {
+                pages = await getTextIndex();
+            } catch {
+                pages = [];
+            }
+            if (cancelled) return;
+            // Aucun texte exploitable (PDF scanné) : la recherche est impossible sans OCR.
+            if (!pages.some((p) => p.text.trim() !== "")) {
+                setResults([]);
+                setCurrent(0);
+                setSearchState("notext");
+                return;
+            }
+            const found = [];
+            pages.forEach((p, i) => {
+                let at = p.text.indexOf(q);
+                while (at !== -1) {
+                    found.push({ page: i + 1, start: at, end: at + q.length });
+                    at = p.text.indexOf(q, at + q.length);
+                }
+            });
+            // Première occurrence à partir de la page affichée, sinon depuis le début.
+            const first = found.findIndex((r) => r.page >= pageNum);
+            pendingScrollRef.current = found.length > 0;
+            setResults(found);
+            setCurrent(first === -1 ? 0 : first);
+            setSearchState("done");
+        }, 250);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+        // pageNum volontairement absent : changer de page ne relance pas la recherche.
+    }, [pdf, query]);
+
+    function goToResult(index) {
+        if (!results.length) return;
+        setCurrent((index + results.length) % results.length);
+        pendingScrollRef.current = true;
+    }
+
+    // Affiche la page de l'occurrence sélectionnée.
+    const selected = results[current];
+    useEffect(() => {
+        if (selected && pendingScrollRef.current && selected.page !== pageNum) {
+            setPageNum(selected.page);
+        }
+    }, [selected]);
+
+    // Rectangles de surlignage des occurrences de la page affichée (pixels CSS du canvas).
+    const highlights = useMemo(() => {
+        const pages = textPagesRef.current;
+        if (!results.length || !pageViewport || !pages) return [];
+        const shown = pageViewport.pageNum;
+        const pageIndex = pages[shown - 1];
+        if (!pageIndex) return [];
+        const { viewport } = pageViewport;
+        const rects = [];
+        results.forEach((r, ri) => {
+            if (r.page !== shown) return;
+            // Une occurrence peut s'étendre sur plusieurs éléments de texte (ex. plusieurs lignes).
+            const spans = new Map();
+            for (let c = r.start; c < r.end; c++) {
+                const m = pageIndex.map[c];
+                if (!m || m.item < 0) continue;
+                const s = spans.get(m.item);
+                if (s) {
+                    s.from = Math.min(s.from, m.offset);
+                    s.to = Math.max(s.to, m.offset + 1);
+                } else {
+                    spans.set(m.item, { from: m.offset, to: m.offset + 1 });
+                }
+            }
+            spans.forEach(({ from, to }, itemIdx) => {
+                const it = pageIndex.items[itemIdx];
+                const tx = pdfjsLib.Util.transform(viewport.transform, it.transform);
+                const height = Math.hypot(tx[2], tx[3]);
+                const width = it.width * viewport.scale;
+                const len = it.str.length || 1;
+                rects.push({
+                    key: `${ri}-${itemIdx}`,
+                    active: ri === current,
+                    left: tx[4] + (width * from) / len,
+                    top: tx[5] - height,
+                    width: Math.max(2, (width * (to - from)) / len),
+                    height: height * 1.2,
+                });
+            });
+        });
+        return rects;
+    }, [results, current, pageViewport]);
+
+    // Fait défiler la zone de lecture jusqu'à l'occurrence sélectionnée.
+    useEffect(() => {
+        if (!pendingScrollRef.current || !selected) return;
+        if (!pageViewport || pageViewport.pageNum !== selected.page) return;
+        const el = activeHighlightRef.current;
+        const box = scrollRef.current;
+        if (!el || !box) return;
+        pendingScrollRef.current = false;
+        const a = el.getBoundingClientRect();
+        const b = box.getBoundingClientRect();
+        box.scrollBy({
+            top: a.top - b.top - (b.height - a.height) / 2,
+            left:
+                a.left < b.left || a.right > b.right
+                    ? a.left - b.left - (b.width - a.width) / 2
+                    : 0,
+            behavior: "smooth",
+        });
+    }, [highlights]);
+
+    function onSearchKeyDown(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            goToResult(current + (e.shiftKey ? -1 : 1));
+        } else if (e.key === "Escape") {
+            setQuery("");
+        }
+    }
 
     function fullscreen() {
         containerRef.current?.requestFullscreen?.();
@@ -198,6 +417,69 @@ export default function SecurePdfViewer({ slug }) {
                         <ChevronRight className="h-4 w-4" />
                     </button>
                 </div>
+                <div className="order-last flex w-full min-w-0 items-center gap-1 sm:order-none sm:w-auto sm:max-w-md sm:flex-1">
+                    <div className="relative min-w-0 flex-1">
+                        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="search"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={onSearchKeyDown}
+                            placeholder="Rechercher dans le document…"
+                            aria-label="Rechercher dans le document"
+                            className="h-8 w-full rounded-lg border border-slate-200 bg-surface pl-7 pr-7 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 [&::-webkit-search-cancel-button]:hidden"
+                        />
+                        {query && (
+                            <button
+                                type="button"
+                                onClick={() => setQuery("")}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-600"
+                                title="Effacer la recherche"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        )}
+                    </div>
+                    {searchState !== "idle" && (
+                        <span
+                            className="max-w-[45%] shrink-0 truncate text-xs text-slate-600 sm:max-w-[12rem]"
+                            aria-live="polite"
+                            title={
+                                searchState === "notext"
+                                    ? "La recherche de texte n'est pas disponible pour ce document."
+                                    : undefined
+                            }
+                        >
+                            {searchState === "searching"
+                                ? "Recherche…"
+                                : searchState === "notext"
+                                  ? "La recherche de texte n'est pas disponible pour ce document."
+                                  : results.length
+                                    ? `${current + 1} / ${results.length}`
+                                    : "Aucun résultat trouvé"}
+                        </span>
+                    )}
+                    {searchState === "done" && results.length > 0 && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => goToResult(current - 1)}
+                                className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-100"
+                                title="Résultat précédent"
+                            >
+                                <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => goToResult(current + 1)}
+                                className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-100"
+                                title="Résultat suivant"
+                            >
+                                <ChevronDown className="h-4 w-4" />
+                            </button>
+                        </>
+                    )}
+                </div>
                 <div className="flex items-center gap-1">
                     <button
                         type="button"
@@ -225,7 +507,25 @@ export default function SecurePdfViewer({ slug }) {
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-auto p-2 sm:p-4">
-                <div className="mx-auto w-fit ">
+                <div className="relative mx-auto w-fit ">
+                    {pageViewport?.pageNum === pageNum &&
+                        highlights.map((h) => (
+                            <div
+                                key={h.key}
+                                ref={h.active ? activeHighlightRef : undefined}
+                                className={`pointer-events-none absolute z-10 rounded-sm mix-blend-multiply ${
+                                    h.active
+                                        ? "bg-orange-400/70 ring-2 ring-orange-600"
+                                        : "bg-yellow-300/60"
+                                }`}
+                                style={{
+                                    left: h.left,
+                                    top: h.top,
+                                    width: h.width,
+                                    height: h.height,
+                                }}
+                            />
+                        ))}
                     <canvas
                         ref={canvasRef}
                         onContextMenu={(e) => e.preventDefault()}
