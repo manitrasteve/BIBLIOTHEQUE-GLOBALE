@@ -220,7 +220,6 @@ export default function AdminUsersPage() {
                     { label: "Actifs", value: counts.actifs },
                     { label: "En attente / désactivés", value: counts.inactifs },
                 ] : []}
-                note={counts ? `Hors total (gérés dans leurs propres pages) : Bibliothécaires ${counts.hors_total?.bibliothecaire ?? 0} · Administrateurs ${counts.hors_total?.administrateur ?? 0}` : null}
             />
 
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
