@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./components/Toast";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -71,6 +72,7 @@ export default function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
+                <ToastProvider>
                 <div className="min-h-screen bg-paper text-ink font-sans flex flex-col dashboard-bg">
                     <Header />
                     <main className="flex-1">
@@ -344,6 +346,7 @@ export default function App() {
                     </main>
                     <HomeOnlyFooter />
                 </div>
+                </ToastProvider>
             </BrowserRouter>
         </AuthProvider>
     );

@@ -3,7 +3,7 @@ import { BookOpen, GraduationCap, ScrollText, ClipboardList, FileText, Globe, Lo
 import { stripHtml } from '../lib/utils';
 import { languageLabel } from '../lib/languages';
 
-const TYPE_CONFIG = {
+export const TYPE_CONFIG = {
   livre: { label: 'Livre', icon: BookOpen },
   memoire: { label: 'Mémoire', icon: GraduationCap },
   these: { label: 'Thèse', icon: ScrollText },
@@ -13,7 +13,7 @@ const TYPE_CONFIG = {
 };
 
 // Insensible à la casse et aux accents : « Mémoire », « MEMOIRE » et « memoire » doivent tous retrouver la même entrée.
-function normalizeType(value) {
+export function normalizeType(value) {
   return String(value || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

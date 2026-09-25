@@ -79,6 +79,11 @@ class DocumentController extends Controller
             $query->whereIn('language', $this->withLabel($language, self::LANGUAGE_LABELS));
         }
 
+        // Route publique : si un jeton valide accompagne la requête, on indique les favoris de ce lecteur.
+        if ($viewer = auth('sanctum')->user()) {
+            $query->withExists(['favorites as is_favorited' => fn ($f) => $f->where('user_id', $viewer->id)]);
+        }
+
         $documents = $query->orderByDesc('published_at')->paginate(15);
 
         // Champs publics uniquement : jamais file_path exposé directement.
@@ -100,6 +105,7 @@ class DocumentController extends Controller
             'consultation_count' => $d->consultations_count,
             'favorite_count' => $d->favorites_count,
             'ai_query_count' => $d->ai_queries_count,
+            'is_favorited' => (bool) ($d->is_favorited ?? false),
         ]);
 
         return response()->json($documents);

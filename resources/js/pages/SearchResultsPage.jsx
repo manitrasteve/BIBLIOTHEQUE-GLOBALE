@@ -1,31 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
-import { SearchX, Languages, LibraryBig, RotateCcw } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { SearchX, Languages, ChevronDown, LayoutGrid, List, X } from 'lucide-react';
 import { api } from '../lib/api';
-import { LANGUAGES } from '../lib/languages';
+import { LANGUAGES, languageLabel } from '../lib/languages';
 import SearchBar from '../components/SearchBar';
-import DocumentCard from '../components/DocumentCard';
+import CatalogueCard, { CATALOGUE_GRID_CLASS as GRID_CLASS } from '../components/CatalogueCard';
 import Pager from '../components/Pager';
 import { Skeleton } from '../components/Skeleton';
+import { useFavoriteToggle } from '../lib/useFavoriteToggle';
 
-const chipClass = (active) =>
-  `shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+const tabClass = (active) =>
+  `inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
     active
-      ? 'border-brass bg-indigo-600 text-white'
+      ? 'border-indigo-600 bg-indigo-600 text-white'
       : 'border-slate-200 bg-surface text-slate-600 hover:border-indigo-300 hover:text-brass-deep'
   }`;
 
-function SkeletonGrid() {
-  return (
-    <div role="status" aria-busy="true" aria-label="Chargement des documents" className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
-      {Array.from({ length: 12 }, (_, index) => (
-        <div key={index} className="overflow-hidden rounded-xl border border-slate-200 bg-surface">
-          <Skeleton className="block h-32 w-full rounded-none" />
-          <div className="space-y-1.5 p-2.5">
-            <Skeleton className="block h-4 w-5/6" />
-            <Skeleton className="block h-3 w-1/2" />
-            <Skeleton className="mt-2 block h-4 w-16 rounded-full" />
+
+const VIEW_KEY = 'catalogue_view';
+
+function readView() {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid';
+  } catch {
+    return 'grid';
+  }
+}
+
+function SkeletonResults({ view }) {
+  if (view === 'list') {
+    return (
+      <div role="status" aria-busy="true" aria-label="Chargement des documents" className="grid gap-2.5">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className="grid grid-cols-[3rem_1fr] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3 sm:grid-cols-[3.5rem_1fr]">
+            <Skeleton className="block aspect-[3/4] w-full rounded-md" />
+            <div className="space-y-2">
+              <Skeleton className="block h-4 w-3/5" />
+              <Skeleton className="block h-3 w-2/5" />
+            </div>
           </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div role="status" aria-busy="true" aria-label="Chargement des documents" className={GRID_CLASS}>
+      {Array.from({ length: 12 }, (_, index) => (
+        <div key={index}>
+          <Skeleton className="block aspect-[3/4] w-full rounded-l-md rounded-r-xl" />
+          <Skeleton className="mt-3 block h-4 w-5/6" />
+          <Skeleton className="mt-1.5 block h-3 w-1/2" />
         </div>
       ))}
     </div>
@@ -34,10 +58,15 @@ function SkeletonGrid() {
 
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   // Dans l'espace bibliothécaire, le layout fournit déjà les marges.
-  const inLayout = useLocation().pathname.startsWith('/bibliothecaire');
+  const inLayout = location.pathname.startsWith('/bibliothecaire');
   const q = searchParams.get('q') || '';
   const topRef = useRef(null);
+  const [view, setView] = useState(readView);
+  // Change quand l'étiquette de recherche est retirée : la barre de recherche repart vide.
+  const [searchKey, setSearchKey] = useState(0);
 
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,108 +107,205 @@ export default function SearchResultsPage() {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function changeView(next) {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // stockage indisponible (navigation privée) : le choix vaut pour cette visite
+    }
+  }
+
+  // Cœur des cartes : même action que le bouton Favori de la fiche document.
+  function setFavorited(slug, favorited) {
+    setResults((prev) =>
+      prev && { ...prev, data: prev.data.map((d) => (d.slug === slug ? { ...d, is_favorited: favorited } : d)) },
+    );
+  }
+
+  const toggleFavorite = useFavoriteToggle(setFavorited);
+
+  function clearQuery() {
+    setSearchKey((k) => k + 1);
+    navigate(location.pathname, { replace: true });
+  }
+
+  function clearAll() {
+    setCategoryId('');
+    setLanguage('');
+    if (q) clearQuery();
+  }
+
   const hasFilters = categoryId !== '' || language !== '';
   const total = results?.total ?? 0;
+  const categoryName = categories.find((c) => String(c.id) === categoryId)?.name;
+  const tags = [
+    q && { key: 'q', label: `« ${q} »`, clear: clearQuery },
+    categoryId && { key: 'category', label: categoryName || 'Catégorie', clear: () => setCategoryId('') },
+    language && { key: 'language', label: languageLabel(language) || language, clear: () => setLanguage('') },
+  ].filter(Boolean);
 
   return (
-    <div ref={topRef} className={`w-full ${inLayout ? '' : 'px-4 py-5 sm:px-6 xl:px-8'}`}>
-      <section className="modern-card mb-6 p-5 sm:p-6">
-        <p className="section-label">
-          <LibraryBig className="h-3.5 w-3.5" />
-          Catalogue
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-3xl">
+    <div ref={topRef} className={`w-full ${inLayout ? '' : 'px-4 py-6 sm:px-6 sm:py-8 xl:px-8'}`}>
+      <header className="mb-2">
+        <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-5xl lg:text-6xl">
           {q ? (
             <>
               Résultats pour <span className="text-brass">« {q} »</span>
             </>
           ) : (
-            'Catalogue documentaire'
+            'Catalogue'
           )}
         </h1>
-        <p className="mt-1 text-sm text-slate-500" role="status">
-          {loading ? 'Recherche en cours…' : `${total} document${total > 1 ? 's' : ''} disponible${total > 1 ? 's' : ''}`}
+        <p className="mt-3 text-base text-slate-500 sm:text-lg" role="status">
+          {loading
+            ? 'Recherche en cours…'
+            : `${total} document${total > 1 ? 's' : ''} disponible${total > 1 ? 's' : ''} dans le catalogue documentaire.`}
         </p>
 
-        <div className="mt-4 max-w-2xl">
-          <SearchBar initialQuery={q} live />
+        <div className="mt-6">
+          <SearchBar key={searchKey} initialQuery={q} live variant="catalogue" />
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 lg:flex-row lg:items-start">
-          {categories.length > 0 && (
-            <div className="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible" role="group" aria-label="Filtrer par catégorie">
-              <button type="button" onClick={() => setCategoryId('')} className={chipClass(categoryId === '')} aria-pressed={categoryId === ''}>
-                Toutes catégories
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCategoryId(String(c.id))}
-                  className={chipClass(categoryId === String(c.id))}
-                  aria-pressed={categoryId === String(c.id)}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:ml-auto">
-            <label className="relative flex items-center">
-              <Languages className="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" aria-hidden="true" />
-              <span className="sr-only">Langue</span>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="rounded-full border border-slate-200 bg-surface py-2 pl-9 pr-8 text-sm font-semibold text-slate-700"
-              >
-                <option value="">Toutes les langues</option>
-                {LANGUAGES.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {hasFilters && (
+        {categories.length > 0 && (
+          <div
+            className="-mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="group"
+            aria-label="Filtrer par catégorie"
+          >
+            <button type="button" onClick={() => setCategoryId('')} className={tabClass(categoryId === '')} aria-pressed={categoryId === ''}>
+              Toutes catégories
+            </button>
+            {categories.map((c) => (
               <button
+                key={c.id}
                 type="button"
-                onClick={() => {
-                  setCategoryId('');
-                  setLanguage('');
-                }}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-500 hover:text-brass-deep"
+                onClick={() => setCategoryId(String(c.id))}
+                className={tabClass(categoryId === String(c.id))}
+                aria-pressed={categoryId === String(c.id)}
               >
-                <RotateCcw className="h-4 w-4" />
-                Réinitialiser
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <section aria-label="Résultats" className="mt-4">
+        <div
+          className={`z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-surface py-2.5 pl-4 pr-2.5 sm:pl-5 ${
+            inLayout ? '' : 'sticky top-[4.75rem]'
+          }`}
+        >
+          <div className="min-w-[8rem] flex-1" aria-live="polite">
+            <p className="text-sm font-semibold text-slate-900 sm:text-base">
+              {loading ? '…' : `${total} document${total > 1 ? 's' : ''}`}
+            </p>
+            <p className="text-xs text-slate-500">
+              {loading
+                ? 'Chargement'
+                : total
+                  ? `Page ${results?.current_page ?? 1} sur ${results?.last_page ?? 1}`
+                  : 'Aucun résultat'}
+            </p>
+          </div>
+
+          <label className="relative order-last flex w-full items-center sm:order-none sm:w-auto">
+            <Languages className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400" aria-hidden="true" />
+            <span className="sr-only">Langue</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="h-10 w-full appearance-none rounded-full border border-slate-200 bg-surface py-2 pl-10 pr-9 text-sm font-semibold text-slate-700 outline-none focus:border-brass"
+            >
+              <option value="">Toutes les langues</option>
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" aria-hidden="true" />
+          </label>
+
+          <div className="flex rounded-full border border-slate-200 bg-surface p-0.5" role="group" aria-label="Affichage">
+            {[
+              { key: 'grid', label: 'Afficher en grille', Icon: LayoutGrid },
+              { key: 'list', label: 'Afficher en liste', Icon: List },
+            ].map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => changeView(key)}
+                aria-pressed={view === key}
+                aria-label={label}
+                title={label}
+                className={`flex h-9 w-10 items-center justify-center rounded-full transition-colors ${
+                  view === key ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-brass-deep'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-0.5 pt-4">
+            {tags.map((t) => (
+              <span key={t.key} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-surface py-1 pl-3.5 pr-1 text-sm font-medium text-brass-deep">
+                <span className="max-w-[16rem] truncate">{t.label}</span>
+                <button
+                  type="button"
+                  onClick={t.clear}
+                  aria-label={`Retirer le filtre ${t.label}`}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ))}
+            {(tags.length > 1 || hasFilters) && (
+              <button type="button" onClick={clearAll} className="px-1 text-sm font-semibold text-brass hover:text-brass-deep">
+                Tout effacer
               </button>
             )}
           </div>
+        )}
+
+        <div className="pt-6">
+          {loading && <SkeletonResults view={view} />}
+          {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+          {!loading && !error && results && (
+            results.data.length === 0 ? (
+              <div className="flex flex-col items-center px-4 py-16 text-center">
+                <SearchX className="mb-4 h-10 w-10 text-slate-400" strokeWidth={1.5} />
+                <h2 className="font-display text-2xl font-extrabold tracking-tight text-slate-900">Aucun document trouvé</h2>
+                <p className="mt-2 text-sm text-slate-500">Essayez un autre mot-clé, une autre catégorie ou une autre langue.</p>
+                {tags.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="mt-5 inline-flex h-11 items-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700"
+                  >
+                    Effacer les filtres
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className={view === 'list' ? 'grid gap-2.5' : GRID_CLASS}>
+                  {results.data.map((doc) => (
+                    <CatalogueCard key={doc.slug} document={doc} query={q} view={view} onToggleFavorite={toggleFavorite} />
+                  ))}
+                </div>
+                <Pager meta={results} onChange={changePage} />
+              </>
+            )
+          )}
         </div>
       </section>
-
-      {loading && <SkeletonGrid />}
-      {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-
-      {!loading && !error && results && (
-        results.data.length === 0 ? (
-          <div className="modern-card flex flex-col items-center p-10 text-center">
-            <SearchX className="mb-3 h-8 w-8 text-slate-400" strokeWidth={1.5} />
-            <p className="font-semibold text-slate-700">Aucun document ne correspond à cette recherche.</p>
-            <p className="mt-1 text-sm text-slate-500">Essayez un autre mot-clé, une autre catégorie ou une autre langue.</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
-              {results.data.map((doc) => (
-                <DocumentCard key={doc.slug} document={doc} variant="grid" />
-              ))}
-            </div>
-            <Pager meta={results} onChange={changePage} />
-          </>
-        )
-      )}
     </div>
   );
 }

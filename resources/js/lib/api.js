@@ -75,9 +75,8 @@ export const api = {
     searchDocuments: (params) => {
         const query = new URLSearchParams(params).toString();
 
-        return request(`/documents?${query}`, {
-            auth: false,
-        });
+        // Jeton envoyé s'il existe : la réponse indique alors les favoris du lecteur (is_favorited).
+        return request(`/documents?${query}`);
     },
 
     getDocument: (slug) =>

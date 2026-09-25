@@ -15,7 +15,7 @@ import {
 import { api } from "../../lib/api";
 import { DEFAULT_HERO_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
-import DocumentCard from "../DocumentCard";
+import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../CatalogueCard";
 import LibraryCard from "../LibraryCard";
 
 /**
@@ -297,9 +297,9 @@ function DocumentsSection({ section, isLocked, preview }) {
     return (
         <Shell section={section} spacing="py-6">
             <Heading section={section} icon={Sparkles} action={action} className="mb-6" />
-            <div className="grid grid-cols-2 gap-3 text-left sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
+            <div className={cx(CATALOGUE_GRID_CLASS, "text-left")}>
                 {documents.map((doc) => (
-                    <DocumentCard key={doc.slug} document={doc} variant="grid" isLocked={isLocked} />
+                    <CatalogueCard key={doc.slug} document={doc} />
                 ))}
             </div>
         </Shell>
