@@ -15,6 +15,9 @@
     --font-display:
         "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 
+    /* Mode Texte du lecteur de document (police à empattements, lecture longue). */
+    --font-reading: "Newsreader", Georgia, "Times New Roman", serif;
+
     /*
      * Couleurs personnalisables (Paramètres → Apparence du site) : chaque variable vaut
      * var(--site-light-{rôle}, couleur d'origine). Sans thème publié, aucune variable --site-*

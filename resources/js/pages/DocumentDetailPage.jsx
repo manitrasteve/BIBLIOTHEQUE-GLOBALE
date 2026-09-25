@@ -449,6 +449,8 @@ export default function DocumentDetailPage() {
                                 {tab === "details" ? (
                                     <SecurePdfViewer
                                         slug={doc.slug}
+                                        readerName={user?.name}
+                                        libraryName={doc.library}
                                         onAskAi={() => setTab("ai")}
                                     />
                                 ) : (
