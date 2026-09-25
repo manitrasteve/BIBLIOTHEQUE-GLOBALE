@@ -14,6 +14,7 @@ import {
     Settings,
     LayoutTemplate,
     Palette,
+    LibraryBig,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -331,7 +332,8 @@ export default function Header() {
                         </span>
 
                         <span className="min-w-0">
-                            <span className="block truncate font-display text-[15px] sm:text-base font-extrabold tracking-tight text-slate-900">
+                            {/* Visiteur sur téléphone : le logo seul, la barre (Catalogue, S'inscrire, Connexion) prend la place. */}
+                            <span className={`${isPublicPage && !user ? "hidden sm:block" : "block"} truncate font-display text-[15px] sm:text-base font-extrabold tracking-tight text-slate-900`}>
                                 Bibliothèque Numérique
                             </span>
 
@@ -342,7 +344,7 @@ export default function Header() {
                     </Link>
 
                     {/* ================= NAVIGATION ================= */}
-                    <nav className="flex items-center gap-2 sm:gap-3 text-sm">
+                    <nav className="flex shrink-0 items-center gap-1.5 sm:gap-3 text-sm">
                         {/* =====================================================
                             PAGES PUBLIQUES + DÉCONNECTÉ
 
@@ -357,21 +359,24 @@ export default function Header() {
                         ====================================================== */}
                         {isPublicPage && !user ? (
                             <>
-                                {/* Catalogue */}
+                                {/* Catalogue (icône seule sur téléphone, pour que la barre tienne en largeur) */}
                                 <Link
-                                    to="/"
-                                    className="inline-flex rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                    to="/recherche"
+                                    title="Catalogue"
+                                    className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                                 >
-                                    Catalogue
+                                    <LibraryBig className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                                    <span className="sr-only sm:not-sr-only">Catalogue</span>
                                 </Link>
 
                                 {/* S'inscrire */}
                                 <Link
                                     to="/creer-un-compte"
+                                    title="S’inscrire"
                                     className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
                                 >
-                                    <UserPlus className="h-4 w-4" />
-                                    S’inscrire
+                                    <UserPlus className="h-4 w-4" aria-hidden="true" />
+                                    <span className="sr-only sm:not-sr-only">S’inscrire</span>
                                 </Link>
 
                                 {/* Lune */}
@@ -380,7 +385,7 @@ export default function Header() {
                                 {/* Connexion */}
                                 <Link
                                     to="/connexion"
-                                    className="btn-primary !rounded-xl !px-4 !py-2.5"
+                                    className="btn-primary !rounded-xl !px-3 sm:!px-4 !py-2.5"
                                 >
                                     <LogIn className="h-4 w-4" />
                                     Connexion
