@@ -97,8 +97,14 @@ class EngagementController extends Controller
             ->get()
             ->keyBy('id');
 
-        $rows->setCollection($rows->getCollection()->map(function ($row) use ($documents) {
+        $progress = \App\Models\ReadingProgress::where('user_id', $request->user()->id)
+            ->whereIn('document_id', $documents->keys())
+            ->get()
+            ->keyBy('document_id');
+
+        $rows->setCollection($rows->getCollection()->map(function ($row) use ($documents, $progress) {
             $d = $documents->get($row->document_id);
+            $p = $progress->get($row->document_id);
 
             return $d ? [
                 'document_id' => $d->id,
@@ -109,6 +115,8 @@ class EngagementController extends Controller
                 'authors' => $d->authors->pluck('name'),
                 'last_consulted_at' => $row->last_consulted_at,
                 'views' => (int) $row->views,
+                'last_page' => $p?->last_page,
+                'total_pages' => $p?->total_pages,
             ] : null;
         })->filter()->values());
 

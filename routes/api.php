@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\UserMessageController;
 use App\Http\Controllers\Api\StaffDiscussionController;
 use App\Http\Controllers\Api\LibrarianManagementController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ReadingController;
 use App\Http\Controllers\Api\ResearchController;
 use App\Http\Controllers\Api\TrashController;
 use App\Http\Controllers\Api\PermissionManagementController;
@@ -52,7 +53,10 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/authors', [AuthorController::class, 'index']);
 
 Route::get('/documents', [DocumentController::class, 'index']);
+// Avant /documents/{slug} ; appelée à chaque frappe (avec délai) dans la barre de recherche.
+Route::get('/documents/suggestions', [DocumentController::class, 'suggestions'])->middleware('throttle:120,1');
 Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware('optional.auth');
+Route::get('/documents/{slug}/similar', [DocumentController::class, 'similar']);
 
 Route::post('/account-requests', [AccountRequestController::class, 'store']);
 Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show']);
@@ -76,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile', [ProfileController::class, 'update']);
     Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
+    Route::get('/profile/reading-stats', [ProfileController::class, 'readingStats']);
     Route::post('/notifications/{appNotification}/unread', [AppNotificationController::class, 'markUnread']);
     Route::get('/dashboard/me', [DashboardController::class, 'me']);
 
@@ -85,6 +90,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask'])->middleware('throttle:20,1');
     Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream'])->middleware('throttle:20,1');
     Route::get('/documents/{slug}/ai-history', [AiQueryController::class, 'history']);
+
+    // Lecture personnelle : reprise à la dernière page et notes par page.
+    Route::put('/documents/{slug}/progress', [ReadingController::class, 'saveProgress'])->middleware('throttle:120,1');
+    Route::get('/documents/{slug}/notes', [ReadingController::class, 'notes']);
+    Route::post('/documents/{slug}/notes', [ReadingController::class, 'storeNote']);
+    Route::put('/notes/{note}', [ReadingController::class, 'updateNote']);
+    Route::delete('/notes/{note}', [ReadingController::class, 'destroyNote']);
 
     Route::post('/documents/{slug}/favorite', [EngagementController::class, 'toggleFavorite']);
     Route::get('/favorites', [EngagementController::class, 'favorites']);

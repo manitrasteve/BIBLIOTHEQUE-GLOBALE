@@ -20,6 +20,8 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import SecurePdfViewer from "../components/SecurePdfViewer";
 import AiAssistant from "../components/AiAssistant";
+import CitationDialog from "../components/CitationDialog";
+import SimilarDocuments from "../components/SimilarDocuments";
 import { SkeletonDocumentDetail } from "../components/Skeleton";
 
 export default function DocumentDetailPage() {
@@ -82,6 +84,8 @@ export default function DocumentDetailPage() {
     // Même règle que le serveur (Document::isAccessibleBy) : un document restreint
     // n'est lisible que par les membres de sa bibliothèque (ou le personnel).
     const canRead = Boolean(user && doc?.can_view_content);
+    // « Reprendre la lecture » : dernière page lue enregistrée pour ce lecteur.
+    const resumePage = doc.reading_progress?.last_page || null;
 
     return (
         <div className="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-7 xl:flex xl:h-[calc(100dvh-var(--app-header-height))] xl:flex-col xl:overflow-hidden xl:py-4">
@@ -385,6 +389,8 @@ export default function DocumentDetailPage() {
                                     </button>
                                 )}
 
+                                <CitationDialog doc={doc} />
+
                                 {user && !canRead && (
                                     <p className="rounded-lg border border-line bg-paper-dim px-3 py-2 text-xs text-ink-soft">
                                         {doc.access_level === "restreint"
@@ -394,11 +400,13 @@ export default function DocumentDetailPage() {
                                 )}
 
                                 {favoriteError && (
-                                    <p className="text-[10px] text-rose-700">
+                                    <p className="text-[10px] text-rose-700" role="alert">
                                         {favoriteError}
                                     </p>
                                 )}
                             </div>
+
+                            <SimilarDocuments slug={doc.slug} />
                         </div>
                     </div>
                 </div>
@@ -412,8 +420,11 @@ export default function DocumentDetailPage() {
                         <div className="w-full h-full border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
                             {/* ONGLETS */}
                             <div className="flex gap-1 px-4 sm:px-5 border-b border-line flex-shrink-0">
+                                <div className="flex gap-1" role="tablist" aria-label="Lecture du document">
                                 <button
                                     type="button"
+                                    role="tab"
+                                    aria-selected={tab === "details"}
                                     onClick={() => setTab("details")}
                                     className={`flex items-center gap-2 px-4 py-3 text-sm ${
                                         tab === "details"
@@ -430,6 +441,8 @@ export default function DocumentDetailPage() {
 
                                 <button
                                     type="button"
+                                    role="tab"
+                                    aria-selected={tab === "ai"}
                                     onClick={() => setTab("ai")}
                                     className={`flex items-center gap-2 px-4 py-3 text-sm ${
                                         tab === "ai"
@@ -443,6 +456,14 @@ export default function DocumentDetailPage() {
                                     />
                                     Assistant IA
                                 </button>
+                                </div>
+
+                                {resumePage > 1 && tab === "details" && (
+                                    <p className="ml-auto hidden self-center text-xs text-ink-soft sm:block">
+                                        Reprise de votre lecture à la page {resumePage}
+                                        {doc.reading_progress?.total_pages ? ` sur ${doc.reading_progress.total_pages}` : ""}
+                                    </p>
+                                )}
                             </div>
 
                             {/* CONTENU PDF / IA */}
@@ -452,7 +473,7 @@ export default function DocumentDetailPage() {
                                         slug={doc.slug}
                                         readerName={user?.name}
                                         libraryName={doc.library}
-                                        onAskAi={() => setTab("ai")}
+                                        initialPage={resumePage}
                                     />
                                 ) : (
                                     <AiAssistant slug={doc.slug} />

@@ -23,6 +23,14 @@ class DocumentController extends Controller
     private const TYPE_LABELS = ['livre' => 'Livre', 'memoire' => 'Mémoire', 'these' => 'Thèse', 'rapport' => 'Rapport', 'autre' => 'Autre'];
     private const LANGUAGE_LABELS = ['fr' => 'Français', 'mg' => 'Malgache', 'en' => 'Anglais', 'es' => 'Espagnol', 'pt' => 'Portugais', 'it' => 'Italien', 'ru' => 'Russe', 'autre' => 'Autre'];
 
+    // Colonnes de l'index plein texte (migration add_fulltext_index_to_documents).
+    private const FULLTEXT_COLUMNS = ['title', 'subtitle', 'abstract', 'keywords'];
+
+    private function supportsFullText(): bool
+    {
+        return in_array(Document::query()->getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+    }
+
     private function withLabel(string $value, array $labels): array
     {
         return array_values(array_unique(array_filter([$value, $labels[mb_strtolower($value)] ?? null])));
@@ -50,17 +58,25 @@ class DocumentController extends Controller
             ->withCount(['consultations','favorites','aiQueries'])
             ->where('status', 'publie');
 
-        if ($search = $request->get('q')) {
-            // « Rechercher dans » (by) : un seul champ ; sans by, recherche large (titre, mots-clés, auteurs).
+        $search = trim((string) $request->get('q'));
+        $fullText = $search !== '' && ! in_array($request->get('by'), ['title', 'author', 'category', 'keyword'], true) && $this->supportsFullText();
+
+        if ($search !== '') {
+            // « Rechercher dans » (by) : un seul champ ; sans by, recherche large (titre, mots-clés, auteurs,
+            // et le résumé via l'index plein texte quand la base le permet).
             match ($request->get('by')) {
                 'title' => $query->where('title', 'like', "%{$search}%"),
                 'author' => $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%")),
                 'category' => $query->whereHas('category', fn ($c) => $c->where('name', 'like', "%{$search}%")),
                 'keyword' => $query->where('keywords', 'like', "%{$search}%"),
-                default => $query->where(function ($q) use ($search) {
+                default => $query->where(function ($q) use ($search, $fullText) {
                     $q->where('title', 'like', "%{$search}%")
                       ->orWhere('keywords', 'like', "%{$search}%")
                       ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%"));
+                    // Mots entiers n'importe où (résumé compris), ordre des mots indifférent.
+                    if ($fullText) {
+                        $q->orWhereFullText(self::FULLTEXT_COLUMNS, $search);
+                    }
                 }),
             };
         }
@@ -91,6 +107,12 @@ class DocumentController extends Controller
             $query->withExists(['favorites as is_favorited' => fn ($f) => $f->where('user_id', $viewer->id)]);
         }
 
+        // Avec une recherche : les plus pertinents d'abord (titre qui contient la saisie, puis score plein texte).
+        if ($fullText) {
+            $query->orderByRaw('(title LIKE ?) DESC', ["%{$search}%"])
+                ->orderByRaw('MATCH(' . implode(', ', self::FULLTEXT_COLUMNS) . ') AGAINST (? IN NATURAL LANGUAGE MODE) DESC', [$search]);
+        }
+
         $documents = $query->orderByDesc('published_at')->paginate(15);
 
         // Champs publics uniquement : jamais file_path exposé directement.
@@ -116,6 +138,93 @@ class DocumentController extends Controller
         ]);
 
         return response()->json($documents);
+    }
+
+    // Suggestions de la barre de recherche (pendant la frappe) : quelques titres et auteurs publiés.
+    public function suggestions(Request $request)
+    {
+        $search = trim((string) $request->query('q'));
+        if (mb_strlen($search) < 2) {
+            return response()->json(['documents' => [], 'authors' => []]);
+        }
+
+        $documents = Document::query()
+            ->where('status', 'publie')
+            ->where('title', 'like', "%{$search}%")
+            // Titres qui commencent par la saisie d'abord.
+            ->orderByRaw('(title LIKE ?) DESC', ["{$search}%"])
+            ->orderBy('title')
+            ->limit(6)
+            ->get(['slug', 'title', 'year']);
+
+        $authors = \App\Models\Author::query()
+            ->where('name', 'like', "%{$search}%")
+            ->whereHas('documents', fn ($d) => $d->where('status', 'publie'))
+            ->orderBy('name')
+            ->limit(4)
+            ->pluck('name');
+
+        return response()->json(['documents' => $documents, 'authors' => $authors]);
+    }
+
+    // « Documents similaires » d'une fiche : auteurs communs (+3), même catégorie (+2), mot-clé commun (+1 chacun).
+    public function similar(string $slug)
+    {
+        $document = Document::with('authors:id')->where('slug', $slug)->where('status', 'publie')->firstOrFail();
+        $authorIds = $document->authors->pluck('id');
+        $keywords = $this->keywordList($document->keywords);
+
+        $candidates = Document::query()
+            ->with(['authors:id,name', 'category:id,name'])
+            ->where('status', 'publie')
+            ->whereKeyNot($document->id)
+            ->where(function ($q) use ($document, $authorIds, $keywords) {
+                $q->where('category_id', $document->category_id)
+                    ->when($authorIds->isNotEmpty(), fn ($q) => $q->orWhereHas('authors', fn ($a) => $a->whereIn('authors.id', $authorIds)))
+                    ->when($keywords, fn ($q) => $q->orWhere(function ($k) use ($keywords) {
+                        foreach (array_slice($keywords, 0, 8) as $keyword) {
+                            $k->orWhere('keywords', 'like', "%{$keyword}%");
+                        }
+                    }));
+            })
+            ->latest('published_at')
+            ->limit(100)
+            ->get();
+
+        $similar = $candidates
+            ->map(function (Document $d) use ($document, $authorIds, $keywords) {
+                $score = 3 * $d->authors->pluck('id')->intersect($authorIds)->count()
+                    + ((int) $d->category_id === (int) $document->category_id ? 2 : 0)
+                    + count(array_intersect($keywords, $this->keywordList($d->keywords)));
+
+                return ['score' => $score, 'document' => $d];
+            })
+            ->filter(fn ($row) => $row['score'] > 0)
+            ->sortByDesc('score')
+            ->take(6)
+            ->values()
+            ->map(fn ($row) => [
+                'slug' => $row['document']->slug,
+                'title' => $row['document']->title,
+                'type' => $row['document']->type,
+                'year' => $row['document']->year,
+                'authors' => $row['document']->authors->pluck('name'),
+                'category' => $row['document']->category?->name,
+                'cover_url' => $row['document']->cover_path ? Storage::url($row['document']->cover_path) : null,
+            ]);
+
+        return response()->json($similar);
+    }
+
+    // Mots-clés saisis librement (« droit, économie ; finances ») → liste en minuscules, sans doublon.
+    private function keywordList(?string $keywords): array
+    {
+        return collect(preg_split('/[,;]+/u', (string) $keywords))
+            ->map(fn ($k) => mb_strtolower(trim($k)))
+            ->filter(fn ($k) => mb_strlen($k) >= 3)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     // Fiche détaillée : publique en métadonnées, mais sans contenu protégé.
@@ -152,6 +261,10 @@ class DocumentController extends Controller
             'consultation_count' => $document->consultations_count,
             'ai_query_count' => $document->ai_queries_count,
             'is_favorited' => $request->user() ? $document->favorites()->where('user_id',$request->user()->id)->exists() : false,
+            // « Reprendre la lecture » : dernière page lue par ce lecteur (null s'il n'a jamais ouvert le document).
+            'reading_progress' => $canView
+                ? \App\Models\ReadingProgress::where('user_id', $request->user()->id)->where('document_id', $document->id)->first(['last_page', 'total_pages', 'updated_at'])
+                : null,
         ]);
     }
 

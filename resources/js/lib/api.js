@@ -83,6 +83,29 @@ export const api = {
         return request(`/documents?${query}`);
     },
 
+    // Profil lecteur : chiffres de lecture et catégories préférées.
+    getReadingStats: () => request("/profile/reading-stats"),
+
+    // Lecture personnelle : dernière page lue et notes par page.
+    saveReadingProgress: (slug, page, totalPages) =>
+        request(`/documents/${slug}/progress`, {
+            method: "PUT",
+            body: { page, total_pages: totalPages },
+        }),
+    getDocumentNotes: (slug) => request(`/documents/${slug}/notes`),
+    createDocumentNote: (slug, data) =>
+        request(`/documents/${slug}/notes`, { method: "POST", body: data }),
+    updateDocumentNote: (id, data) =>
+        request(`/notes/${id}`, { method: "PUT", body: data }),
+    deleteDocumentNote: (id) => request(`/notes/${id}`, { method: "DELETE" }),
+
+    // Documents proches (même catégorie, mots-clés ou auteurs).
+    getSimilarDocuments: (slug) => request(`/documents/${slug}/similar`, { auth: false }),
+
+    // Suggestions de la barre de recherche (titres + auteurs publiés).
+    getSearchSuggestions: (q) =>
+        request(`/documents/suggestions?${new URLSearchParams({ q })}`, { auth: false }),
+
     // Jeton envoyé s'il existe : le serveur (optional.auth) en déduit can_view_content et is_favorited.
     getDocument: (slug) => request(`/documents/${slug}`),
 

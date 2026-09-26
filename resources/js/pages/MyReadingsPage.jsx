@@ -10,12 +10,14 @@ function formatDate(value) {
     return new Date(String(value).replace(" ", "T")).toLocaleString("fr-FR");
 }
 
-// Dernière page connue : uniquement la mémoire temporaire du lecteur (session en cours).
-function lastPosition(slug) {
-    const page = sessionMemory.getReaderPage(slug);
-    if (!Number.isInteger(page)) return null;
-    const total = sessionMemory.getReaderTotal(slug);
-    return total ? `Page ${page} / ${total}` : `Page ${page}`;
+// Dernière page connue : celle de la session en cours si le document vient d'être lu,
+// sinon celle enregistrée sur le serveur (conservée d'un appareil / d'une visite à l'autre).
+function lastPosition(row) {
+    const sessionPage = sessionMemory.getReaderPage(row.slug);
+    const page = Number.isInteger(sessionPage) ? sessionPage : row.last_page;
+    if (!page) return null;
+    const total = sessionMemory.getReaderTotal(row.slug) || row.total_pages || null;
+    return { page, total, percent: total ? Math.min(100, Math.round((page / total) * 100)) : null };
 }
 
 export default function MyReadingsPage() {
@@ -80,7 +82,7 @@ export default function MyReadingsPage() {
             ) : (
                 <div className="space-y-3">
                     {rows.map((row) => {
-                        const position = lastPosition(row.slug);
+                        const position = lastPosition(row);
 
                         return (
                             <div
@@ -97,17 +99,33 @@ export default function MyReadingsPage() {
                                         {row.views > 1 ? ` · ${row.views} consultations` : ""}
                                     </p>
                                     {position && (
-                                        <p className="mt-1 text-xs font-semibold text-brass">
-                                            Dernière page consultée : {position}
-                                        </p>
+                                        <div className="mt-2 max-w-xs">
+                                            <p className="text-xs font-semibold text-brass">
+                                                Page {position.page}
+                                                {position.total ? ` sur ${position.total}` : ""}
+                                                {position.percent !== null ? ` · ${position.percent} %` : ""}
+                                            </p>
+                                            {position.percent !== null && (
+                                                <div
+                                                    className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200"
+                                                    role="progressbar"
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={100}
+                                                    aria-valuenow={position.percent}
+                                                    aria-label={`Progression de lecture de ${row.title}`}
+                                                >
+                                                    <div className="h-full rounded-full bg-indigo-600" style={{ width: `${position.percent}%` }} />
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 <Link
                                     to={`/documents/${row.slug}`}
                                     className="btn-primary shrink-0 justify-center"
                                 >
-                                    <PlayCircle className="h-4 w-4" />
-                                    Reprendre la lecture
+                                    <PlayCircle className="h-4 w-4" aria-hidden="true" />
+                                    {position?.page > 1 ? `Reprendre à la page ${position.page}` : "Reprendre la lecture"}
                                 </Link>
                             </div>
                         );

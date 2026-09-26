@@ -10,11 +10,13 @@ import {
     ChevronUp,
     ChevronDown,
     Search,
+    StickyNote,
     X,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
 import ReaderTextView, { buildTextBlocks } from "./ReaderTextView";
+import ReaderNotesPanel from "./ReaderNotesPanel";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -72,7 +74,8 @@ const TEXT_SCALES = [0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4];
 // aucun bouton natif Télécharger/Imprimer n'existe, sur aucun appareil —
 // contrairement à un <iframe>, qui échoue silencieusement sur mobile.
 // readerName / libraryName : filigrane « Compte lecteur : … · usage personnel uniquement ».
-export default function SecurePdfViewer({ slug, readerName, libraryName }) {
+// initialPage : dernière page lue enregistrée sur le serveur (« Reprendre la lecture »).
+export default function SecurePdfViewer({ slug, readerName, libraryName, initialPage }) {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [pdf, setPdf] = useState(null);
@@ -107,6 +110,22 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
     const [textView, setTextView] = useState({ state: "loading", pageNum: 0, blocks: [] });
     const activeTextRef = useRef(null);
     const [pageInput, setPageInput] = useState("1");
+
+    // Notes personnelles (panneau latéral) : chargées une fois par document.
+    const [notes, setNotes] = useState([]);
+    const [notesOpen, setNotesOpen] = useState(false);
+    const notesOnPage = notes.filter((n) => n.page === pageNum).length;
+
+    useEffect(() => {
+        let cancelled = false;
+        setNotes([]);
+        api.getDocumentNotes(slug)
+            .then((list) => !cancelled && setNotes(Array.isArray(list) ? list : []))
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
+    }, [slug]);
 
     useEffect(() => {
         let cancelled = false;
@@ -144,7 +163,8 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
                     );
                 });
                 if (cancelled) return;
-                const saved = sessionMemory.getReaderPage(slug);
+                // Page de la session en cours, sinon dernière page lue enregistrée sur le serveur.
+                const saved = sessionMemory.getReaderPage(slug) ?? initialPage;
                 setPdf(doc);
                 setNumPages(doc.numPages);
                 setPageNum(
@@ -166,10 +186,15 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
     }, [slug]);
 
     useEffect(() => {
-        if (pdf) {
-            sessionMemory.setReaderPage(slug, pageNum);
-            sessionMemory.setReaderTotal(slug, pdf.numPages);
-        }
+        if (!pdf) return undefined;
+        sessionMemory.setReaderPage(slug, pageNum);
+        sessionMemory.setReaderTotal(slug, pdf.numPages);
+        // Dernière page lue, enregistrée sur le serveur après un court arrêt sur la page
+        // (pas une requête par page feuilletée).
+        const timer = setTimeout(() => {
+            api.saveReadingProgress(slug, pageNum, pdf.numPages).catch(() => {});
+        }, 1500);
+        return () => clearTimeout(timer);
     }, [pdf, pageNum]);
 
     // Largeur utile de la zone de lecture (hors marges), mise à jour à la rotation / redimensionnement.
@@ -640,6 +665,21 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
                     </div>
                     <button
                         type="button"
+                        onClick={() => setNotesOpen((open) => !open)}
+                        aria-pressed={notesOpen}
+                        className={`relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${
+                            notesOpen ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:bg-slate-100"
+                        }`}
+                        title="Mes notes sur ce document"
+                    >
+                        <StickyNote className="h-4 w-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">Notes</span>
+                        {notes.length > 0 && (
+                            <span className="rounded-full bg-slate-200 px-1.5 text-[10px] tabular-nums text-slate-700">{notes.length}</span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
                         onClick={fullscreen}
                         className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100"
                         title="Plein écran"
@@ -701,6 +741,17 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
                 <p className="mx-auto mt-5 max-w-[65ch] text-center text-xs text-slate-500">{watermark}</p>
             </div>
 
+            {notesOpen && (
+                <ReaderNotesPanel
+                    slug={slug}
+                    pageNum={pageNum}
+                    notes={notes}
+                    setNotes={setNotes}
+                    onGoToPage={goToPage}
+                    onClose={() => setNotesOpen(false)}
+                />
+            )}
+
             {/* Barre du bas : pagination */}
             <nav className="flex items-center justify-center gap-3 border-t border-slate-200 bg-surface px-3 py-2 text-sm text-slate-600" aria-label="Pagination du document">
                 <button
@@ -733,6 +784,17 @@ export default function SecurePdfViewer({ slug, readerName, libraryName }) {
                     />
                     <span className="whitespace-nowrap">sur {numPages}</span>
                 </label>
+                {notesOnPage > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setNotesOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-900"
+                        title="Afficher les notes de cette page"
+                    >
+                        <StickyNote className="h-3 w-3" aria-hidden="true" />
+                        {notesOnPage} note{notesOnPage > 1 ? "s" : ""}
+                    </button>
+                )}
                 <button
                     type="button"
                     disabled={pageNum >= numPages}

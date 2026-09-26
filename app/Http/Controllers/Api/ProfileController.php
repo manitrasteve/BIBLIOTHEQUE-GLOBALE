@@ -40,6 +40,35 @@ class ProfileController extends Controller
         return response()->json($user->fresh()->load('library'));
     }
 
+    // Profil lecteur : chiffres de lecture et catégories les plus consultées (données réelles uniquement).
+    public function readingStats(Request $request)
+    {
+        $user = $request->user();
+
+        $topCategories = \App\Models\Consultation::query()
+            ->where('consultations.user_id', $user->id)
+            ->join('documents', 'documents.id', '=', 'consultations.document_id')
+            ->join('categories', 'categories.id', '=', 'documents.category_id')
+            ->selectRaw('categories.name AS name, COUNT(DISTINCT consultations.document_id) AS documents')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('documents')
+            ->orderBy('categories.name')
+            ->limit(5)
+            ->get()
+            ->map(fn ($row) => ['name' => $row->name, 'documents' => (int) $row->documents]);
+
+        return response()->json([
+            'documents_read' => $user->consultations()->distinct()->count('document_id'),
+            'consultations' => $user->consultations()->count(),
+            'pages_reached' => (int) \App\Models\ReadingProgress::where('user_id', $user->id)->sum('last_page'),
+            'notes' => \App\Models\DocumentNote::where('user_id', $user->id)->count(),
+            'favorites' => $user->favorites()->count(),
+            'ai_queries' => $user->aiQueries()->count(),
+            'top_categories' => $topCategories,
+            'member_since' => $user->created_at,
+        ]);
+    }
+
     public function deletePhoto(Request $request)
     {
         $user = $request->user();
