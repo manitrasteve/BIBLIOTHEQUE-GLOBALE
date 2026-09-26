@@ -179,7 +179,7 @@ export default function CreateAccountFormPage() {
                                 {CENTERS.map((center) => <label key={center} className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${form.school === center ? "border-brass bg-indigo-50 text-ink" : "border-line"}`}><input type="radio" name="school" value={center} checked={form.school === center} onChange={() => update("school", center)} />{center}</label>)}
                             </div>
                         </fieldset>
-                        <Field label="Filière" value={form.filiere} onChange={(value) => update("filiere", value)} required />
+                        <Field label="Parcours" value={form.filiere} onChange={(value) => update("filiere", value)} required />
                         <Field label="N° de carte d'étudiant" value={form.student_card_number} onChange={(value) => update("student_card_number", value)} required />
                         <fieldset>
                             <legend className="mb-3 text-sm font-semibold text-ink">Niveau</legend>

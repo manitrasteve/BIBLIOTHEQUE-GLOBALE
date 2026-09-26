@@ -53,7 +53,7 @@ function personSections(row) {
             title: "Profil étudiant",
             fields: [
                 ["Centre", row.school],
-                ["Filière", row.filiere],
+                ["Parcours", row.filiere],
                 ["Niveau", level(row)],
                 ["N° de carte d'étudiant", row.student_card_number],
             ],
@@ -77,8 +77,12 @@ function personSections(row) {
     ];
 }
 
-// Utilisateur ou bibliothécaire. `libraryName` sert quand la relation n'est pas chargée par l'API.
-export function userSections(user, libraryName) {
+// Bibliothèque Numérique Globale : tous les comptes (utilisateurs, bibliothécaires) et toutes les
+// demandes de compte en font partie.
+export const GLOBAL_LIBRARY = "Bibliothèque Globale";
+
+// Utilisateur ou bibliothécaire.
+export function userSections(user) {
     const [identity, ...rest] = personSections({
         ...user,
         last_name: user.last_name,
@@ -96,7 +100,7 @@ export function userSections(user, libraryName) {
             fields: [
                 ["Numéro de compte", user.numero_compte || user.matricule],
                 ["Rôle", ROLES[user.role] || user.role],
-                ["Bibliothèque", user.library?.name || libraryName],
+                ["Bibliothèque", GLOBAL_LIBRARY],
                 ["Statut", user.is_active ? "Actif" : "En attente / désactivé"],
                 ["Créé le", formatDateTime(user.created_at)],
             ],
@@ -116,7 +120,7 @@ export function requestSections(request, statusLabels = {}) {
                 ["Statut", statusLabels[request.status] || request.status],
                 ["Date de demande", formatDateTime(request.created_at)],
                 ["Rôle demandé", ROLES[request.role] || request.role],
-                ["Bibliothèque", request.library?.name],
+                ["Bibliothèque", GLOBAL_LIBRARY],
                 ["Numéro de compte", request.matricule],
                 ["Demande saisie par", request.created_by?.name || request.createdBy?.name],
                 ["Traitée par", request.processed_by?.name || request.processedBy?.name],

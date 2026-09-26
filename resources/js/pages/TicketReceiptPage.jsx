@@ -269,7 +269,7 @@ export default function TicketReceiptPage() {
                             {ticket.filiere && (
                                 <div>
                                     <p className="text-sm font-semibold text-ink-soft">
-                                        Filière
+                                        Parcours
                                     </p>
 
                                     <p className="mt-1 text-sm text-ink">
