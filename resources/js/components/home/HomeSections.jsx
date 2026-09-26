@@ -35,7 +35,8 @@ const HERO_FEATURE_ICONS = [Search, Sparkles, ShieldCheck];
 // Données publiques partagées entre sections (et entre rendus de l'aperçu) pendant une minute.
 const dataCache = new Map();
 const LOADERS = {
-    categories: () => api.getCategories(),
+    // Domaines réellement disponibles : catégories ayant au moins un document publié.
+    categories: () => api.getCategories({ published: 1 }),
     documents: () => api.searchDocuments({}),
     libraries: () => api.getLibraries(),
 };

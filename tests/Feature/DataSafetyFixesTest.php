@@ -153,3 +153,19 @@ test('la suppression définitive d\'un document efface son PDF et sa couverture'
     Storage::disk('local')->assertMissing('documents/a.pdf');
     Storage::disk('public')->assertMissing('covers/a.jpg');
 });
+
+test("la page d'accueil n'affiche que les catégories ayant des documents publiés", function () {
+    $droit = Category::create(['name' => 'Droit']);
+    $vide = Category::create(['name' => 'Agronomie']);
+    $brouillon = Category::create(['name' => 'Médecine']);
+    $corbeille = Category::create(['name' => 'Finance']);
+    Document::factory()->count(2)->create(['category_id' => $droit->id, 'status' => 'publie']);
+    Document::factory()->create(['category_id' => $brouillon->id, 'status' => 'brouillon']);
+    Document::factory()->create(['category_id' => $corbeille->id, 'status' => 'publie'])->delete();
+
+    $response = $this->getJson('/api/categories?published=1')->assertOk();
+
+    expect(collect($response->json())->pluck('documents_count', 'name')->all())->toBe(['Droit' => 2]);
+    // Sans le paramètre, les formulaires de recherche gardent toutes les catégories.
+    expect($this->getJson('/api/categories')->json())->toHaveCount(4);
+});

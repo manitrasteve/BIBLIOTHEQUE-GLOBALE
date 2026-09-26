@@ -11,9 +11,20 @@ use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Category::orderBy('name')->get());
+        // ?published=1 (page d'accueil) : uniquement les catégories ayant au moins un document publié
+        // (hors Corbeille), avec leur nombre de documents publiés.
+        $published = fn ($q) => $q->where('status', 'publie');
+
+        return response()->json(
+            Category::query()
+                ->when($request->boolean('published'), fn ($q) => $q
+                    ->whereHas('documents', $published)
+                    ->withCount(['documents as documents_count' => $published]))
+                ->orderBy('name')
+                ->get()
+        );
     }
 
     public function store(Request $request)

@@ -58,7 +58,11 @@ export const api = {
 
     getLibrary: (id) => request(`/libraries/${id}`, { auth: false }),
 
-    getCategories: () => request("/categories", { auth: false }),
+    // { published: 1 } : seulement les catégories ayant au moins un document publié.
+    getCategories: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return request(`/categories${query ? `?${query}` : ""}`, { auth: false });
+    },
 
     getAuthors: (params = {}) => {
         const query = new URLSearchParams(params).toString();
