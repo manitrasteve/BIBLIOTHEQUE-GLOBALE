@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import PageLoader from "./PageLoader";
 import {
     Ticket,
     FileText,
@@ -216,7 +217,9 @@ export default function LibrarianLayout() {
                         </button>
                     </div>
 
-                    <Outlet />
+                    <Suspense fallback={<PageLoader />}>
+                        <Outlet />
+                    </Suspense>
                 </div>
             </section>
         </div>

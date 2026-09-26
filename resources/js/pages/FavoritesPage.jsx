@@ -5,21 +5,57 @@ import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../components/CatalogueCard
 import Pager from "../components/Pager";
 import { useFavoriteToggle } from "../lib/useFavoriteToggle";
 
+// Copie locale des favoris (métadonnées seulement, jamais le PDF) pour les consulter hors ligne.
+// Effacée à la déconnexion (AuthContext.forgetUser).
+const OFFLINE_KEY = "bm_offline_favorites";
+
+function saveOffline(page, response) {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OFFLINE_KEY)) || { pages: {} };
+        saved.pages[page] = response;
+        saved.savedAt = new Date().toISOString();
+        localStorage.setItem(OFFLINE_KEY, JSON.stringify(saved));
+    } catch {
+        // stockage plein ou indisponible : pas de copie hors ligne
+    }
+}
+
+function readOffline(page) {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OFFLINE_KEY));
+        const response = saved?.pages?.[page];
+        return response ? { response, savedAt: saved.savedAt } : null;
+    } catch {
+        return null;
+    }
+}
+
 export default function FavoritesPage() {
     const [items, setItems] = useState(null);
     const [error, setError] = useState(null);
     // Pagination du serveur (20 par page) : sans elle, seuls les 20 derniers favoris étaient visibles.
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState(null);
+    const [offlineSince, setOfflineSince] = useState(null);
 
     async function load() {
         setError(null);
+        setOfflineSince(null);
 
         try {
             const response = await api.getFavorites(page);
             setItems(Array.isArray(response?.data) ? response.data : []);
             setMeta(response);
+            saveOffline(page, response);
         } catch (err) {
+            // Pas de réponse du serveur : dernière liste enregistrée sur cet appareil, si elle existe.
+            const offline = !err?.status ? readOffline(page) : null;
+            if (offline) {
+                setItems(offline.response.data || []);
+                setMeta(offline.response);
+                setOfflineSince(offline.savedAt);
+                return;
+            }
             setError(
                 err?.data?.message || "Impossible de charger vos favoris.",
             );
@@ -56,6 +92,13 @@ export default function FavoritesPage() {
             {error && (
                 <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
                     {error}
+                </p>
+            )}
+
+            {offlineSince && (
+                <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="status">
+                    Vous êtes hors ligne : voici votre liste enregistrée le{" "}
+                    {new Date(offlineSince).toLocaleString("fr-FR")}. La lecture des documents nécessite une connexion.
                 </p>
             )}
 

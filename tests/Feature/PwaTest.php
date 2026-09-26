@@ -48,3 +48,15 @@ test('le service worker ne met jamais en cache l\'API, les documents ni les requ
         ->and($sw)->toContain('caches.delete')
         ->and(file_exists(public_path('offline.html')))->toBeTrue();
 });
+
+test('hors ligne, le service worker sert la dernière coquille de l\'application sans jamais évincer la page hors ligne', function () {
+    $sw = file_get_contents(public_path('sw.js'));
+
+    expect($sw)->toContain("const SHELL_URL = '/__app-shell'")
+        // Navigation : réseau d'abord, puis coquille, puis page « connexion requise ».
+        ->and($sw)->toContain('(await caches.match(SHELL_URL)) || (await caches.match(OFFLINE_URL))')
+        // L'éviction du cache ne touche ni la page hors ligne ni la coquille.
+        ->and($sw)->toContain('path !== OFFLINE_URL && path !== SHELL_URL')
+        // Nouvelle version du cache : les anciens caches sont supprimés à l'activation.
+        ->and($sw)->toContain("const CACHE_VERSION = 'v2'");
+});

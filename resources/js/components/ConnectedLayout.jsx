@@ -1,6 +1,7 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import PageLoader from "./PageLoader";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
 export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav }) {
@@ -97,7 +98,9 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                         </button>
                     </div>
 
-                    <Outlet />
+                    <Suspense fallback={<PageLoader />}>
+                        <Outlet />
+                    </Suspense>
                 </div>
             </section>
         </div>

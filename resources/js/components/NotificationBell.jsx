@@ -15,11 +15,16 @@ export default function NotificationBell({ isAdmin = false, isLibrarian = false 
                 .catch(() => {});
         }
 
+        // Onglet caché : aucune requête ; au retour sur l'onglet, mise à jour immédiate.
+        const onVisible = () => document.visibilityState === "visible" && refresh();
+
         refresh();
-        const interval = setInterval(refresh, 30000);
+        const interval = setInterval(onVisible, 30000);
+        document.addEventListener("visibilitychange", onVisible);
         return () => {
             mounted = false;
             clearInterval(interval);
+            document.removeEventListener("visibilitychange", onVisible);
         };
     }, []);
 
