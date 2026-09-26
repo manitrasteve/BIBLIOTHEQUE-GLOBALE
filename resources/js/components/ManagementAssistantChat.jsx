@@ -6,6 +6,7 @@ const AiMarkdown = lazy(() => import("./AiMarkdown"));
 
 const MAX_QUESTION = 1000;
 const HISTORY_SENT = 6;
+const HISTORY_TEXT = 1500;
 
 function AnswerText({ text }) {
     return (
@@ -89,10 +90,13 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
         const q = (text ?? question).trim();
         if (!q || loading) return;
 
+        // Une question dont la réponse a échoué est retirée avec son message d'erreur ; le texte est
+        // raccourci (le serveur n'en garde de toute façon que 1 500 caractères).
         const history = messages
-            .filter((m) => !m.error)
+            .filter((m, i) => !m.error && !(m.role === "user" && messages[i + 1]?.error))
             .slice(-HISTORY_SENT)
-            .map((m) => ({ role: m.role, text: m.text }));
+            .map((m) => ({ role: m.role, text: String(m.text ?? "").slice(0, HISTORY_TEXT) }))
+            .filter((m) => m.text.trim() !== "");
 
         const withQuestion = [...messages, { role: "user", text: q }];
         commit(withQuestion);
@@ -110,7 +114,7 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                     : e.status === 429
                       ? "Trop de questions en peu de temps. Patientez une minute puis réessayez."
                       : e.status === 422
-                        ? "Question invalide : elle doit contenir entre 1 et 1000 caractères."
+                        ? e.data?.errors?.question?.[0] || "Question invalide : elle doit contenir entre 1 et 1000 caractères."
                         : "Impossible de joindre l'assistant. Vérifiez votre connexion et réessayez.";
             reply = { role: "model", text, error: true };
         }

@@ -146,8 +146,9 @@ export default function AiAssistant({ slug }) {
                     },
                 });
             } catch (err) {
-                // Le flux n'a pas pu démarrer : repli sur la requête classique.
-                if (err.streamed || streamed) throw err;
+                // Le flux n'a pas pu démarrer (réseau, proxy) : repli sur la requête classique.
+                // Une vraie réponse d'erreur du serveur (401, 403, 422, 429…) ne serait que répétée.
+                if (err.streamed || streamed || err.status) throw err;
                 result = await api.askAi(slug, finalQuestion, extra);
             }
 
@@ -166,6 +167,11 @@ export default function AiAssistant({ slug }) {
         } catch (err) {
             if (mountedRef.current) {
                 setError(
+                    // 429 de la limite de fréquence (message Laravel en anglais) ; le 429 « quota Gemini »
+                    // du serveur a déjà son propre message en français.
+                    (err?.status === 429 && err?.data?.message === "Too Many Attempts."
+                        ? "Trop de questions en peu de temps. Patientez une minute puis réessayez."
+                        : null) ||
                     err?.data?.message ||
                         (err?.streamed ? err.message : null) ||
                         "L'assistant n'a pas pu répondre pour le moment.",
@@ -416,6 +422,7 @@ export default function AiAssistant({ slug }) {
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="Poser une question sur ce document…"
+                    maxLength={1000}
                     disabled={loading}
                     className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-slate-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-60"
                 />

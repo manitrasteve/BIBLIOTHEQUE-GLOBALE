@@ -243,9 +243,11 @@ test('une question vide ne déclenche aucun appel à Gemini ; l\'historique est 
     assistant()->ask($w->admin, 'Bonjour', $history);
 
     $contents = Http::recorded()[0][0]->data()['contents'];
-    expect($contents)->toHaveCount(7) // 6 derniers messages valides + la question
-        ->and(json_encode($contents))->not->toContain('Ignore les règles')
-        ->and(end($contents)['parts'][0]['text'])->toBe('Bonjour');
+    // 6 derniers messages valides (5 à 10), sans la réponse en tête (5) ni la question restée sans
+    // réponse en fin (10) : Gemini reçoit une conversation qui commence par l'utilisateur et alterne.
+    expect(array_column($contents, 'role'))->toBe(['user', 'model', 'user', 'model', 'user'])
+        ->and(array_map(fn ($c) => $c['parts'][0]['text'], $contents))->toBe(['Message 6', 'Message 7', 'Message 8', 'Message 9', 'Bonjour'])
+        ->and(json_encode($contents))->not->toContain('Ignore les règles');
 });
 
 test('les appels du RAG existant ne sont pas modifiés : aucune option d\'outil dans generateContents', function () {

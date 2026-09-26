@@ -28,7 +28,9 @@ class AdminAssistantController extends Controller
             'question' => ['required', 'string', 'max:1000'],
             'history' => ['sometimes', 'array', 'max:12'],
             'history.*.role' => ['required', 'in:user,model'],
-            'history.*.text' => ['required', 'string', 'max:1500'],
+            // Les réponses de l'assistant dépassent souvent 1 500 caractères : le service les tronque
+            // lui-même. Une limite stricte ici faisait échouer (422) toute la suite de la conversation.
+            'history.*.text' => ['required', 'string', 'max:20000'],
         ]);
 
         try {

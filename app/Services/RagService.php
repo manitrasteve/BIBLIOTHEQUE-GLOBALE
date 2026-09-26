@@ -1069,34 +1069,31 @@ PROMPT;
      */
     private function buildContext(Collection $chunks): string
     {
-        $context = '';
+        $contents = $chunks
+            ->map(fn (DocumentChunk $chunk) => [$chunk->page_number, trim((string) $chunk->content)])
+            ->filter(fn (array $item) => $item[1] !== '')
+            ->values();
 
-        foreach ($chunks as $chunk) {
-            $content = trim($chunk->content);
-
-            if ($content === '') {
-                continue;
-            }
-
-            $piece =
-                "[Page {$chunk->page_number}]\n"
-                . $content
-                . "\n\n---\n\n";
-
-            /*
-             * Évite un contexte trop important.
-             */
-            if (
-                Str::length($context) + Str::length($piece)
-                > self::MAX_CONTEXT_CHARS
-            ) {
-                break;
-            }
-
-            $context .= $piece;
+        if ($contents->isEmpty()) {
+            return '';
         }
 
-        return trim($context);
+        /*
+         * Contexte trop volumineux : chaque passage est raccourci à part égale, au lieu de
+         * s'arrêter au premier dépassement. Sinon, pour un résumé (passages triés par page),
+         * les dernières pages — conclusion comprise — disparaissaient, alors que leurs
+         * numéros restaient « citables » par le modèle.
+         */
+        $total = $contents->sum(fn (array $item) => Str::length($item[1]) + 20);
+        $cap = $total > self::MAX_CONTEXT_CHARS
+            ? max(200, intdiv(self::MAX_CONTEXT_CHARS, $contents->count()) - 20)
+            : null;
+
+        return trim($contents
+            ->map(fn (array $item) => "[Page {$item[0]}]\n"
+                . ($cap !== null ? Str::limit($item[1], $cap, '…') : $item[1])
+                . "\n\n---\n\n")
+            ->implode(''));
     }
 
     /**
@@ -1624,17 +1621,24 @@ PROMPT;
          * QUESTIONS GLOBALES
          * ---------------------------------------------------------
          */
+        /*
+         * « ce document » seul ne suffit pas : « Quelle est la définition de X dans ce document ? »
+         * est une question ciblée. La traiter en global envoyait les 40 premiers passages au lieu
+         * des passages pertinents (réponse « introuvable » sur un long document).
+         */
         if (
             preg_match(
                 '/\b(' .
                 'document entier|' .
                 'tout le document|' .
                 'ensemble du document|' .
-                'dans ce document|' .
-                'ce document|' .
+                'de quoi parle|' .
+                'que traite|' .
+                '(?:sujet|themes?|objectifs?|but|plan|contenu general) (?:de ce|du) document|' .
+                'porte (?:ce|le) document|' .
+                'dans (?:son|sa) ensemble|' .
                 'globalement|' .
                 'globalite|' .
-                'global|' .
                 'sujet principal|' .
                 'idee principale|' .
                 'idée principale|' .
@@ -1755,23 +1759,20 @@ PROMPT;
     {
         $q = $this->normalize($question);
 
+        /*
+         * « Donne un résumé de la page 5 », « Que dit le texte de la page 4 ? » : ce sont des
+         * questions d'analyse, pas une demande de recopie. Avant, le seul mot « donne » ou
+         * « texte » renvoyait le texte brut de la page sans répondre.
+         */
+        if (preg_match('/\b(resum\w*|synthe\w*|expli\w*|analys\w*|idees?|points?|pourquoi|comment|signifi\w*|defini\w*|compar\w*|traduis\w*|que dit|que veut)\b/u', $q)) {
+            return false;
+        }
+
         return (bool) preg_match(
-            '/\b(' .
-            'montre|' .
-            'montrer|' .
-            'affiche|' .
-            'afficher|' .
-            'donne|' .
-            'donner|' .
-            'contenu|' .
-            'texte|' .
-            'ecris|' .
-            'écris|' .
-            'recopie|' .
-            'recopier|' .
-            'montre moi|' .
-            'montre-moi' .
-            ')\b/u',
+            '/\b(recopie\w*|mot pour mot|integralement|texte integral|texte brut)\b/u',
+            $q
+        ) || (bool) preg_match(
+            '/\b(montre|montrer|affiche|afficher|donne|donner|ecris|lis|lire)\b(?:[\s\-]+\w+){0,3}?[\s\-]+(contenu|texte)\b/u',
             $q
         );
     }

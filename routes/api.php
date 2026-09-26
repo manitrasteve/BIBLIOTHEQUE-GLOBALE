@@ -80,8 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/documents/{slug}/stream', [DocumentController::class, 'stream']);
 
-    Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask']);
-    Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream']);
+    // Limité : chaque question déclenche des appels Gemini (quota / coût).
+    Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask'])->middleware('throttle:20,1');
+    Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream'])->middleware('throttle:20,1');
     Route::get('/documents/{slug}/ai-history', [AiQueryController::class, 'history']);
 
     Route::post('/documents/{slug}/favorite', [EngagementController::class, 'toggleFavorite']);

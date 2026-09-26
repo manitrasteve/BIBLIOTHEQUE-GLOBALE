@@ -118,12 +118,34 @@ class ManagementAssistantService
     /** Historique récent (texte seulement) : jamais de résultat d'outil ancien, il est réinterrogé à chaque question. */
     private function historyContents(array $history): array
     {
-        return collect($history)
+        $messages = collect($history)
             ->filter(fn ($m) => is_array($m) && in_array($m['role'] ?? null, ['user', 'model'], true) && is_string($m['text'] ?? null) && trim($m['text']) !== '')
             ->take(-self::MAX_HISTORY)
-            ->map(fn ($m) => ['role' => $m['role'], 'parts' => [['text' => mb_substr(trim($m['text']), 0, 1500)]]])
-            ->values()
-            ->all();
+            ->values();
+
+        // Gemini attend une conversation qui commence par l'utilisateur et alterne les rôles : la coupe
+        // « 6 derniers messages » peut commencer par une réponse, et une question restée sans réponse
+        // (erreur) laisse deux messages utilisateur consécutifs. On retire / fusionne ces cas.
+        $contents = [];
+        foreach ($messages as $m) {
+            $text = mb_substr(trim($m['text']), 0, 1500);
+            if ($contents === [] && $m['role'] === 'model') {
+                continue;
+            }
+            $last = array_key_last($contents);
+            if ($last !== null && $contents[$last]['role'] === $m['role']) {
+                $contents[$last]['parts'][0]['text'] .= "\n\n" . $text;
+                continue;
+            }
+            $contents[] = ['role' => $m['role'], 'parts' => [['text' => $text]]];
+        }
+
+        // La question courante est ajoutée ensuite en tant que message « user » : l'historique doit finir par « model ».
+        if ($contents !== [] && end($contents)['role'] === 'user') {
+            array_pop($contents);
+        }
+
+        return $contents;
     }
 
     private function systemPrompt(AssistantScope $scope): string

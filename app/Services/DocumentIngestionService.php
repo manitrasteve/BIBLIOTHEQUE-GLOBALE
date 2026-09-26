@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Document;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -54,17 +55,16 @@ class DocumentIngestionService
             $pages = $this->extractor->extractPages($absolutePath);
         } catch (Throwable $e) {
             Log::error("Extraction PDF échouée pour le document #{$document->id} : " . $e->getMessage());
-            return;
+            $pages = [];
         }
 
-        if (empty($pages)) {
-            Log::warning("Aucun texte extrait du PDF pour le document #{$document->id} (probablement un scan sans OCR).");
-            return;
-        }
-
-        $chunks = $this->splitIntoChunks($pages);
+        $chunks = $pages ? $this->splitIntoChunks($pages) : [];
 
         if (empty($chunks)) {
+            Log::warning("Aucun texte extrait du PDF pour le document #{$document->id} (probablement un scan sans OCR).");
+            // Les passages de l'ANCIEN fichier (PDF remplacé) ne doivent pas survivre : l'assistant
+            // répondrait sur un contenu qui n'est plus celui du document.
+            $document->chunks()->delete();
             return;
         }
 
@@ -73,8 +73,7 @@ class DocumentIngestionService
         // requête alors que le document était déjà créé (erreur affichée, puis doublon au réessai).
         @set_time_limit(600);
 
-        // Remplace les anciens chunks (utile en cas de ré-ingestion / mise à jour du fichier).
-        $document->chunks()->delete();
+        $rows = [];
 
         foreach (array_chunk($chunks, self::EMBED_BATCH_SIZE, true) as $batch) {
             $texts = array_map(fn (array $c) => $c['content'], $batch);
@@ -89,14 +88,24 @@ class DocumentIngestionService
             }
 
             foreach (array_values($batch) as $i => $chunk) {
-                $document->chunks()->create([
+                $rows[] = [
                     'page_number' => $chunk['page'],
                     'chunk_index' => $chunk['index'],
                     'content' => $chunk['content'],
                     'embedding' => $embeddings[$i] ?? [],
-                ]);
+                ];
             }
         }
+
+        // Remplacement en une transaction, APRÈS le calcul des embeddings : pendant la réindexation
+        // (plusieurs minutes pour un gros PDF), l'assistant continue de répondre avec les anciens
+        // passages au lieu de ne rien trouver, et un échec en cours de route ne laisse pas un index partiel.
+        DB::transaction(function () use ($document, $rows) {
+            $document->chunks()->delete();
+            foreach ($rows as $row) {
+                $document->chunks()->create($row);
+            }
+        });
     }
 
     /**

@@ -39,7 +39,7 @@ class GeminiClient
 
     $url = "{$this->baseUrl}/models/{$model}:embedContent";
 
-    $response = Http::timeout(60)
+    $response = Http::connectTimeout(8)->timeout(30)
         ->withHeaders([
             'x-goog-api-key' => $this->key(),
             'Content-Type' => 'application/json',
@@ -106,7 +106,7 @@ public function batchEmbed(array $texts): array
         array_values($texts)
     );
 
-    $response = Http::timeout(120)
+    $response = Http::connectTimeout(8)->timeout(120)
         ->withHeaders([
             'x-goog-api-key' => $this->key(),
             'Content-Type' => 'application/json',
@@ -486,30 +486,39 @@ public function batchEmbed(array $texts): array
             $full = '';
             $finish = ['reason' => null, 'block_reason' => null];
 
+            $handle = function (string $event) use (&$full, &$finish, $onDelta): void {
+                if (!str_starts_with($event, 'data:')) {
+                    return;
+                }
+
+                $json = json_decode(trim(substr($event, 5)), true);
+                $delta = $this->extractText($json);
+
+                if ($delta !== '') {
+                    $full .= $delta;
+                    $onDelta($delta);
+                }
+
+                $eventFinish = $this->finishInfo($json);
+                if ($eventFinish['reason'] !== null || $eventFinish['block_reason'] !== null) {
+                    $finish = $eventFinish;
+                }
+            };
+
             while (!$body->eof()) {
-                $buffer .= str_replace("\r\n", "\n", $body->read(512));
+                // Normalisation sur le tampon entier (et non sur chaque lecture) : un « \r\n » coupé
+                // entre deux lectures de 512 octets fusionnait deux événements et perdait du texte.
+                $buffer = str_replace("\r\n", "\n", $buffer . $body->read(512));
 
                 while (($pos = strpos($buffer, "\n\n")) !== false) {
-                    $event = substr($buffer, 0, $pos);
+                    $handle(substr($buffer, 0, $pos));
                     $buffer = substr($buffer, $pos + 2);
-
-                    if (!str_starts_with($event, 'data:')) {
-                        continue;
-                    }
-
-                    $json = json_decode(trim(substr($event, 5)), true);
-                    $delta = $this->extractText($json);
-
-                    if ($delta !== '') {
-                        $full .= $delta;
-                        $onDelta($delta);
-                    }
-
-                    $eventFinish = $this->finishInfo($json);
-                    if ($eventFinish['reason'] !== null || $eventFinish['block_reason'] !== null) {
-                        $finish = $eventFinish;
-                    }
                 }
+            }
+
+            // Dernier événement non suivi d'une ligne vide.
+            if (trim($buffer) !== '') {
+                $handle(trim($buffer));
             }
 
             if ($full === '' && $this->isBlocked($finish)) {
