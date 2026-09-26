@@ -185,7 +185,8 @@ class TrashController extends Controller
 
         $users->forceDelete();
 
-        $documents->forceDelete();
+        // Un par un (et non en une requête) pour déclencher forceDeleted : suppression des PDF et couvertures.
+        $documents->each(fn (Document $document) => $document->forceDelete());
 
         // Une seule entrée récapitulative : les éléments supprimés ne sont plus consultables individuellement.
         ActivityLogService::log(

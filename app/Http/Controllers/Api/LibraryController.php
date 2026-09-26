@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Document;
 use App\Models\Library;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -85,6 +86,15 @@ class LibraryController extends Controller
 
     public function destroy(Request $request, Library $library)
     {
+        // La clé étrangère documents.library_id est en ON DELETE CASCADE : supprimer la bibliothèque
+        // effacerait définitivement ses documents (Corbeille comprise), sans passer par la Corbeille.
+        $documents = Document::withTrashed()->where('library_id', $library->id)->count();
+        if ($documents > 0) {
+            return response()->json([
+                'message' => "Cette bibliothèque contient encore {$documents} document(s) (Corbeille comprise). Déplacez-les ou supprimez-les définitivement avant de supprimer la bibliothèque.",
+            ], 422);
+        }
+
         if ($library->photo_path) Storage::disk('public')->delete($library->photo_path);
         $library->delete();
 

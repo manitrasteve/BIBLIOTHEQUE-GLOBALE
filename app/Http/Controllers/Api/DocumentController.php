@@ -367,7 +367,11 @@ class DocumentController extends Controller
         unset($data['file'], $data['cover'], $data['category']);
         $before = $this->auditSnapshot($document);
         $previousLibraryId = $document->library_id;
+        $previousFiles = ['local' => $document->file_path, 'public' => $document->cover_path];
         $document->update($data);
+        // Fichiers remplacés : l'ancien PDF / l'ancienne couverture ne restent pas orphelins sur le disque.
+        if (isset($data['file_path']) && $previousFiles['local']) Storage::disk('local')->delete($previousFiles['local']);
+        if (isset($data['cover_path']) && $previousFiles['public']) Storage::disk('public')->delete($previousFiles['public']);
         // Le formulaire renvoie toujours la liste complète des auteurs cochés ; si elle est
         // vidée, FormData n'envoie aucune entrée "author_ids[]" (la clé est alors absente de
         // la requête). On synchronise donc toujours, avec [] par défaut, pour bien retirer
@@ -416,6 +420,11 @@ class DocumentController extends Controller
     public function publish(Request $request, Document $document)
     {
         $this->authorizeLibrary($request, $document->library_id);
+
+        // Déjà publié (double clic, deux onglets) : ne pas renotifier tous les utilisateurs ni changer la date.
+        if ($document->status === 'publie') {
+            return response()->json($document);
+        }
 
         $previousStatus = $document->status;
         $document->update(['status' => 'publie', 'published_at' => now()]);

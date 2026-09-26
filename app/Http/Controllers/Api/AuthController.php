@@ -83,6 +83,12 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
+        // Les autres sessions (autre appareil, jeton volé) sont fermées ; la session courante reste ouverte.
+        $current = $request->user()->currentAccessToken();
+        $request->user()->tokens()
+            ->when($current instanceof \Laravel\Sanctum\PersonalAccessToken, fn ($q) => $q->whereKeyNot($current->getKey()))
+            ->delete();
+
         return response()->json([
             'message' => 'Mot de passe modifié avec succès.',
         ]);
@@ -236,6 +242,8 @@ class AuthController extends Controller
             'is_active' => true,
             'email_verified_at' => $user->email_verified_at ?: now(),
         ]);
+        // Nouveau mot de passe : toutes les sessions ouvertes avec l'ancien sont fermées.
+        $user->tokens()->delete();
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {
             $registry->update(['status' => 'actif']);
         }

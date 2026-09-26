@@ -30,6 +30,12 @@ class Document extends Model
             $document->uuid ??= (string) \Illuminate\Support\Str::uuid();
             $document->slug ??= \Illuminate\Support\Str::slug($document->title) . '-' . \Illuminate\Support\Str::random(6);
         });
+
+        // Suppression définitive (Corbeille) : le PDF et la couverture ne restent pas orphelins sur le disque.
+        static::forceDeleted(function (Document $document) {
+            if ($document->file_path) \Illuminate\Support\Facades\Storage::disk('local')->delete($document->file_path);
+            if ($document->cover_path) \Illuminate\Support\Facades\Storage::disk('public')->delete($document->cover_path);
+        });
     }
 
     public function category(): BelongsTo

@@ -68,6 +68,9 @@ class AccountRequest extends Model
         'setup_expires_at',
     ];
 
+    // Empreinte du lien de création du mot de passe : jamais renvoyée par l'API.
+    protected $hidden = ['setup_token_hash'];
+
     protected $casts = [
         'date_of_birth' => 'date',
         'cin_issued_at' => 'date',

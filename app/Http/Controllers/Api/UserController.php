@@ -70,6 +70,7 @@ class UserController extends Controller
     public function reactivate(Request $request, User $user)
     {
         $user->update(['is_active' => false, 'password_set_at' => null]);
+        $user->tokens()->delete(); // l'utilisateur doit se reconnecter avec son nouveau mot de passe
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {
             $registry->update(['status' => 'desactive']);
         }
@@ -106,7 +107,11 @@ class UserController extends Controller
     {
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
 
+        abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas désactiver votre propre compte.');
+
         $user->update(['is_active' => false]);
+        // Sans cela, un compte désactivé resterait connecté (favoris, messages, profil…) jusqu'à sa déconnexion.
+        $user->tokens()->delete();
         // Un lien de réinitialisation encore valide ne doit pas survivre à la désactivation.
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         \App\Services\NotificationService::send($user, 'compte_desactive', 'Compte désactivé', "Votre compte a été désactivé. Raison : {$data['reason']}", $user);
@@ -170,6 +175,8 @@ class UserController extends Controller
         }
 
         \App\Services\NotificationService::send($user, 'compte_supprime', 'Compte supprimé', "Votre compte a été supprimé. Raison : {$data['reason']}", $user);
+        // Les jetons survivent au soft delete : ils redeviendraient valides après une restauration.
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json(['message' => 'Utilisateur supprimé. Son numéro de compte reste conservé dans l’historique et ne sera jamais réattribué.']);

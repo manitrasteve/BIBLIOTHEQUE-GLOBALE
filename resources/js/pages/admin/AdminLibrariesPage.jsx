@@ -143,8 +143,8 @@ export default function AdminLibrariesPage() {
     try {
       await api.deleteLibrary(lib.id);
       load();
-    } catch {
-      setError('Suppression impossible (des données y sont probablement encore rattachées).');
+    } catch (err) {
+      setError(err.data?.message || 'Suppression impossible (des données y sont probablement encore rattachées).');
     }
   }
 

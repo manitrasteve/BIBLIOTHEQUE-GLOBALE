@@ -621,9 +621,10 @@ class AccountRequestController extends Controller
                 'experience' => $accountRequest->experience,
 
                 'library' => $accountRequest->library,
-                'created_user' => $accountRequest->createdUser,
-                'created_by' => $accountRequest->createdBy,
-                'processed_by' => $accountRequest->processedBy,
+                // Route publique : jamais la fiche complète d'un compte (CIN, téléphone, adresse du personnel…).
+                'created_user' => $accountRequest->createdUser?->only(['id', 'name', 'matricule']),
+                'created_by' => $accountRequest->createdBy?->only(['id', 'name']),
+                'processed_by' => $accountRequest->processedBy?->only(['id', 'name']),
             ],
         ]);
     }
