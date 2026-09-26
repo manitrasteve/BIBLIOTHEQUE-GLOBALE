@@ -150,6 +150,7 @@ class TrashController extends Controller
             'Un administrateur ne peut pas être supprimé définitivement.'
         );
 
+        AccountRequest::deleteForDeletedAccounts([$user->id]);
         $user->forceDelete();
 
         ActivityLogService::log($request->user()->id, 'suppression_definitive_utilisateur', $user->name, $user);
@@ -183,6 +184,7 @@ class TrashController extends Controller
         $documents = $me->restrictToManagedLibrary(Document::onlyTrashed());
         $counts = ['utilisateurs' => (clone $users)->count(), 'documents' => (clone $documents)->count()];
 
+        AccountRequest::deleteForDeletedAccounts((clone $users)->pluck('id')->all());
         $users->forceDelete();
 
         // Un par un (et non en une requête) pour déclencher forceDeleted : suppression des PDF et couvertures.

@@ -235,3 +235,93 @@ describe('serveur de messagerie injoignable', function () {
         expect(AppNotification::where('user_id', $admin->id)->where('type', 'envoi_email_echoue')->exists())->toBeTrue();
     });
 });
+
+it('un compte supprimé définitivement (ancienne donnée) : renvoi refusé avec un message clair et demande retirée', function () {
+    setupAdmin();
+    $this->postJson('/api/users/creer', memberPayload('etudiant', 'supprime@example.test'))->assertCreated();
+    $request = AccountRequest::where('email', 'supprime@example.test')->firstOrFail();
+    // Suppression définitive faite « à l'ancienne » (données existantes) : la clé étrangère vide created_user_id.
+    User::where('email', 'supprime@example.test')->firstOrFail()->forceDelete();
+
+    $this->postJson("/api/account-requests/{$request->id}/resend-setup-link")
+        ->assertStatus(422)
+        ->assertJsonPath('message', fn ($m) => str_contains($m, 'supprimé définitivement'));
+
+    expect(AccountRequest::find($request->id))->toBeNull();
+});
+
+it('un compte dans la Corbeille : sa demande est masquée de la liste et le renvoi indique de le restaurer', function () {
+    setupAdmin();
+    $this->postJson('/api/users/creer', memberPayload('etudiant', 'corbeille@example.test'))->assertCreated();
+    $request = AccountRequest::where('email', 'corbeille@example.test')->firstOrFail();
+    $user = User::where('email', 'corbeille@example.test')->firstOrFail();
+    $user->delete();
+    $mailsBefore = count(sentMails());
+
+    expect(collect($this->getJson('/api/account-requests')->json('data'))->pluck('id'))->not->toContain($request->id);
+
+    $this->postJson("/api/account-requests/{$request->id}/resend-setup-link")
+        ->assertStatus(422)
+        ->assertJsonPath('message', fn ($m) => str_contains($m, 'Corbeille'));
+    expect(count(sentMails()))->toBe($mailsBefore);
+
+    // Restauré : la demande réapparaît.
+    $this->postJson("/api/trash/users/{$user->id}/restore")->assertOk();
+    expect(collect($this->getJson('/api/account-requests')->json('data'))->pluck('id'))->toContain($request->id);
+});
+
+it('vider la Corbeille ou supprimer définitivement un compte retire aussi sa demande', function () {
+    setupAdmin();
+    foreach (['vidage@example.test', 'unitaire@example.test'] as $email) {
+        $this->postJson('/api/users/creer', memberPayload('etudiant', $email))->assertCreated();
+        User::where('email', $email)->firstOrFail()->delete();
+    }
+
+    $this->deleteJson('/api/trash/users/' . User::onlyTrashed()->where('email', 'unitaire@example.test')->value('id'))->assertOk();
+    $this->deleteJson('/api/trash')->assertOk();
+
+    expect(AccountRequest::whereIn('email', ['vidage@example.test', 'unitaire@example.test'])->count())->toBe(0);
+});
+
+it('la migration retire les demandes des comptes déjà supprimés définitivement, pas les autres', function () {
+    setupAdmin();
+    $this->postJson('/api/users/creer', memberPayload('etudiant', 'orphelin@example.test'))->assertCreated();
+    User::where('email', 'orphelin@example.test')->firstOrFail()->forceDelete();
+    $pending = AccountRequest::factory()->create(['status' => 'expiree', 'matricule' => null, 'created_user_id' => null]);
+
+    (require database_path('migrations/2026_09_26_000001_delete_account_requests_of_permanently_deleted_accounts.php'))->up();
+
+    expect(AccountRequest::where('email', 'orphelin@example.test')->exists())->toBeFalse()
+        ->and(AccountRequest::find($pending->id))->not->toBeNull();
+});
+
+it("l'administrateur valide directement une demande non validée, sans l'étape « Vérifier »", function () {
+    setupAdmin();
+    $request = AccountRequest::factory()->create(['status' => 'en_attente', 'email' => 'direct@example.test', 'expires_at' => now()->addDay(), 'validation_deadline_at' => now()->addDay()]);
+
+    $this->postJson("/api/account-requests/{$request->id}/validate")->assertSuccessful();
+
+    expect($request->fresh()->status)->toBe('validee')
+        ->and(User::where('email', 'direct@example.test')->exists())->toBeTrue();
+    completeSetup(setupLinkIn(lastMailTo('direct@example.test')), 'direct@example.test');
+});
+
+it('le bibliothécaire garde le parcours inchangé : il vérifie, il ne valide pas', function () {
+    Sanctum::actingAs(User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true]));
+    $request = AccountRequest::factory()->create(['status' => 'en_attente', 'expires_at' => now()->addDay(), 'validation_deadline_at' => now()->addDay()]);
+
+    $this->postJson("/api/account-requests/{$request->id}/validate")->assertForbidden();
+    $this->postJson("/api/account-requests/{$request->id}/verify")->assertSuccessful();
+
+    expect($request->fresh()->status)->toBe('verifiee');
+});
+
+it('« Valider toutes les demandes » valide aussi les demandes non validées', function () {
+    setupAdmin();
+    $pending = AccountRequest::factory()->create(['status' => 'en_attente', 'expires_at' => now()->addDay(), 'validation_deadline_at' => now()->addDay()]);
+    $verified = AccountRequest::factory()->create(['status' => 'verifiee', 'expires_at' => now()->addDay(), 'validation_deadline_at' => now()->addDay()]);
+
+    $this->postJson('/api/account-requests/validate-all')->assertOk()->assertJsonPath('validated_count', 2);
+
+    expect($pending->fresh()->status)->toBe('validee')->and($verified->fresh()->status)->toBe('validee');
+});

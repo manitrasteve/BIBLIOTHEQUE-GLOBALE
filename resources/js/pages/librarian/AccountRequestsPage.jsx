@@ -142,7 +142,7 @@ export default function AccountRequestsPage() {
     }
 
     async function validateAll() {
-        if (!confirm("Valider toutes les demandes vérifiées ?")) {
+        if (!confirm("Valider toutes les demandes non validées et vérifiées ?")) {
             return;
         }
 
@@ -170,13 +170,22 @@ export default function AccountRequestsPage() {
             await load();
         } catch (e) {
             setError(e.data?.message || "Envoi impossible.");
+            // La demande a pu disparaître (compte supprimé définitivement → demande retirée).
+            if (e.status === 422) await load().catch(() => {});
         } finally {
             setBusyId(null);
         }
     }
 
     async function reject(id) {
-        const reason = prompt("Motif du rejet (facultatif) :") ?? "";
+        // Le motif est obligatoire (il est envoyé au demandeur) ; « Annuler » n'envoie rien.
+        const answer = prompt("Motif du rejet (obligatoire, envoyé au demandeur) :");
+        if (answer === null) return;
+        const reason = answer.trim();
+        if (!reason) {
+            setError("Le motif du rejet est obligatoire.");
+            return;
+        }
 
         try {
             setError(null);
@@ -197,7 +206,8 @@ export default function AccountRequestsPage() {
         return (
             <>
                 <ViewButton onClick={() => setViewing(r)} />
-                {r.status === "en_attente" && (
+                {/* Bibliothécaire : une demande non validée est d'abord vérifiée. */}
+                {user?.role !== "administrateur" && r.status === "en_attente" && (
                     <>
                         <button
                             onClick={() => verify(r.id)}
@@ -216,7 +226,8 @@ export default function AccountRequestsPage() {
                         </button>
                     </>
                 )}
-                {user?.role === "administrateur" && r.status === "verifiee" && (
+                {/* Administrateur : validation directe, sans étape « Vérifier ». */}
+                {user?.role === "administrateur" && ["en_attente", "verifiee"].includes(r.status) && (
                     <>
                         <button
                             onClick={() => validate(r.id)}
@@ -288,7 +299,7 @@ export default function AccountRequestsPage() {
                 {user?.role === "administrateur" && (
                     <button onClick={validateAll} className="btn-primary">
                         <ShieldCheck className="h-4 w-4" />
-                        Valider toutes les demandes vérifiées
+                        Valider toutes les demandes
                     </button>
                 )}
             </div>

@@ -93,6 +93,10 @@ class AccountRequestController extends Controller
         // Le bibliothécaire ne voit que les demandes de sa bibliothèque.
         $request->user()->restrictToManagedLibrary($query);
 
+        // Compte supprimé (Corbeille) : sa demande n'est plus affichée — elle réapparaît s'il est restauré.
+        // (Après une suppression définitive, la demande est elle-même supprimée.)
+        $query->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'));
+
         // Compteurs : même périmètre que la liste, calculés avant d'appliquer le filtre de statut.
         $counts = $this->requestCounts(clone $query);
 
@@ -865,9 +869,15 @@ class AccountRequestController extends Controller
             ]);
         }
 
-        if ($accountRequest->status !== 'verifiee') {
+        // L'administrateur valide directement une demande « non validée » (sans étape de vérification) ;
+        // un bibliothécaire ne valide qu'une demande déjà vérifiée.
+        $validatable = $admin->isAdmin() ? ['en_attente', 'verifiee'] : ['verifiee'];
+
+        if (!in_array($accountRequest->status, $validatable, true)) {
             return response()->json([
-                'message' => 'Seules les demandes vérifiées peuvent être validées.',
+                'message' => $admin->isAdmin()
+                    ? 'Seules les demandes non validées ou vérifiées peuvent être validées.'
+                    : 'Seules les demandes vérifiées peuvent être validées.',
             ], 422);
         }
 
@@ -1077,7 +1087,8 @@ class AccountRequestController extends Controller
             ], 403);
         }
 
-        $requests = AccountRequest::where('status', 'verifiee')->get();
+        // Comme la validation unitaire de l'administrateur : demandes vérifiées ET non validées.
+        $requests = AccountRequest::whereIn('status', ['en_attente', 'verifiee'])->get();
 
         $validatedCount = 0;
         $errors = [];
@@ -1326,16 +1337,31 @@ class AccountRequestController extends Controller
 
         $this->authorizeRequestLibrary($admin, $accountRequest);
 
-        if (
-            $accountRequest->status !== 'validee' ||
-            !$accountRequest->created_user_id
-        ) {
+        if ($accountRequest->status !== 'validee') {
             return response()->json([
                 'message' => 'Cette demande ne permet pas l’envoi d’un lien de configuration.',
             ], 422);
         }
 
-        $createdUser = $accountRequest->createdUser;
+        $createdUser = User::withTrashed()->find($accountRequest->created_user_id);
+
+        // Compte dans la Corbeille : sa restauration renvoie automatiquement un nouveau lien.
+        if ($createdUser?->trashed()) {
+            return response()->json([
+                'message' => 'Le compte de cette demande se trouve dans la Corbeille. Restaurez-le depuis la Corbeille : un nouveau lien de création du mot de passe lui sera envoyé automatiquement.',
+            ], 422);
+        }
+
+        // Compte supprimé définitivement : aucun lien ne peut plus aboutir. La demande est retirée du
+        // système avec son compte ; la personne doit refaire une demande.
+        if (!$createdUser) {
+            $accountRequest->delete();
+
+            return response()->json([
+                'message' => 'Le compte associé à cette demande a été supprimé définitivement : le lien ne peut plus être renvoyé et la demande a été retirée. La personne doit refaire une demande de compte.',
+            ], 422);
+        }
+
         $token = Str::random(64);
 
         $accountRequest->update([

@@ -153,6 +153,28 @@ class AccountRequest extends Model
      *
      * created_user_id -> users.id
      */
+    /**
+     * Compte supprimé définitivement : ses demandes disparaissent aussi du système. Sinon elles
+     * resteraient « En attente » avec un bouton « Renvoyer le lien » voué à l'échec. Le numéro de
+     * compte reste réservé (registre des membres + séquence) et l'action reste au journal d'audit.
+     * À appeler AVANT la suppression (la clé étrangère remet ensuite created_user_id à NULL).
+     */
+    public static function deleteForDeletedAccounts(array $userIds): void
+    {
+        if ($userIds) {
+            static::query()->whereIn('created_user_id', $userIds)->delete();
+        }
+    }
+
+    /**
+     * Demande dont le compte a été supprimé définitivement avant cette règle : un numéro de compte
+     * (attribué uniquement à la création du compte) mais plus de compte associé.
+     */
+    public function scopeOrphaned($query)
+    {
+        return $query->whereNotNull('matricule')->whereNull('created_user_id');
+    }
+
     public function createdUser(): BelongsTo
     {
         return $this->belongsTo(
