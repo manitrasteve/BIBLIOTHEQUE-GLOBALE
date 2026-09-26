@@ -7,64 +7,34 @@ use App\Models\AccountRequest;
 use App\Models\MemberRegistry;
 use App\Models\User;
 use App\Rules\AvailableEmail;
+use App\Services\AccountProvisioner;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
+use App\Support\AccountRequestRules as Rules;
 use App\Support\QueueKicker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+// Demandes de compte : dépôt, vérification, rejet, validation, création directe et lien de mot de passe.
+// Les règles de formulaire communes sont dans App\Support\AccountRequestRules, les étapes de
+// création d'un compte (registre, jeton, e-mail) dans App\Services\AccountProvisioner.
 class AccountRequestController extends Controller
 {
+    public function __construct(private AccountProvisioner $provisioner) {}
+
     // Un bibliothécaire ne traite que les demandes de sa propre bibliothèque (l'administrateur : toutes).
     private function authorizeRequestLibrary(User $user, AccountRequest $accountRequest): void
     {
         abort_unless($user->managesLibrary($accountRequest->library_id), 403, 'Cette demande appartient à une autre bibliothèque.');
     }
 
-    /** Majeur : 18 ans révolus aujourd'hui. La CIN n'est demandée à un étudiant qu'à partir de cet âge. */
-    private static function isAdult(mixed $dateOfBirth): bool
+    // Une seule demande en cours par adresse e-mail.
+    private function hasOpenRequest(string $email): bool
     {
-        if (!is_string($dateOfBirth) || $dateOfBirth === '') {
-            return false;
-        }
-
-        try {
-            return \Illuminate\Support\Carbon::parse($dateOfBirth)->addYears(18)->lte(today());
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    // CIN d'un étudiant : obligatoire s'il est majeur, sinon facultative (et ignorée, voir withoutMinorCin).
-    private static function studentCinRules(Request $request, bool $isStudent = true): array
-    {
-        $required = $isStudent && self::isAdult($request->input('date_of_birth'));
-
-        return [
-            'cin_number' => [Rule::requiredIf($required), 'nullable', 'digits:12'],
-            'cin_issued_at' => [Rule::requiredIf($required), 'nullable', 'date', 'before_or_equal:today'],
-        ];
-    }
-
-    private const CIN_MESSAGES = [
-        'cin_number.required' => 'Le n° de CIN est obligatoire à partir de 18 ans.',
-        'cin_issued_at.required' => 'La date de délivrance de la CIN est obligatoire à partir de 18 ans.',
-        'date_of_birth.before' => 'La date de naissance doit être antérieure à la date du jour.',
-    ];
-
-    // Étudiant mineur : aucune CIN n'est enregistrée, même si elle a été envoyée.
-    private static function withoutMinorCin(array $validated): array
-    {
-        if (!self::isAdult($validated['date_of_birth'] ?? null)) {
-            $validated['cin_number'] = null;
-            $validated['cin_issued_at'] = null;
-        }
-
-        return $validated;
+        return AccountRequest::where('email', $email)->whereIn('status', Rules::OPEN_STATUSES)->exists();
     }
 
     /**
@@ -157,31 +127,19 @@ class AccountRequestController extends Controller
             $rules += [
                 'date_of_birth' => ['required', 'date', 'before:today'],
                 'birth_place' => ['required', 'string', 'max:255'],
-                ...self::studentCinRules($request),
+                ...Rules::studentCinRules($request),
                 'role' => ['required', Rule::in(['etudiant'])],
-                'school' => ['required', Rule::in([
-                    'IOSTM',
-                    'IUGM',
-                    'ISSTM',
-                    'IUTAM',
-                    'ILCSS',
-                    'Faculté de Médecine',
-                    "Faculté des sciences, technologies et de l'environnement (FSTE)",
-                    'Ecoles et formations rattachées',
-                ])],
+                'school' => ['required', Rule::in(Rules::SCHOOLS)],
                 'filiere' => ['required', 'string', 'max:255'],
                 'niveau_type' => ['required', Rule::in(['Université'])],
-                'niveau_detail' => [
-                    'nullable',
-                    Rule::in(['L1', 'L2', 'L3', 'M1', 'M2', 'Doctorat']),
-                ],
+                'niveau_detail' => ['nullable', Rule::in(Rules::LEVELS)],
                 'student_card_number' => ['required', 'string', 'max:255'],
             ];
         }
 
-        $validated = $request->validate($rules, self::CIN_MESSAGES);
+        $validated = $request->validate($rules, Rules::CIN_MESSAGES);
         if (!$legacyRequest) {
-            $validated = self::withoutMinorCin($validated);
+            $validated = Rules::withoutMinorCin($validated);
         }
 
         $validated['first_name'] = $validated['first_name'] ?? '';
@@ -193,15 +151,7 @@ class AccountRequestController extends Controller
             return response()->json(['message' => $emailMessage], 422);
         }
 
-        $requestExists = AccountRequest::where('email', $validated['email'])
-            ->whereIn('status', [
-                'en_attente',
-                'verifiee',
-                'en_attente_validation',
-            ])
-            ->exists();
-
-        if ($requestExists) {
+        if ($this->hasOpenRequest($validated['email'])) {
             return response()->json([
                 'message' => 'Une demande de création de compte existe déjà pour cette adresse e-mail.',
             ], 422);
@@ -210,10 +160,8 @@ class AccountRequestController extends Controller
         $validated['uuid'] = (string) Str::uuid();
 
         if (!$legacyRequest) {
-            $validated['request_number'] =
-                'REQ-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(5));
+            $validated['request_number'] = Rules::newRequestNumber();
         }
-
 
         $validated['status'] = 'en_attente';
         $validated['expires_at'] = now()->addHours(24);
@@ -286,34 +234,12 @@ class AccountRequestController extends Controller
              */
             'date_of_birth' => ['required', 'date', 'before:today'],
             'birth_place' => ['required', 'string', 'max:255'],
-            ...self::studentCinRules($request),
+            ...Rules::studentCinRules($request),
             'student_card_number' => ['required', 'string', 'max:255'],
-            'school' => ['required', Rule::in([
-                'IOSTM',
-                'IUGM',
-                'ISSTM',
-                'IUTAM',
-                'ILCSS',
-                'Faculté de Médecine',
-                "Faculté des sciences, technologies et de l'environnement (FSTE)",
-                'Ecoles et formations rattachées',
-            ])],
+            'school' => ['required', Rule::in(Rules::SCHOOLS)],
             'filiere' => ['required', 'string', 'max:255'],
-            'niveau_type' => [
-                'nullable',
-                Rule::in(['Université']),
-            ],
-            'niveau_detail' => [
-                'nullable',
-                Rule::in([
-                    'L1',
-                    'L2',
-                    'L3',
-                    'M1',
-                    'M2',
-                    'Doctorat',
-                ]),
-            ],
+            'niveau_type' => ['nullable', Rule::in(['Université'])],
+            'niveau_detail' => ['nullable', Rule::in(Rules::LEVELS)],
 
             /**
              * Enseignant
@@ -337,64 +263,30 @@ class AccountRequestController extends Controller
             'diploma' => ['nullable', 'string', 'max:255'],
             'workplace' => ['nullable', 'string', 'max:255'],
             'experience' => ['nullable', 'string', 'max:255'],
-        ], self::CIN_MESSAGES);
-        $validated = self::withoutMinorCin($validated);
+        ], Rules::CIN_MESSAGES);
+        $validated = Rules::withoutMinorCin($validated);
 
-        /**
-         * Vérification du compte existant.
-         */
         // Compte existant, y compris dans la corbeille (adresse libre après suppression définitive).
         if ($emailMessage = User::emailUnavailableMessage($validated['email'])) {
             return response()->json(['message' => $emailMessage], 422);
         }
 
-        /**
-         * Vérification d'une demande déjà active.
-         */
-        $requestExists = AccountRequest::where('email', $validated['email'])
-            ->whereIn('status', [
-                'en_attente',
-                'verifiee',
-                'en_attente_validation',
-            ])
-            ->exists();
-
-        if ($requestExists) {
+        if ($this->hasOpenRequest($validated['email'])) {
             return response()->json([
                 'message' => 'Une demande de création de compte existe déjà pour cette adresse e-mail.',
             ], 422);
         }
 
-        /**
-         * Pour un étudiant, le niveau est obligatoirement universitaire.
-         */
-        if ($validated['role'] === 'etudiant') {
-            $validated['niveau_type'] = 'Université';
-
-            if (empty($validated['niveau_detail'])) {
-                return response()->json([
-                    'message' => 'Le niveau universitaire est obligatoire pour un étudiant.',
-                ], 422);
-            }
-        } else {
-            /**
-             * Les champs de niveau ne concernent pas
-             * les enseignants et les chercheurs.
-             */
-            $validated['school'] = null;
-            $validated['filiere'] = null;
-            $validated['niveau_type'] = null;
-            $validated['niveau_detail'] = null;
+        // Pour un étudiant, le niveau est obligatoirement universitaire (et précisé).
+        if ($validated['role'] === 'etudiant' && empty($validated['niveau_detail'])) {
+            return response()->json([
+                'message' => 'Le niveau universitaire est obligatoire pour un étudiant.',
+            ], 422);
         }
+        $validated = Rules::normalizeLevel($validated);
 
-        /**
-         * Génération des identifiants de la demande.
-         */
         $validated['uuid'] = (string) Str::uuid();
-
-        $validated['request_number'] =
-            'REQ-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(5));
-
+        $validated['request_number'] = Rules::newRequestNumber();
 
         /**
          * Le Service Numérique crée la demande.
@@ -438,25 +330,8 @@ class AccountRequestController extends Controller
             $accountRequest
         );
 
-        /**
-         * Information envoyée à la personne concernée.
-         */
-        try {
-            Mail::send(
-                'emails.account-request-created-by-librarian',
-                [
-                    'request' => $accountRequest,
-                ],
-                function ($message) use ($accountRequest) {
-                    $message
-                        ->to($accountRequest->email)
-                        ->subject('Demande de création de compte transmise');
-                }
-            );
-        } catch (\Throwable $e) {
-            // L'échec de l'e-mail ne doit pas empêcher
-            // la création de la demande.
-        }
+        // Information envoyée à la personne concernée (un échec n'empêche pas la création de la demande).
+        $this->provisioner->notifyRequester($accountRequest, 'emails.account-request-created-by-librarian', 'Demande de création de compte transmise');
 
         return response()->json([
             'message' => 'La demande de création de compte a été envoyée à l’administrateur.',
@@ -513,22 +388,10 @@ class AccountRequestController extends Controller
                 'is_active' => false,
             ]);
 
-            MemberRegistry::firstOrCreate(
-                ['user_id' => $createdUser->id],
-                [
-                    'library_id' => $accountRequest->library_id,
-                    'matricule' => $matricule,
-                    'role' => $validated['role'],
-                    'last_name' => $accountRequest->last_name,
-                    'first_name' => $accountRequest->first_name,
-                    'email' => $validated['email'],
-                    'phone' => $accountRequest->phone,
-                    'address' => $accountRequest->address,
-                    'gender' => $accountRequest->gender,
-                    'status' => 'desactive',
-                    'profile_data' => [],
-                ]
-            );
+            $this->provisioner->registerMember($createdUser, [
+                ...$accountRequest->only(['last_name', 'first_name', 'phone', 'address', 'gender']),
+                'email' => $validated['email'],
+            ], $accountRequest->library_id);
 
             $accountRequest->update([
                 'status' => 'traitee',
@@ -672,23 +535,9 @@ class AccountRequestController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
-        $this->queueMail(function () use ($accountRequest) {
-            try {
-                Mail::send(
-                    'emails.account-request-verified',
-                    [
-                        'request' => $accountRequest,
-                    ],
-                    function ($message) use ($accountRequest) {
-                        $message
-                            ->to($accountRequest->email)
-                            ->subject('Votre demande de compte a été vérifiée');
-                    }
-                );
-            } catch (\Throwable $e) {
-                report($e);
-            }
-        });
+        // static : la tâche mise en file ne sérialise que la demande et le service, pas le contrôleur.
+        $provisioner = $this->provisioner;
+        $this->queueMail(static fn () => $provisioner->notifyRequester($accountRequest, 'emails.account-request-verified', 'Votre demande de compte a été vérifiée'));
 
         // Vérifiée par l'administrateur : inutile de le notifier lui-même.
         if ($user->isLibrarian()) {
@@ -743,19 +592,7 @@ class AccountRequestController extends Controller
             'processed_at' => now(),
         ]);
 
-        try {
-            Mail::send(
-                'emails.account-request-rejected',
-                ['request' => $accountRequest],
-                function ($message) use ($accountRequest) {
-                    $message
-                        ->to($accountRequest->email)
-                        ->subject('Votre demande de compte a été rejetée');
-                }
-            );
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $this->provisioner->notifyRequester($accountRequest, 'emails.account-request-rejected', 'Votre demande de compte a été rejetée');
 
         return response()->json([
             'message' => 'La demande a été rejetée.',
@@ -804,27 +641,14 @@ class AccountRequestController extends Controller
             'processed_at' => now(),
         ]);
 
-        try {
-            Mail::send(
-                'emails.account-request-rejected',
-                [
-                    'request' => $accountRequest,
-                ],
-                function ($message) use ($accountRequest) {
-                    $message
-                        ->to($accountRequest->email)
-                        ->subject('Votre demande de compte a été rejetée');
-                }
-            );
-        } catch (\Throwable $e) {
-            // Ne pas bloquer le processus si l'e-mail échoue.
-        }
+        $this->provisioner->notifyRequester($accountRequest, 'emails.account-request-rejected', 'Votre demande de compte a été rejetée');
 
         NotificationService::sendToRole(
             'administrateur',
             'account_request_rejected',
             'Demande de compte rejetée',
-            "La demande de {$accountRequest->first_name} {$accountRequest->last_name} a été rejetée par le Service Numérique.",
+            // Rejet final : c'est l'administrateur (et non le Service Numérique) qui a rejeté la demande.
+            "La demande de {$accountRequest->first_name} {$accountRequest->last_name} a été rejetée par l'administrateur {$user->name}.",
             $accountRequest
         );
 
@@ -916,85 +740,21 @@ class AccountRequestController extends Controller
                 ];
             }
 
-            $existingUser = User::where(
-                'email',
-                $accountRequest->email
-            )->first();
+            $user = User::where('email', $accountRequest->email)->first()
+                ?? $this->provisioner->createUserFromRequest($accountRequest, User::generateNumeroCompte($accountRequest->role));
 
-            if ($existingUser) {
-                $user = $existingUser;
-            } else {
-                $user = User::create([
-                    'name' => trim(
-                        $accountRequest->first_name . ' ' . $accountRequest->last_name
-                    ),
-                    'first_name' => $accountRequest->first_name,
-                    'last_name' => $accountRequest->last_name,
-                    'email' => $accountRequest->email,
-                    'password' => Hash::make(Str::random(64)),
-                    'phone' => $accountRequest->phone,
-                    'address' => $accountRequest->address,
-                    'gender' => $accountRequest->gender,
-                    'date_of_birth' => $accountRequest->date_of_birth,
+            $this->provisioner->registerMember($user, $accountRequest->only([
+                'role', 'last_name', 'first_name', 'email', 'phone', 'address', 'gender',
+            ]));
 
-                    'role' => $accountRequest->role,
-
-                    // Le numéro de compte est créé uniquement au moment de la validation finale.
-                    'matricule' => User::generateNumeroCompte($accountRequest->role),
-
-                    'faculty' => $accountRequest->faculty,
-                    'school' => $accountRequest->school,
-                    'filiere' => $accountRequest->filiere,
-                    'niveau_type' => $accountRequest->niveau_type,
-                    'niveau_detail' => $accountRequest->niveau_detail,
-
-                    'department' => $accountRequest->department,
-                    'position' => $accountRequest->position,
-                    'teaching_specialty' => $accountRequest->teaching_specialty,
-
-                    'research_lab' => $accountRequest->research_lab,
-                    'researcher_field' => $accountRequest->researcher_field,
-                    'specialty' => $accountRequest->specialty,
-                    'profession' => $accountRequest->profession,
-
-                    'library_id' => $accountRequest->library_id,
-
-                    'is_active' => false,
-                ]);
-            }
-
-            /**
-             * Enregistrement dans le registre des membres.
-             */
-            MemberRegistry::firstOrCreate(
-                [
-                    'user_id' => $user->id,
-                ],
-                [
-                    'matricule' => $user->matricule,
-                    'role' => $accountRequest->role,
-                    'last_name' => $accountRequest->last_name,
-                    'first_name' => $accountRequest->first_name,
-                    'email' => $accountRequest->email,
-                    'phone' => $accountRequest->phone,
-                    'address' => $accountRequest->address,
-                    'gender' => $accountRequest->gender,
-                    'status' => 'desactive',
-                    'profile_data' => [],
-                ]
-            );
-
-            /**
-             * Token sécurisé permettant à l'utilisateur
-             * de définir son mot de passe.
-             */
-            $token = Str::random(64);
+            // Jeton sécurisé permettant à l'utilisateur de définir son mot de passe.
+            [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
             $accountRequest->update([
                 'status' => 'validee',
                 'matricule' => $user->matricule,
 
-                'setup_token_hash' => Hash::make($token),
+                'setup_token_hash' => $tokenHash,
                 'setup_expires_at' => now()->addHours(24),
 
                 /**
@@ -1020,21 +780,11 @@ class AccountRequestController extends Controller
         if (!$result['already_processed']) {
             ActivityLogService::log($admin->id, 'validation_compte', "{$result['user']->name} — {$result['user']->role}", $result['user']);
 
-            $this->queueMail(function () use ($result, $accountRequest, $admin) {
+            // static : la tâche mise en file ne sérialise que ses données, pas le contrôleur.
+            $provisioner = $this->provisioner;
+            $this->queueMail(static function () use ($provisioner, $result, $accountRequest, $admin) {
                 try {
-                    Mail::send(
-                        'emails.account-setup',
-                        [
-                            'user' => $result['user'],
-                            'request' => $accountRequest,
-                            'token' => $result['token'],
-                        ],
-                        function ($message) use ($result) {
-                            $message
-                                ->to($result['user']->email)
-                                ->subject('Votre compte a été validé - création du mot de passe');
-                        }
-                    );
+                    $provisioner->sendSetupMail($result['user'], $accountRequest, $result['token'], 'Votre compte a été validé - création du mot de passe');
                 } catch (\Throwable $e) {
                     report($e);
                     // Envoi en arrière-plan : l'administrateur est prévenu, sinon l'échec passerait inaperçu.
@@ -1263,7 +1013,7 @@ class AccountRequestController extends Controller
 
         $accountRequest = AccountRequest::create([
             'uuid' => (string) Str::uuid(),
-            'request_number' => 'REQ-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(5)),
+            'request_number' => Rules::newRequestNumber(),
             'last_name' => $member->last_name,
             'first_name' => $member->first_name,
             'email' => $validated['email'],
@@ -1362,30 +1112,17 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
-        $token = Str::random(64);
+        [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
         $accountRequest->update([
-            'setup_token_hash' => Hash::make($token),
+            'setup_token_hash' => $tokenHash,
             'setup_expires_at' => now()->addHours(24),
         ]);
 
         // Envoi immédiat (et non en file) : un seul e-mail, demandé explicitement ; l'administrateur
         // doit savoir s'il est réellement parti, pour ne pas croire à tort que le lien a été reçu.
         try {
-            Mail::send(
-                'emails.account-setup',
-                [
-                    'user' => $createdUser,
-                    'request' => $accountRequest,
-                    'token' => $token,
-                    'variant' => 'new_link',
-                ],
-                function ($message) use ($accountRequest) {
-                    $message
-                        ->to($accountRequest->email)
-                        ->subject('Création de votre mot de passe');
-                }
-            );
+            $this->provisioner->sendSetupMail($createdUser, $accountRequest, $token, 'Création de votre mot de passe', 'new_link', $accountRequest->email);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Renvoi du lien de création du mot de passe impossible.', [
                 'account_request_id' => $accountRequest->id,
@@ -1417,34 +1154,6 @@ class AccountRequestController extends Controller
     }
 
     /**
-     * Envoi d'un e-mail libre lié à une demande.
-     */
-    public function sendMail(Request $request, AccountRequest $accountRequest)
-    {
-        $validated = $request->validate([
-            'subject' => ['required', 'string', 'max:255'],
-            'message' => ['required', 'string'],
-        ]);
-
-        Mail::send(
-            'emails.notice',
-            [
-                'heading' => $validated['subject'],
-                'paragraphs' => preg_split('/\R{2,}/', trim($validated['message'])),
-            ],
-            function ($mail) use ($accountRequest, $validated) {
-                $mail
-                    ->to($accountRequest->email)
-                    ->subject($validated['subject']);
-            }
-        );
-
-        return response()->json([
-            'message' => 'E-mail envoyé avec succès.',
-        ]);
-    }
-
-    /**
      * Création directe d'un utilisateur par l'administrateur.
      *
      * Le compte est créé inactif.
@@ -1471,7 +1180,7 @@ class AccountRequestController extends Controller
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'birth_place' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
-            ...self::studentCinRules($request, $request->input('role') === 'etudiant'),
+            ...Rules::studentCinRules($request, $request->input('role') === 'etudiant'),
             'student_card_number' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
 
             'role' => [
@@ -1484,34 +1193,10 @@ class AccountRequestController extends Controller
             ],
 
             'faculty' => [Rule::requiredIf(in_array($request->input('role'), ['enseignant', 'chercheur'], true)), 'nullable', 'string', 'max:255'],
-            'school' => [
-                Rule::requiredIf($request->input('role') === 'etudiant'),
-                'nullable',
-                Rule::in([
-                    'IOSTM', 'IUGM', 'ISSTM', 'IUTAM', 'ILCSS',
-                    'Faculté de Médecine',
-                    "Faculté des sciences, technologies et de l'environnement (FSTE)",
-                    'Ecoles et formations rattachées',
-                ]),
-            ],
+            'school' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', Rule::in(Rules::SCHOOLS)],
             'filiere' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
-
-            'niveau_type' => [
-                'nullable',
-                Rule::in(['Université']),
-            ],
-
-            'niveau_detail' => [
-                'nullable',
-                Rule::in([
-                    'L1',
-                    'L2',
-                    'L3',
-                    'M1',
-                    'M2',
-                    'Doctorat',
-                ]),
-            ],
+            'niveau_type' => ['nullable', Rule::in(['Université'])],
+            'niveau_detail' => ['nullable', Rule::in(Rules::LEVELS)],
 
             'department' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
@@ -1521,47 +1206,22 @@ class AccountRequestController extends Controller
             'researcher_field' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
             'specialty' => [Rule::requiredIf($request->input('role') === 'chercheur'), 'nullable', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],
-        ], self::CIN_MESSAGES);
+        ], Rules::CIN_MESSAGES);
 
         if ($validated['role'] === 'etudiant') {
-            $validated = self::withoutMinorCin($validated);
+            $validated = Rules::withoutMinorCin($validated);
         }
+        $validated = Rules::normalizeLevel($validated);
 
-        /**
-         * Pour un étudiant :
-         * le niveau est toujours universitaire.
-         */
-        if ($validated['role'] === 'etudiant') {
-            $validated['niveau_type'] = 'Université';
-        } else {
-            $validated['school'] = null;
-            $validated['filiere'] = null;
-            $validated['niveau_type'] = null;
-            $validated['niveau_detail'] = null;
-        }
-
-        /**
-         * Le compte est créé inactif.
-         * L'utilisateur l'activera après avoir créé son mot de passe.
-         */
+        // Compte inactif jusqu'à la création du mot de passe (mot de passe temporaire inutilisable).
         $validated['is_active'] = false;
+        $validated['name'] = trim($validated['first_name'].' '.$validated['last_name']);
+        $validated['password'] = $this->provisioner->unusablePassword();
 
-        $validated['name'] = trim(
-            $validated['first_name'] . ' ' . $validated['last_name']
-        );
-
-        /**
-         * La colonne password est obligatoire.
-         * On place donc un mot de passe temporaire aléatoire,
-         * qui sera remplacé lorsque l'utilisateur définira
-         * son véritable mot de passe.
-         */
-        $validated['password'] = Hash::make(Str::random(64));
-
-        /**
-         * Génération d'un matricule si nécessaire.
-         */
+        // Numéro de compte : enregistré sur le compte lui-même (il manquait auparavant, seuls la demande
+        // et le registre le recevaient), comme pour une demande validée.
         $matricule = User::generateNumeroCompte($validated['role']);
+        $validated['matricule'] = $matricule;
 
         /**
          * Génération de l'UUID si le modèle User l'utilise.
@@ -1582,42 +1242,12 @@ class AccountRequestController extends Controller
              */
             $user = User::create($validated);
 
-            /**
-             * Enregistrement dans le registre des membres.
-             */
-            MemberRegistry::firstOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'library_id' => $validated['library_id'] ?? null,
-                    'matricule' => $matricule,
-                    'role' => $validated['role'],
-                    'last_name' => $validated['last_name'],
-                    'first_name' => $validated['first_name'],
-                    'email' => $validated['email'],
-                    'phone' => $validated['phone'] ?? null,
-                    'address' => $validated['address'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'status' => 'desactive',
-                    'profile_data' => [],
-                ]
-            );
+            $this->provisioner->registerMember($user, $validated);
 
-            /**
-             * Génération du token de création du mot de passe.
-             *
-             * Le token envoyé par e-mail est en clair.
-             * La base de données ne conserve que son hash.
-             */
-            $token = Str::random(64);
+            // Lien de création du mot de passe : jeton en clair dans l'e-mail, empreinte en base.
+            [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
-            /**
-             * Numéro de demande.
-             */
-            $requestNumber =
-                'REQ-' .
-                now()->format('YmdHis') .
-                '-' .
-                strtoupper(Str::random(5));
+            $requestNumber = Rules::newRequestNumber();
 
             /**
              * Création d'une demande déjà validée.
@@ -1693,7 +1323,7 @@ class AccountRequestController extends Controller
                 /**
                  * Lien de création du mot de passe.
                  */
-                'setup_token_hash' => Hash::make($token),
+                'setup_token_hash' => $tokenHash,
                 'setup_expires_at' => now()->addHours(24),
 
                 'validation_deadline_at' => now()->addHours(24),
@@ -1712,22 +1342,7 @@ class AccountRequestController extends Controller
          * Envoi du lien de création du mot de passe.
          */
         try {
-            Mail::send(
-                'emails.account-setup',
-                [
-                    'user' => $result['user'],
-                    'request' => $result['request'],
-                    'token' => $result['token'],
-                    'variant' => 'created',
-                ],
-                function ($message) use ($result) {
-                    $message
-                        ->to($result['user']->email)
-                        ->subject(
-                            'Votre compte a été créé - création du mot de passe'
-                        );
-                }
-            );
+            $this->provisioner->sendSetupMail($result['user'], $result['request'], $result['token'], 'Votre compte a été créé - création du mot de passe', 'created');
         } catch (\Throwable $e) {
 
             /**

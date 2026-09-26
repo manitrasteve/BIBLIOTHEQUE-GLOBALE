@@ -88,3 +88,21 @@ test("le profil refuse l'e-mail d'un compte en corbeille avec un message explici
 
     $this->postJson('/api/profile', ['email' => $user->email])->assertOk();
 });
+
+test("un compte créé directement par l'administrateur reçoit son numéro de compte", function () {
+    Mail::fake();
+    Sanctum::actingAs(User::factory()->create(['role' => 'administrateur', 'is_active' => true]));
+
+    $this->postJson('/api/users/creer', [
+        'last_name' => 'Rakoto', 'first_name' => 'Jean', 'email' => 'numero@example.test', 'phone' => '0340000000',
+        'address' => 'Mahajanga', 'gender' => 'masculin', 'date_of_birth' => '1990-05-10', 'role' => 'chercheur',
+        'faculty' => 'IOSTM', 'researcher_field' => 'Océanographie', 'specialty' => 'Courants marins',
+    ])->assertCreated();
+
+    $user = User::where('email', 'numero@example.test')->firstOrFail();
+    $request = AccountRequest::where('created_user_id', $user->id)->firstOrFail();
+
+    expect($user->matricule)->not->toBeNull()
+        ->and($user->matricule)->toBe($request->matricule)
+        ->and(\App\Models\MemberRegistry::where('user_id', $user->id)->value('matricule'))->toBe($user->matricule);
+});
