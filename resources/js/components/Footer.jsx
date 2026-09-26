@@ -20,14 +20,14 @@ export default function Footer() {
             </p>
           </div>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Plateforme</p>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Plateforme</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
               <p className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brass" /> Assistant documentaire IA</p>
               <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-500" /> Consultation sécurisée</p>
             </div>
           </div>
           <div className="md:text-right">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Informations</p>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Informations</p>
             <div className="mt-3 space-y-2 text-sm text-slate-600">
               <p className="flex items-center gap-2 md:justify-end">
                 <Mail className="h-4 w-4 shrink-0 text-brass" />
@@ -38,7 +38,7 @@ export default function Footer() {
                 <a href="tel:+261324208362" className="hover:underline">+261 32 42 083 62</a>
               </p>
             </div>
-            <p className="mt-4 text-xs italic text-slate-400">by Steve</p>
+            <p className="mt-4 text-xs italic text-slate-500">by Steve</p>
           </div>
         </div>
       </div>

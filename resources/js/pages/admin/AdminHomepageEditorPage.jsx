@@ -371,7 +371,7 @@ export default function AdminHomepageEditorPage() {
                                                 <Icon className="h-4 w-4" />
                                             </span>
                                             <span className="min-w-0">
-                                                <span className={`block truncate text-sm font-bold ${section.visible ? "text-slate-900" : "text-slate-400 line-through"}`}>
+                                                <span className={`block truncate text-sm font-bold ${section.visible ? "text-slate-900" : "text-slate-500 line-through"}`}>
                                                     {type.label}
                                                 </span>
                                                 <span className="block truncate text-xs text-slate-500">

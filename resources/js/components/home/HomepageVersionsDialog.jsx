@@ -79,7 +79,7 @@ export default function HomepageVersionsDialog({ currentVersion, busy, onClose, 
                                     <p className="text-xs text-slate-500">
                                         {formatDate(v.published_at)} · Publié par {v.author || "compte supprimé"}
                                     </p>
-                                    <p className="text-xs text-slate-400">
+                                    <p className="text-xs text-slate-500">
                                         {v.section_count} section{v.section_count > 1 ? "s" : ""}
                                         {v.restored_from && ` · restaurée depuis la version ${v.restored_from}`}
                                     </p>

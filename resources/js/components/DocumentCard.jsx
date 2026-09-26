@@ -123,7 +123,7 @@ export default function DocumentCard({ document, showCategory = false, variant =
               <TypeIcon className="h-3.5 w-3.5" />
               {typeCfg.label}
             </span>
-            <span className="font-mono text-[10px] font-bold tracking-wider text-slate-400">{callNumber(document)}</span>
+            <span className="font-mono text-[10px] font-bold tracking-wider text-slate-500">{callNumber(document)}</span>
           </div>
           <div className="mt-3 flex items-start gap-2">
             <h3 className="font-display text-xl font-extrabold leading-snug text-slate-900 group-hover:text-brass-deep">

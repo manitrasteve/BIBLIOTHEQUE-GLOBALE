@@ -1,15 +1,35 @@
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
 
-export function Dialog({ open, onOpenChange, children }) {
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Accessibilité : à l'ouverture le focus entre dans la fenêtre, Tab y reste (piège de focus),
+// Échap la ferme, et à la fermeture le focus revient sur l'élément qui l'avait ouverte.
+export function Dialog({ open, onOpenChange, children, labelledBy }) {
+ const boxRef = useRef(null);
+ // Via une ref : un onOpenChange recréé à chaque rendu ne doit pas relancer l'effet (le focus sauterait).
+ const onOpenChangeRef = useRef(onOpenChange);
+ onOpenChangeRef.current = onOpenChange;
  useEffect(() => {
  if (!open) return;
- const handler = (event) => event.key === "Escape" && onOpenChange?.(false);
+ const previous = document.activeElement;
+ const box = boxRef.current;
+ const focusables = () => [...(box?.querySelectorAll(FOCUSABLE) || [])];
+ (focusables()[0] || box)?.focus();
+ const handler = (event) => {
+ if (event.key === "Escape") return onOpenChangeRef.current?.(false);
+ if (event.key !== "Tab") return;
+ const items = focusables();
+ if (!items.length) return event.preventDefault();
+ const first = items[0], last = items[items.length - 1];
+ if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+ else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+ };
  document.addEventListener("keydown", handler);
- return () => document.removeEventListener("keydown", handler);
- }, [open, onOpenChange]);
+ return () => { document.removeEventListener("keydown", handler); previous?.focus?.(); };
+ }, [open]);
  if (!open) return null;
- return <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">{children}</div>;
+ return <div ref={boxRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>{children}</div>;
 }
 export function DialogContent({ className, children, onClose }) {
  const ref = useRef(null);

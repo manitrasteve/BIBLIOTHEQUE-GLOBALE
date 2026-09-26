@@ -68,7 +68,7 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
                             className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-brass"
                             placeholder="Expliquez la raison ici..."
                         />
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-slate-500">
                             Cette raison sera envoyée par e-mail à
                             l'utilisateur.
                         </p>

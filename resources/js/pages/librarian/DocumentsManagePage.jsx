@@ -227,7 +227,7 @@ export default function DocumentsManagePage() {
         <div className="hidden overflow-x-auto rounded-xl border border-line bg-paper sm:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-slate-400 text-xs uppercase tracking-wide">
+              <tr className="border-b border-line text-left text-slate-500 text-xs uppercase tracking-wide">
                 <SortTh label="Titre" sortKey="title" sort={sort} setSort={setSort} />
                 <SortTh label="Catégorie" sortKey="category" sort={sort} setSort={setSort} />
                 <SortTh label="Année" sortKey="year" sort={sort} setSort={setSort} />

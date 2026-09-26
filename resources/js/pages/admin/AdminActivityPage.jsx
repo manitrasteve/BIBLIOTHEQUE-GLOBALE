@@ -590,7 +590,7 @@ export default function AdminActivityPage() {
                                     )}
                                 </div>
 
-                                <p className="shrink-0 text-xs text-slate-400">
+                                <p className="shrink-0 text-xs text-slate-500">
                                     {new Date(log.created_at).toLocaleString(
                                         "fr-FR",
                                     )}

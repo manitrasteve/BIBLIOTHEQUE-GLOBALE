@@ -130,7 +130,8 @@ class ThemePalette
                 $set('surface-3', $mix($c['surface'], 93, $c['foreground']));
                 $set('fg-soft', $mix($c['foreground'], 85, $c['surface']));
                 $set('fg-muted', $mix($c['foreground'], 62, $c['surface']));
-                $set('fg-subtle', $mix($c['foreground'], 45, $c['surface']));
+                // 55 % (et non 45) : au moins 3:1 sur la surface, seuil WCAG des icônes.
+                $set('fg-subtle', $mix($c['foreground'], 55, $c['surface']));
             }
             if ($changed('border', 'foreground')) {
                 $set('border-strong', $mix($c['border'], 75, $c['foreground']));

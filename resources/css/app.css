@@ -57,7 +57,8 @@
     --color-slate-100: var(--site-light-surface-3, oklch(96.8% 0.007 247.896));
     --color-slate-200: var(--site-light-border, oklch(92.9% 0.013 255.508));
     --color-slate-300: var(--site-light-border-strong, oklch(86.9% 0.022 252.894));
-    --color-slate-400: var(--site-light-fg-subtle, oklch(70.4% 0.04 256.788));
+    /* Assombri (70,4 % → 63 %) : 3,5:1 sur blanc, seuil WCAG des icônes et éléments non textuels. */
+    --color-slate-400: var(--site-light-fg-subtle, oklch(63% 0.042 256.788));
     --color-slate-500: var(--site-light-fg-muted, oklch(55.4% 0.046 257.417));
     --color-slate-600: var(--site-light-fg-muted, oklch(44.6% 0.043 257.281));
     --color-slate-700: var(--site-light-fg-soft, oklch(37.2% 0.044 257.287));
@@ -591,4 +592,48 @@ tbody tr:hover {
 
 @media (prefers-reduced-motion: reduce) {
     .ai-typing-dots span { animation: none; }
+}
+
+/* ===== Accessibilité ===== */
+
+/* Focus clavier toujours visible sur les éléments interactifs (la souris n'en déclenche pas :
+   :focus-visible). --color-brass : foncé en clair, clair en sombre, donc lisible dans les deux modes. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[role="tab"]:focus-visible,
+[role="option"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 2px;
+}
+
+/* Lien « Aller au contenu » : invisible jusqu'à ce qu'on l'atteigne avec Tab. */
+.skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 100;
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    color: var(--color-brass);
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+}
+
+.skip-link:focus {
+    top: 1rem;
+}
+
+/* Animations réduites pour les personnes qui le demandent au système. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

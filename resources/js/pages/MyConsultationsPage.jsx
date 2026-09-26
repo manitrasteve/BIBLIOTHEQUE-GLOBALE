@@ -42,7 +42,7 @@ export default function MyConsultationsPage() {
                                         ? `· ${c.document.year}`
                                         : ""}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-400">
+                                <p className="mt-1 text-xs text-slate-500">
                                     Consulté le{" "}
                                     {new Date(c.consulted_at).toLocaleString(
                                         "fr-FR",

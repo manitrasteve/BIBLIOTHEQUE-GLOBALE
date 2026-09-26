@@ -97,7 +97,7 @@ export default function AdminMessagesPage() {
                 <div className="space-y-2">
                     {history.map((item) => (
                         <div key={item.id} className="modern-card flex items-start justify-between gap-4 p-4">
-                            <div className="min-w-0"><p className="font-bold">{item.subject}</p><p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap">{item.message}</p><p className="mt-2 text-xs text-slate-400">{item.recipient_count} destinataire(s) · {new Date(item.created_at).toLocaleString("fr-FR")}</p></div>
+                            <div className="min-w-0"><p className="font-bold">{item.subject}</p><p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap">{item.message}</p><p className="mt-2 text-xs text-slate-500">{item.recipient_count} destinataire(s) · {new Date(item.created_at).toLocaleString("fr-FR")}</p></div>
                             <button onClick={() => remove(item.id)} title="Supprimer" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                         </div>
                     ))}
