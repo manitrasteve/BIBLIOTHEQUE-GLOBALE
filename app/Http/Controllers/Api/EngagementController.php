@@ -22,7 +22,10 @@ class EngagementController extends Controller
 
  public function favorites(Request $request)
     {
+        // Uniquement les documents encore publiés : un favori archivé / dépublié ne pourrait plus
+        // être ouvert ni retiré (toggleFavorite n'accepte que les documents publiés).
         $favorites = $request->user()->favorites()
+            ->whereHas('document', fn ($d) => $d->where('status', 'publie'))
             ->with(['document.authors:id,name', 'document.category:id,name', 'document.library:id,name'])
             ->latest()
             ->paginate(20);

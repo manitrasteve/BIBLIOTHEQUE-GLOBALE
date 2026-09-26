@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 // Limité : la réponse indique si une adresse a un compte (limite l'énumération d'adresses).
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:10,1');
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
 Route::get('/site-updates', [SiteUpdateController::class, 'index']);
 Route::get('/site-updates/{uuid}', [SiteUpdateController::class, 'show']);
 
@@ -56,11 +56,12 @@ Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware
 
 Route::post('/account-requests', [AccountRequestController::class, 'store']);
 Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show']);
-Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm']);
+// Limité : chaque appel vérifie le jeton (bcrypt) contre toutes les demandes validées en attente.
+Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm'])->middleware('throttle:30,1');
 // Limité : sans ça, un numéro de carte se devine par force brute (comme forgot-password ci-dessus).
 Route::post('/account-requests/verify-member', [AccountRequestController::class, 'verifyMember'])->middleware('throttle:10,1');
 Route::post('/account-requests/recreate', [AccountRequestController::class, 'recreate'])->middleware('throttle:10,1');
-Route::post('/account-requests/setup/{token}', [AccountRequestController::class, 'setupPassword']);
+Route::post('/account-requests/setup/{token}', [AccountRequestController::class, 'setupPassword'])->middleware('throttle:10,1');
 
 
 /*

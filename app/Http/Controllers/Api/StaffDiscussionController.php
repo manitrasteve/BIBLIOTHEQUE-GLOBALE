@@ -80,16 +80,14 @@ class StaffDiscussionController extends Controller
          * Seul un administrateur peut ouvrir une conversation
          * avec n'importe quel bibliothécaire.
          */
-        if ($admin->role !== 'administrateur') {
-            if ((int) $admin->id !== (int) $librarian->id) {
-                /*
-                 * Un bibliothécaire ne doit pas pouvoir choisir
-                 * un autre bibliothécaire comme destinataire.
-                 *
-                 * Sa conversation avec l'administration sera
-                 * créée automatiquement dans send().
-                 */
-            }
+        /*
+         * Un bibliothécaire ne peut ouvrir que sa propre conversation
+         * (celle d'un autre bibliothécaire lui est refusée).
+         */
+        if ($admin->role !== 'administrateur' && (int) $admin->id !== (int) $librarian->id) {
+            return response()->json([
+                'message' => 'Accès refusé à cette conversation.',
+            ], 403);
         }
 
         $conversation = StaffConversation::firstOrCreate([

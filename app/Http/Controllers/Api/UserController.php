@@ -114,6 +114,10 @@ class UserController extends Controller
         $user->tokens()->delete();
         // Un lien de réinitialisation encore valide ne doit pas survivre à la désactivation.
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+        // Idem pour le lien de création du mot de passe : il réactiverait le compte (setupPassword).
+        \App\Models\AccountRequest::where('created_user_id', $user->id)
+            ->whereNotNull('setup_token_hash')
+            ->update(['setup_token_hash' => null, 'setup_expires_at' => null]);
         \App\Services\NotificationService::send($user, 'compte_desactive', 'Compte désactivé', "Votre compte a été désactivé. Raison : {$data['reason']}", $user);
 
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {

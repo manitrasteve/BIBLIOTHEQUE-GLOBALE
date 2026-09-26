@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Rules\AvailableEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,7 +18,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $data = $request->validate([
-            'email' => ['required','email','max:255','unique:users,email,'.$user->id],
+            'email' => ['required','email','max:255', new AvailableEmail($user->id)],
             'phone' => ['nullable','string','max:50'],
             'address' => ['nullable','string','max:255'],
             'date_of_birth' => ['nullable','date'],
