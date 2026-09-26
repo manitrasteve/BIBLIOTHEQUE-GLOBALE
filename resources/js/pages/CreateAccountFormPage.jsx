@@ -167,9 +167,9 @@ export default function CreateAccountFormPage() {
                                 </p>
                             )
                         )}
-                        <Field label="Adresse" value={form.address} onChange={(value) => update("address", value)} required />
+                        <Field label="Adresse E-mail" type="email" value={form.email} onChange={(value) => update("email", value)} required />
                         <Field label="Téléphone" type="tel" value={form.phone} onChange={(value) => update("phone", value)} required />
-                        <div className="md:col-span-2"><Field label="Adresse E-mail" type="email" value={form.email} onChange={(value) => update("email", value)} required /></div>
+                        <div className="md:col-span-2"><Field label="Adresse" value={form.address} onChange={(value) => update("address", value)} required /></div>
                     </div>
                 ) : (
                     <div className="space-y-7">

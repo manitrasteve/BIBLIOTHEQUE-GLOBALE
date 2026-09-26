@@ -88,9 +88,9 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
                 Moins de 18 ans : la CIN n'est pas demandée.
             </p>
         )}
-        <label className={labelClass}>Adresse *<input required value={form.address} onChange={update("address")} className={inputClass} /></label>
+        <label className={labelClass}>Adresse E-mail *<input required type="email" value={form.email} onChange={update("email")} className={inputClass} /></label>
         <label className={labelClass}>Téléphone *<input required type="tel" value={form.phone} onChange={update("phone")} className={inputClass} /></label>
-        <label className={`${labelClass} md:col-span-2`}>Adresse E-mail *<input required type="email" value={form.email} onChange={update("email")} className={inputClass} /></label>
+        <label className={`${labelClass} md:col-span-2`}>Adresse *<input required value={form.address} onChange={update("address")} className={inputClass} /></label>
     </div>;
 
     return <div className="space-y-6">
