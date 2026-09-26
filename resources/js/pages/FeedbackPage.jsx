@@ -2,6 +2,12 @@ import { useState } from "react";
 import { MessageSquare, Star } from "lucide-react";
 import { api } from "../lib/api";
 
+const labelClass = "block text-sm font-semibold text-slate-700";
+const inputClass =
+    "mt-2 w-full rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 outline-none focus:border-brass focus:ring-2 focus:ring-indigo-200";
+
+const RATING_LABELS = ["", "Pas du tout satisfait", "Peu satisfait", "Moyennement satisfait", "Satisfait", "Très satisfait"];
+
 const initialForm = {
     type: "general",
     subject: "",
@@ -16,6 +22,7 @@ export default function FeedbackPage() {
     const [submitting, setSubmitting] = useState(false);
 
     function update(field, value) {
+        setSent(false);
         setForm((current) => ({
             ...current,
             [field]: value,
@@ -66,7 +73,7 @@ export default function FeedbackPage() {
             )}
 
             {error && (
-                <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                     {error}
                 </div>
             )}
@@ -75,40 +82,52 @@ export default function FeedbackPage() {
                 onSubmit={submit}
                 className="modern-card space-y-5 p-4"
             >
-                <select
-                    value={form.type}
-                    onChange={(event) => update("type", event.target.value)}
-                    className="w-full rounded-xl"
-                >
-                    <option value="general">Opinion générale</option>
-                    <option value="suggestion">Suggestion</option>
-                    <option value="bug">Bug</option>
-                    <option value="document">Problème document</option>
-                    <option value="ai">Problème IA</option>
-                    <option value="autre">Autre</option>
-                </select>
+                <label className={labelClass}>
+                    Type d'avis *
+                    <select
+                        value={form.type}
+                        onChange={(event) => update("type", event.target.value)}
+                        className={inputClass}
+                    >
+                        <option value="general">Opinion générale</option>
+                        <option value="suggestion">Suggestion</option>
+                        <option value="bug">Bug</option>
+                        <option value="document">Problème document</option>
+                        <option value="ai">Problème IA</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </label>
 
-                <input
-                    required
-                    placeholder="Sujet"
-                    value={form.subject}
-                    onChange={(event) => update("subject", event.target.value)}
-                    className="w-full rounded-xl"
-                    maxLength={255}
-                />
+                <label className={labelClass}>
+                    Sujet *
+                    <input
+                        required
+                        placeholder="Ex. : ajouter plus de mémoires en informatique"
+                        value={form.subject}
+                        onChange={(event) => update("subject", event.target.value)}
+                        className={inputClass}
+                        maxLength={255}
+                    />
+                </label>
 
-                <textarea
-                    required
-                    rows={6}
-                    placeholder="Votre message"
-                    value={form.message}
-                    onChange={(event) => update("message", event.target.value)}
-                    className="w-full rounded-xl"
-                    maxLength={5000}
-                />
+                <label className={labelClass}>
+                    Votre message *
+                    <textarea
+                        required
+                        rows={6}
+                        placeholder="Partagez votre avis ou votre suggestion…"
+                        value={form.message}
+                        onChange={(event) => update("message", event.target.value)}
+                        className={inputClass}
+                        maxLength={5000}
+                    />
+                    <span className="mt-1 block text-right text-xs font-normal text-slate-500">
+                        {form.message.length} / 5000
+                    </span>
+                </label>
 
                 <div>
-                    <p className="mb-2 text-sm font-bold">
+                    <p className={`mb-2 ${labelClass}`}>
                         Votre satisfaction
                     </p>
 
@@ -119,6 +138,7 @@ export default function FeedbackPage() {
                                 key={number}
                                 onClick={() => update("rating", number)}
                                 aria-label={`${number} étoile${number > 1 ? "s" : ""}`}
+                                aria-pressed={number <= form.rating}
                             >
                                 <Star
                                     className={`h-6 w-6 ${
@@ -129,6 +149,9 @@ export default function FeedbackPage() {
                                 />
                             </button>
                         ))}
+                        <span className="ml-2 self-center text-sm text-slate-500">
+                            {RATING_LABELS[form.rating]}
+                        </span>
                     </div>
                 </div>
 
