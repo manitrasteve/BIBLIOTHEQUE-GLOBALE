@@ -14,6 +14,7 @@ import {
     Sparkles,
     GraduationCap,
     Library,
+    Lock,
 } from "lucide-react";
 import DOMPurify from "dompurify";
 import { api } from "../lib/api";
@@ -23,6 +24,135 @@ import AiAssistant from "../components/AiAssistant";
 import CitationDialog from "../components/CitationDialog";
 import SimilarDocuments from "../components/SimilarDocuments";
 import { SkeletonDocumentDetail } from "../components/Skeleton";
+import { TYPE_CONFIG, normalizeType } from "../components/DocumentCard";
+import { languageLabel } from "../lib/languages";
+
+// Résumé saisi en texte enrichi : seules quelques balises de mise en forme sont conservées.
+function sanitizeAbstract(html) {
+    return DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li"],
+        ALLOWED_ATTR: [],
+    });
+}
+
+/**
+ * Fiche d'un document pour un visiteur non connecté : couverture, titre, résumé et informations
+ * bibliographiques sur toute la largeur, et un encart invitant à se connecter pour lire.
+ */
+function GuestDocumentView({ doc }) {
+    // Libellés lisibles : « memoire » → « Mémoire », « fr » → « Français » (valeur saisie sinon).
+    const typeLabel = TYPE_CONFIG[normalizeType(doc.type)]?.label ?? doc.type;
+    const language = languageLabel(doc.language) || doc.language;
+    const details = [
+        ["Auteur(s)", doc.authors?.length ? doc.authors.join(", ") : null],
+        ["Niveau", doc.niveau],
+        ["Bibliothèque", doc.library],
+        ["Catégorie", doc.category],
+        ["Année", doc.year],
+        ["Éditeur", doc.publisher],
+        ["ISBN", doc.isbn],
+        ["Langue", language],
+    ].filter(([, value]) => value);
+    const byline = [doc.authors?.join(", "), doc.library, doc.year].filter(Boolean).join(" · ");
+
+    return (
+        <div className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <div className="grid gap-8 md:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
+                {/* COUVERTURE */}
+                <div className="w-44 sm:w-52 md:w-auto">
+                    {doc.cover_url ? (
+                        <img
+                            src={doc.cover_url}
+                            alt={`Couverture de ${doc.title}`}
+                            className="aspect-[3/4] w-full rounded-l-md rounded-r-2xl border-l-[6px] border-indigo-800 object-cover"
+                        />
+                    ) : (
+                        <div className="flex aspect-[3/4] w-full flex-col justify-between rounded-l-md rounded-r-2xl border-l-[6px] border-indigo-800 bg-indigo-600 p-4 text-white">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-on-primary-soft">
+                                {[typeLabel, doc.year].filter(Boolean).join(" · ")}
+                            </span>
+                            <span className="font-display text-lg font-extrabold leading-tight [overflow-wrap:anywhere]">{doc.title}</span>
+                            <span className="text-[11px] font-semibold text-on-primary-soft">{doc.category || "Catalogue"}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* INFORMATIONS */}
+                <div className="min-w-0">
+                    <Link
+                        to="/recherche"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-ink-soft transition-colors hover:text-brass"
+                    >
+                        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+                        Retour au catalogue
+                    </Link>
+
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                        {typeLabel && (
+                            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brass-deep">{typeLabel}</span>
+                        )}
+                        {doc.niveau && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brass-deep">
+                                <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                {doc.niveau}
+                            </span>
+                        )}
+                    </div>
+
+                    <h1 className="mt-3 font-display text-2xl font-extrabold leading-tight text-ink [overflow-wrap:anywhere] sm:text-3xl">
+                        {doc.title}
+                    </h1>
+                    {doc.subtitle && <p className="mt-1.5 text-base text-ink-soft [overflow-wrap:anywhere]">{doc.subtitle}</p>}
+                    {byline && <p className="mt-2 text-sm text-ink-soft [overflow-wrap:anywhere]">{byline}</p>}
+
+                    {doc.abstract && (
+                        <div
+                            className="rich-text mt-5 max-w-3xl text-[15px] leading-7 text-ink"
+                            dangerouslySetInnerHTML={{ __html: sanitizeAbstract(doc.abstract) }}
+                        />
+                    )}
+
+                    {/* INFORMATIONS BIBLIOGRAPHIQUES */}
+                    {details.length > 0 && (
+                        <section className="mt-6 max-w-3xl" aria-labelledby="guest-details-title">
+                            <h2 id="guest-details-title" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brass">
+                                <Library className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                                Informations bibliographiques
+                            </h2>
+                            <dl className="mt-3 grid border-t border-line sm:grid-cols-2 sm:gap-x-8">
+                                {details.map(([label, value]) => (
+                                    <div key={label} className="flex justify-between gap-4 border-b border-line py-2.5 text-sm">
+                                        <dt className="shrink-0 text-ink-soft">{label}</dt>
+                                        <dd className="min-w-0 text-right font-semibold text-ink [overflow-wrap:anywhere]">{value}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </section>
+                    )}
+
+                    {/* ENCART DE CONNEXION */}
+                    <div className="mt-8 grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-dashed border-indigo-600 bg-indigo-50 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+                        <Lock className="h-5 w-5 text-brass" strokeWidth={1.75} aria-hidden="true" />
+                        <div className="min-w-0">
+                            <p className="font-display text-sm font-extrabold text-ink">Connectez-vous pour lire ce document</p>
+                            <p className="mt-0.5 text-xs text-ink-soft">
+                                Lecture en ligne sécurisée et assistant IA réservés aux membres.
+                            </p>
+                        </div>
+                        <Link to="/connexion" className="btn-primary col-span-2 px-4 py-2 text-sm sm:col-span-1">
+                            <LogIn className="h-4 w-4" strokeWidth={1.75} />
+                            Se connecter
+                        </Link>
+                    </div>
+
+                    <div className="max-w-3xl">
+                        <SimilarDocuments slug={doc.slug} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function DocumentDetailPage() {
     const { slug } = useParams();
@@ -86,6 +216,11 @@ export default function DocumentDetailPage() {
     const canRead = Boolean(user && doc?.can_view_content);
     // « Reprendre la lecture » : dernière page lue enregistrée pour ce lecteur.
     const resumePage = doc.reading_progress?.last_page || null;
+
+    // Visiteur non connecté : fiche pleine largeur avec l'encart « Connectez-vous pour lire ».
+    if (!user) {
+        return <GuestDocumentView doc={doc} />;
+    }
 
     return (
         <div className="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-7 xl:flex xl:h-[calc(100dvh-var(--app-header-height))] xl:flex-col xl:overflow-hidden xl:py-4">
@@ -339,10 +474,7 @@ export default function DocumentDetailPage() {
                                     <div
                                         className="rich-text text-xs text-ink-soft leading-5"
                                         dangerouslySetInnerHTML={{
-                                            __html: DOMPurify.sanitize(doc.abstract, {
-                                                ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li"],
-                                                ALLOWED_ATTR: [],
-                                            }),
+                                            __html: sanitizeAbstract(doc.abstract),
                                         }}
                                     />
                                 </div>

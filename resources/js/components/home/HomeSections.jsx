@@ -11,11 +11,27 @@ import {
     Building2,
     BarChart3,
     Megaphone,
+    Scale,
+    Monitor,
+    Stethoscope,
+    TrendingUp,
+    Calculator,
+    FlaskConical,
+    Feather,
+    Languages,
+    Leaf,
+    Landmark,
+    Globe,
+    GraduationCap,
+    Users,
+    Palette,
+    Eye,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { DEFAULT_HERO_IMAGE, DEFAULT_HERO_IMAGE_ALT, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
-import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../CatalogueCard";
+import { Cover, docInfo } from "../CatalogueCard";
+import { stripHtml } from "../../lib/utils";
 import LibraryCard from "../LibraryCard";
 
 /**
@@ -270,9 +286,31 @@ function HeroSection({ section }) {
     );
 }
 
+// Icône d'un domaine d'après son nom (sans accents ni casse) ; livre par défaut.
+const DOMAIN_ICONS = [
+    [/droit|jurid|justice|loi/, Scale],
+    [/informati|numerique|logiciel|reseau|programm/, Monitor],
+    [/sante|medec|pharma|infirm|biomed|odonto/, Stethoscope],
+    [/econom|gestion|financ|commerce|compta|management|marketing/, TrendingUp],
+    [/math|statist/, Calculator],
+    [/scien|physique|chimie|biolog|technolog|ingenier/, FlaskConical],
+    [/lettre|litter|philo|linguist/, Feather],
+    [/langue|anglais|francais|malgache/, Languages],
+    [/environ|ecolog|agro|agricul|foret|mer|ocean|halieut/, Leaf],
+    [/histoire|archeo|patrimoine/, Landmark],
+    [/geograph|tourism/, Globe],
+    [/educat|pedagog|enseign/, GraduationCap],
+    [/socio|psycho|anthropo|social/, Users],
+    [/art|musique|cinema|design/, Palette],
+];
+
+function domainIcon(name) {
+    const key = String(name || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    return DOMAIN_ICONS.find(([pattern]) => pattern.test(key))?.[1] ?? BookOpen;
+}
+
 function CategoriesSection({ section, preview }) {
     const categories = usePublicData("categories") || [];
-    const centered = section.style?.align === "center";
 
     if (!categories.length) {
         return preview ? <PreviewNote section={section}>Domaines : aucun domaine à afficher pour le moment.</PreviewNote> : null;
@@ -281,29 +319,106 @@ function CategoriesSection({ section, preview }) {
     return (
         <Shell section={section} spacing="py-10">
             <Heading section={section} icon={BookOpen} />
-            <div className={cx("flex flex-wrap gap-3", centered && "justify-center")}>
-                {categories.map((category) => (
-                    <Link
-                        key={category.id}
-                        to={`/recherche?category_id=${category.id}`}
-                        className="rounded-full border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-brass-deep"
-                    >
-                        {category.name}
-                    </Link>
-                ))}
+            <div className="grid grid-cols-1 gap-3 text-left min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                {categories.map((category) => {
+                    const Icon = domainIcon(category.name);
+                    const count = category.documents_count;
+                    return (
+                        <Link
+                            key={category.id}
+                            to={`/recherche?category_id=${category.id}`}
+                            className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3.5 transition-colors hover:border-indigo-600 focus-visible:border-indigo-600"
+                        >
+                            <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-brass transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                                <Icon className="h-5 w-5" strokeWidth={1.8} />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block truncate font-display text-[15px] font-bold text-slate-900" title={category.name}>
+                                    {category.name}
+                                </span>
+                                {count != null && (
+                                    <span className="block text-xs tabular-nums text-slate-500">
+                                        {count} document{count > 1 ? "s" : ""}
+                                    </span>
+                                )}
+                            </span>
+                            <ArrowRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-brass" aria-hidden="true" />
+                        </Link>
+                    );
+                })}
             </div>
         </Shell>
     );
 }
 
-function DocumentsSection({ section, isLocked, preview }) {
+// « À la une » : la publication la plus récente en vedette, les suivantes en lignes compactes.
+function FeaturedDocument({ document }) {
+    const { typeCfg, authors } = docInfo(document);
+    const summary = document.abstract ? stripHtml(document.abstract).trim() : "";
+    const views = document.consultation_count ?? 0;
+
+    return (
+        <article className="grid gap-5 rounded-[20px] border border-slate-200 bg-surface p-5 sm:grid-cols-[190px_minmax(0,1fr)] sm:gap-6">
+            <Link to={`/documents/${document.slug}`} className="block w-40 sm:w-auto" tabIndex={-1} aria-hidden="true">
+                <Cover document={document} typeCfg={typeCfg} />
+            </Link>
+            <div className="flex min-w-0 flex-col">
+                <span className="w-fit rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-brass-deep">À la une</span>
+                <h3 className="mt-2 font-display text-xl font-extrabold leading-tight text-slate-900 [overflow-wrap:anywhere] sm:text-2xl">
+                    <Link to={`/documents/${document.slug}`} className="hover:text-brass-deep">
+                        {document.title}
+                    </Link>
+                </h3>
+                <p className="mt-1.5 text-xs text-slate-500 [overflow-wrap:anywhere]">
+                    {[authors, typeCfg.label, document.year, document.library].filter(Boolean).join(" · ")}
+                </p>
+                {summary && <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 [overflow-wrap:anywhere]">{summary}</p>}
+                <div className="mt-auto flex flex-wrap items-center gap-4 pt-4">
+                    <Link to={`/documents/${document.slug}`} className="btn-primary px-4 py-2 text-sm">
+                        Consulter
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <span className="inline-flex items-center gap-1.5 text-xs tabular-nums text-slate-500">
+                        <Eye className="h-3.5 w-3.5" />
+                        {views} consultation{views > 1 ? "s" : ""}
+                    </span>
+                </div>
+            </div>
+        </article>
+    );
+}
+
+function CompactDocument({ document }) {
+    const { typeCfg, authors } = docInfo(document);
+
+    return (
+        <li>
+            <Link
+                to={`/documents/${document.slug}`}
+                className="group grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-2.5 transition-colors hover:border-indigo-600 focus-visible:border-indigo-600"
+            >
+                <Cover document={document} typeCfg={typeCfg} small />
+                <span className="min-w-0">
+                    <span className="line-clamp-2 font-display text-sm font-bold leading-snug text-slate-900 [overflow-wrap:anywhere] group-hover:text-brass-deep">
+                        {document.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-slate-500">
+                        {authors} · {typeCfg.label}
+                    </span>
+                </span>
+                {document.year && <span className="pr-1 text-xs tabular-nums text-slate-500">{document.year}</span>}
+            </Link>
+        </li>
+    );
+}
+
+function DocumentsSection({ section, preview }) {
     const response = usePublicData("documents");
     const documents = (response?.data || []).slice(0, section.content.limit || 6);
-
     if (!documents.length) {
         return preview ? <PreviewNote section={section}>Documents récents : aucun document publié pour le moment.</PreviewNote> : null;
     }
-
+    const [featured, ...others] = documents;
     const action = section.content.link_text ? (
         <Link
             to="/recherche"
@@ -313,14 +428,18 @@ function DocumentsSection({ section, isLocked, preview }) {
             <ArrowRight className="h-4 w-4" />
         </Link>
     ) : null;
-
     return (
         <Shell section={section} spacing="py-6">
             <Heading section={section} icon={Sparkles} action={action} className="mb-6" />
-            <div className={cx(CATALOGUE_GRID_CLASS, "text-left")}>
-                {documents.map((doc) => (
-                    <CatalogueCard key={doc.slug} document={doc} />
-                ))}
+            <div className={cx("grid gap-4 text-left", others.length > 0 && "lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]")}>
+                <FeaturedDocument document={featured} />
+                {others.length > 0 && (
+                    <ul className="grid content-start gap-2.5">
+                        {others.map((doc) => (
+                            <CompactDocument key={doc.slug} document={doc} />
+                        ))}
+                    </ul>
+                )}
             </div>
         </Shell>
     );

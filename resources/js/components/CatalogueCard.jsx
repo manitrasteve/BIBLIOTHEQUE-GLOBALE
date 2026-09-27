@@ -29,7 +29,7 @@ function Highlight({ text, query }) {
   );
 }
 
-function docInfo(document) {
+export function docInfo(document) {
   const typeCfg =
     TYPE_CONFIG[normalizeType(document.type)] ||
     { label: document.type || TYPE_CONFIG.autre.label, icon: TYPE_CONFIG.autre.icon };
@@ -42,7 +42,7 @@ function docInfo(document) {
 }
 
 // Couverture façon livre : dos plus foncé à gauche, coins arrondis côté tranche.
-function Cover({ document, typeCfg, small = false }) {
+export function Cover({ document, typeCfg, small = false }) {
   const TypeIcon = typeCfg.icon;
   return (
     <div

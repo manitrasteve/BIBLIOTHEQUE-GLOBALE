@@ -40,12 +40,16 @@ export default function RichTextEditor({ value, onChange }) {
                 class: "rich-text rte-content min-h-[6rem] px-3 py-2 text-sm text-ink focus:outline-none",
             },
         },
-        onUpdate: ({ editor }) => onChange(editor.getHTML()),
+        onUpdate: ({ editor }) => {
+            if (!editor.isDestroyed) onChange(editor.getHTML());
+        },
     });
 
     // Garde l'éditeur synchronisé quand `value` change en dehors de lui (ex : chargement d'un document à modifier).
+    // Un éditeur détruit (double montage de React en mode strict) ne doit plus être interrogé :
+    // getHTML() y lève « Cannot read properties of null (reading 'cached') » et casse la page.
     useEffect(() => {
-        if (!editor) return;
+        if (!editor || editor.isDestroyed) return;
         const current = editor.getHTML();
         const next = value || "";
         if (next !== current) {
@@ -54,7 +58,7 @@ export default function RichTextEditor({ value, onChange }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value, editor]);
 
-    if (!editor) return null;
+    if (!editor || editor.isDestroyed) return null;
 
     return (
         <div className="rte-shell overflow-hidden rounded-lg border border-line bg-surface focus-within:ring-2 focus-within:ring-indigo-200">
