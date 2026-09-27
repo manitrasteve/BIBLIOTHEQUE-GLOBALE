@@ -389,7 +389,8 @@ export default function DocumentDetailPage() {
                                     </button>
                                 )}
 
-                                <CitationDialog doc={doc} />
+                                {/* Citation réservée aux utilisateurs connectés (masquée aux visiteurs). */}
+                                {user && <CitationDialog doc={doc} />}
 
                                 {user && !canRead && (
                                     <p className="rounded-lg border border-line bg-paper-dim px-3 py-2 text-xs text-ink-soft">

@@ -247,6 +247,8 @@ export default function Header() {
 
     // Admin / bibliothécaire : « Catalogue » ouvre directement la recherche, pas la page d'accueil.
     const catalogueLink = user && !isMember ? "/recherche" : "/";
+    // Libellé du menu : « Accueil » quand le lien mène à la page d'accueil, « Catalogue » vers la recherche.
+    const catalogueLabel = catalogueLink === "/" ? "Accueil" : "Catalogue";
 
     // Pages publiques qui utilisent le Header public
     const isPublicPage =
@@ -430,7 +432,7 @@ export default function Header() {
 
                                     {menuOpen && (
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
-                                            {/* Catalogue */}
+                                            {/* Accueil (membres) ou Catalogue (personnel) */}
                                             <Link
                                                 to={catalogueLink}
                                                 onClick={() =>
@@ -438,7 +440,7 @@ export default function Header() {
                                                 }
                                                 className="flex items-center rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                                             >
-                                                Catalogue
+                                                {catalogueLabel}
                                             </Link>
 
                                             {/* Tableau de bord (comptes utilisateur) */}
@@ -539,7 +541,7 @@ export default function Header() {
 
                                     {menuOpen && (
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
-                                            {/* Catalogue */}
+                                            {/* Accueil (membres) ou Catalogue (personnel) */}
                                             <Link
                                                 to={catalogueLink}
                                                 onClick={() =>
@@ -547,7 +549,7 @@ export default function Header() {
                                                 }
                                                 className="flex items-center rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                                             >
-                                                Catalogue
+                                                {catalogueLabel}
                                             </Link>
 
                                             {/* Tableau de bord (comptes utilisateur) */}

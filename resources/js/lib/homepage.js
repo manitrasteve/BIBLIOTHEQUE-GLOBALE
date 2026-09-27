@@ -22,8 +22,12 @@ import {
 export const PREVIEW_MESSAGE = "homepage-preview";
 export const PREVIEW_READY = "homepage-preview-ready";
 
-// WebP 1200px (~100 Ko) : l'original PNG pesait 2 Mo et laissait le hero vide pendant le chargement.
-export const DEFAULT_HERO_IMAGE = "/images/hero-student.webp";
+// Bannière d'ouverture par défaut (WebP 1600×900, ~170 Ko) et sa description (accessibilité).
+export const DEFAULT_HERO_IMAGE = "/images/umg-banniere.webp";
+export const DEFAULT_HERO_IMAGE_ALT =
+    "Bibliothèque Globale de l'Université de Mahajanga, avec votre assistant IA";
+// Photo de la salle de lecture accompagnant l'invitation à s'inscrire (WebP 1600×800).
+export const SIGNUP_IMAGE = "/images/salle-lecture-large.webp";
 
 // Styles contrôlés proposés à l'administrateur (valeurs prédéfinies uniquement).
 export const STYLE_OPTIONS = {
@@ -54,7 +58,7 @@ const TEXT_STYLES = ["align", "title_size", "title_weight", "spacing", "text_col
 export const SECTION_TYPES = {
     hero: {
         label: "Hero (bandeau principal)",
-        description: "Grand bandeau d'accueil : titre, recherche et image.",
+        description: "Bannière d'ouverture, puis titre, recherche et points forts.",
         icon: LayoutTemplate,
         styles: ["align", "title_size", "title_weight", "text_color", "bg_color"],
         fields: [
@@ -64,9 +68,9 @@ export const SECTION_TYPES = {
             { name: "description", kind: "textarea", label: "Description", max: 600 },
             { name: "show_search", kind: "bool", label: "Afficher la barre de recherche" },
             { name: "features", kind: "list", label: "Points forts", maxItems: 4, max: 40 },
-            { name: "show_image", kind: "bool", label: "Afficher l'image (écrans larges)" },
-            { name: "image", kind: "image", label: "Image", fallback: DEFAULT_HERO_IMAGE },
-            { name: "image_alt", kind: "text", label: "Description de l'image (accessibilité)", max: 160 },
+            { name: "show_image", kind: "bool", label: "Afficher la bannière" },
+            { name: "image", kind: "image", label: "Bannière (format paysage 16:9 conseillé)", fallback: DEFAULT_HERO_IMAGE },
+            { name: "image_alt", kind: "text", label: "Description de la bannière (accessibilité)", max: 160, help: "Utilisée pour une bannière téléversée." },
         ],
         defaults: {
             badge: "Bibliothèque Globale · Université de Mahajanga",
@@ -78,7 +82,7 @@ export const SECTION_TYPES = {
             features: ["Recherche", "Analyse IA", "Consultation sécurisée"],
             show_image: true,
             image: null,
-            image_alt: "Étudiant consultant la bibliothèque numérique",
+            image_alt: "",
         },
     },
     categories: {

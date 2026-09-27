@@ -13,7 +13,7 @@ import {
     Megaphone,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { DEFAULT_HERO_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
+import { DEFAULT_HERO_IMAGE, DEFAULT_HERO_IMAGE_ALT, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
 import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../CatalogueCard";
 import LibraryCard from "../LibraryCard";
@@ -161,92 +161,111 @@ function withHighlight(title, highlight, className) {
     );
 }
 
+// Explication affichée sous un point fort resté à sa valeur d'origine ; un libellé modifié s'affiche seul.
+const FEATURE_DETAILS = {
+    recherche: "Par titre, auteur, domaine ou mot-clé, dans toutes les bibliothèques.",
+    "analyse ia": "Interrogez chaque document avec l'assistant IA pendant la lecture.",
+    "consultation sécurisée": "Lecture en ligne dans le lecteur intégré, sans téléchargement.",
+};
+
+/**
+ * Bandeau d'accueil « Vitrine » : bannière pleine largeur (image téléversée, sinon la bannière
+ * de l'Université), puis une bande pleine (couleur principale) avec le titre, la description et la
+ * recherche, et enfin les points forts en cartes.
+ */
 function HeroSection({ section }) {
     const c = section.content;
     const style = section.style || {};
     const color = textColorOf(section);
     const centered = style.align === "center";
     const features = (c.features || []).filter(Boolean);
+    const customImage = homepageImageUrl(c.image);
+    const hasText = c.badge || c.title || c.description || c.show_search;
 
     return (
         <section className="w-full px-4 pt-6 sm:px-8 xl:px-10">
-            <div
-                className={cx(
-                    "grid overflow-hidden rounded-[30px]",
-                    !style.bg_color && "bg-indigo-600",
-                    c.show_image && "lg:grid-cols-[1.05fr_.95fr]",
-                )}
-                style={style.bg_color ? { backgroundColor: style.bg_color } : undefined}
-            >
-                <div
-                    className={cx(
-                        "flex min-w-0 flex-col justify-center p-7 text-white sm:p-10 lg:p-12",
-                        centered && "items-center text-center",
-                    )}
-                    style={color}
-                >
-                    {c.badge && (
-                        <span className="badge-modern w-fit max-w-full bg-surface text-brass-deep">
-                            <LibraryBig className="h-3.5 w-3.5 shrink-0" />
-                            <span className="[overflow-wrap:anywhere]">{c.badge}</span>
-                        </span>
-                    )}
-                    {c.title && (
-                        <h1
-                            className={cx(
-                                "mt-6 font-display leading-[1.04] tracking-tight [overflow-wrap:anywhere]",
-                                HERO_TITLE_SIZES[style.title_size] ?? HERO_TITLE_SIZES.md,
-                                WEIGHTS[style.title_weight] ?? "font-extrabold",
-                            )}
-                        >
-                            {withHighlight(c.title, c.highlight, color ? "underline decoration-4 underline-offset-8" : "text-on-primary-soft")}
-                        </h1>
-                    )}
-                    {c.description && (
-                        <p
-                            className={cx("mt-5 max-w-2xl text-base leading-7 sm:text-lg [overflow-wrap:anywhere]", !color && "text-on-primary-soft")}
-                            style={color}
-                        >
-                            {c.description}
-                        </p>
-                    )}
-                    {c.show_search && (
-                        <div className={cx("mt-7 w-full max-w-2xl rounded-2xl bg-surface p-2 text-left", centered && "mx-auto")}>
-                            <SearchBar />
-                        </div>
-                    )}
-                    {features.length > 0 && (
-                        <div
-                            className={cx(
-                                "mt-6 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold",
-                                !color && "text-on-primary-soft",
-                                centered && "justify-center",
-                            )}
-                            style={color}
-                        >
-                            {features.map((feature, index) => {
-                                const Icon = HERO_FEATURE_ICONS[index % HERO_FEATURE_ICONS.length];
-                                return (
-                                    <span key={index} className="inline-flex items-center gap-1.5">
-                                        <Icon className="h-4 w-4" /> {feature}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+            <div className="overflow-hidden rounded-[30px]">
                 {c.show_image && (
-                    <div className="relative hidden min-h-[430px] bg-indigo-100 lg:block">
+                    // Bannière sur toute la largeur du bloc, affichée entière (jamais recadrée) : sa hauteur
+                    // suit sa proportion naturelle. Seule une image téléversée (proportion inconnue, parfois
+                    // très haute) est limitée à la hauteur de l'écran, sans être coupée.
+                    <div className="w-full bg-indigo-100">
                         <img
-                            src={homepageImageUrl(c.image) || DEFAULT_HERO_IMAGE}
-                            alt={c.image_alt || ""}
+                            src={customImage || DEFAULT_HERO_IMAGE}
+                            alt={customImage ? c.image_alt || "" : DEFAULT_HERO_IMAGE_ALT}
+                            width="1600"
+                            height="900"
                             fetchPriority="high"
                             decoding="async"
-                            className="h-full w-full object-cover object-center"
+                            className={cx("block h-auto w-full", customImage && "mx-auto max-h-[85vh] object-contain")}
                         />
                     </div>
                 )}
+                {hasText && (
+                    <div
+                        className={cx(
+                            "grid gap-6 p-6 text-white sm:p-8 lg:p-10",
+                            !style.bg_color && "bg-indigo-600",
+                            c.show_search && !centered && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center",
+                            centered && "justify-items-center text-center",
+                        )}
+                        style={{ ...(style.bg_color ? { backgroundColor: style.bg_color } : {}), ...color }}
+                    >
+                        <div className="min-w-0">
+                            {c.badge && (
+                                <span className="badge-modern w-fit max-w-full bg-surface text-brass-deep">
+                                    <LibraryBig className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="[overflow-wrap:anywhere]">{c.badge}</span>
+                                </span>
+                            )}
+                            {c.title && (
+                                <h1
+                                    className={cx(
+                                        "font-display leading-[1.1] tracking-tight [overflow-wrap:anywhere]",
+                                        c.badge && "mt-4",
+                                        HERO_TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-3xl",
+                                        WEIGHTS[style.title_weight] ?? "font-extrabold",
+                                    )}
+                                >
+                                    {withHighlight(c.title, c.highlight, color ? "underline decoration-4 underline-offset-8" : "text-on-primary-soft")}
+                                </h1>
+                            )}
+                            {c.description && (
+                                <p
+                                    className={cx("mt-3 max-w-2xl text-sm leading-6 sm:text-base [overflow-wrap:anywhere]", !color && "text-on-primary-soft", centered && "mx-auto")}
+                                    style={color}
+                                >
+                                    {c.description}
+                                </p>
+                            )}
+                        </div>
+                        {c.show_search && (
+                            <div className={cx("w-full max-w-2xl rounded-2xl bg-surface p-2 text-left", centered && "mx-auto")}>
+                                <SearchBar />
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
+            {features.length > 0 && (
+                <div className={cx("mt-6 grid gap-4 sm:grid-cols-2", features.length >= 3 && "lg:grid-cols-3", features.length === 4 && "xl:grid-cols-4")}>
+                    {features.map((feature, index) => {
+                        const Icon = HERO_FEATURE_ICONS[index % HERO_FEATURE_ICONS.length];
+                        const detail = FEATURE_DETAILS[feature.trim().toLowerCase()];
+                        return (
+                            <div key={index} className="modern-card flex gap-3 p-5">
+                                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-brass">
+                                    <Icon className="h-5 w-5" />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="font-display text-base font-bold [overflow-wrap:anywhere]">{feature}</p>
+                                    {detail && <p className="mt-1 text-sm leading-6 text-slate-500">{detail}</p>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </section>
     );
 }
@@ -480,7 +499,7 @@ function CallToAction({ section, icon: Icon, note }) {
                     <SmartLink
                         to={c.button_link}
                         className="btn-primary max-w-full shrink-0"
-                        style={style.button_color ? { backgroundColor: style.button_color } : undefined}
+                        style={style.button_color ? { "--btn-bg": style.button_color } : undefined}
                     >
                         <span className="[overflow-wrap:anywhere]">{c.button_text}</span>
                         <ArrowRight className="h-4 w-4 shrink-0" />
@@ -495,17 +514,78 @@ function CtaSection({ section }) {
     return <CallToAction section={section} icon={Megaphone} />;
 }
 
+/**
+ * Invitation à s'inscrire : photo de la salle de lecture à côté d'un panneau plein (couleur principale,
+ * ou couleur de fond choisie). Les réglages de l'éditeur (alignement, tailles, couleurs) s'appliquent.
+ */
 function SignupSection({ section, user, preview }) {
     if (section.content.guests_only && user && !preview) return null;
 
-    const note =
-        preview && section.content.guests_only ? (
-            <p className="mb-3 inline-block rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                Visible uniquement par les visiteurs non connectés
-            </p>
-        ) : null;
+    const c = section.content;
+    const style = section.style || {};
+    const centered = style.align === "center";
+    const color = style.text_color ? { color: style.text_color } : undefined;
 
-    return <CallToAction section={section} icon={UserPlus} note={note} />;
+    return (
+        <Shell section={{ ...section, style: { ...style, bg_color: undefined } }} spacing="py-8 sm:py-10">
+            <div
+                className={cx("grid overflow-hidden rounded-[30px] text-white md:grid-cols-2", !style.bg_color && "bg-indigo-600")}
+                style={style.bg_color ? { backgroundColor: style.bg_color } : undefined}
+            >
+                <img
+                    src={SIGNUP_IMAGE}
+                    alt=""
+                    width="1600"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-48 w-full object-cover md:h-full md:min-h-[260px]"
+                />
+                <div className={cx("flex min-w-0 flex-col justify-center gap-3 p-7 sm:p-10", centered && "items-center text-center")} style={color}>
+                    {preview && c.guests_only && (
+                        <p className="w-fit rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                            Visible uniquement par les visiteurs non connectés
+                        </p>
+                    )}
+                    {c.label && (
+                        <p className={cx("section-label", !color && "text-on-primary-soft!")} style={color}>
+                            <UserPlus className="h-3.5 w-3.5" />
+                            {c.label}
+                        </p>
+                    )}
+                    {c.title && (
+                        <h2
+                            className={cx(
+                                "font-display [overflow-wrap:anywhere]",
+                                TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-3xl",
+                                WEIGHTS[style.title_weight] ?? "font-extrabold",
+                            )}
+                        >
+                            {c.title}
+                        </h2>
+                    )}
+                    {c.description && (
+                        <p className={cx("max-w-xl text-sm leading-6 [overflow-wrap:anywhere]", !color && "text-on-primary-soft")}>
+                            {c.description}
+                        </p>
+                    )}
+                    {c.button_text && (
+                        <SmartLink
+                            to={c.button_link}
+                            className={cx(
+                                "mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition",
+                                !style.button_color && "bg-surface text-brass-deep hover:bg-indigo-50",
+                            )}
+                            style={style.button_color ? { backgroundColor: style.button_color, color: "#ffffff" } : undefined}
+                        >
+                            <span className="[overflow-wrap:anywhere]">{c.button_text}</span>
+                            <ArrowRight className="h-4 w-4 shrink-0" />
+                        </SmartLink>
+                    )}
+                </div>
+            </div>
+        </Shell>
+    );
 }
 
 const RENDERERS = {

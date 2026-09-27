@@ -401,11 +401,12 @@ button:active {
     border-radius: 8px !important;
     padding: 0.5rem 0.8rem;
     color: #ffffff !important;
-    background: var(--color-indigo-600) !important;
+    /* --btn-bg : couleur de bouton choisie dans l'éditeur de page d'accueil (sinon la couleur principale). */
+    background: var(--btn-bg, var(--color-indigo-600)) !important;
     font-weight: 700;
 }
 .btn-primary:hover {
-    background: var(--color-indigo-700) !important;
+    background: var(--btn-bg, var(--color-indigo-700)) !important;
 }
 
 .skeleton {
