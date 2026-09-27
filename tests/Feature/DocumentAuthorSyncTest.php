@@ -62,3 +62,16 @@ test('renvoyer une liste d\'auteurs à la modification synchronise toujours vers
 
     expect($document->fresh()->authors()->pluck('authors.id')->all())->toBe([$newAuthor->id]);
 });
+
+test('une modification JSON partielle sans author_ids conserve les auteurs', function () {
+    $author = Author::factory()->create();
+    $document = Document::factory()->create(['library_id' => Library::factory()->create()->id, 'access_level' => 'public']);
+    $document->authors()->sync([$author->id]);
+
+    Sanctum::actingAs(User::factory()->create(['role' => 'administrateur', 'is_active' => true]));
+
+    $this->putJson("/api/documents/{$document->id}", ['access_level' => 'restreint'])->assertOk();
+
+    expect($document->fresh()->access_level)->toBe('restreint')
+        ->and($document->authors()->pluck('authors.id')->all())->toBe([$author->id]);
+});

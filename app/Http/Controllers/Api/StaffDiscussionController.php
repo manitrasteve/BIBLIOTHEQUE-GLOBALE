@@ -90,11 +90,15 @@ class StaffDiscussionController extends Controller
             ], 403);
         }
 
-        $conversation = StaffConversation::firstOrCreate([
-            'admin_id' => $admin->role === 'administrateur'
-                ? $admin->id
-                : User::where('role', 'administrateur')->value('id'),
+        // Côté bibliothécaire : même administrateur que myConversation (le premier actif), sinon
+        // la conversation se dédoublait (ou échouait en 500 sans administrateur).
+        $adminId = $admin->role === 'administrateur'
+            ? $admin->id
+            : User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->value('id');
+        abort_unless($adminId, 404, 'Aucun administrateur n’est disponible.');
 
+        $conversation = StaffConversation::firstOrCreate([
+            'admin_id' => $adminId,
             'librarian_id' => $librarian->id,
         ]);
 

@@ -49,6 +49,19 @@ class CategoryController extends Controller
             'description' => ['nullable', 'string'],
         ]);
 
+        // Renommage : le slug suit le nom (sinon l'ancien slug bloquerait la création d'une catégorie
+        // portant l'ancien nom, et la saisie libre de l'ancien nom retomberait sur cette catégorie).
+        if (isset($data['name'])) {
+            $slug = Str::slug($data['name']);
+            $taken = Category::whereKeyNot($category->id)
+                ->where(fn ($q) => $q->where('slug', $slug)->orWhereRaw('LOWER(name) = ?', [mb_strtolower(trim($data['name']))]))
+                ->exists();
+            if ($taken) {
+                throw ValidationException::withMessages(['name' => ['Cette catégorie existe déjà.']]);
+            }
+            $data['slug'] = $slug;
+        }
+
         $category->update($data);
 
         return response()->json($category);

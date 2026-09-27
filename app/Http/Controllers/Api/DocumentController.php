@@ -489,7 +489,10 @@ class DocumentController extends Controller
         // vidée, FormData n'envoie aucune entrée "author_ids[]" (la clé est alors absente de
         // la requête). On synchronise donc toujours, avec [] par défaut, pour bien retirer
         // tous les auteurs plutôt que de laisser silencieusement les anciens en place.
-        $document->authors()->sync($data['author_ids'] ?? []);
+        // Une mise à jour JSON partielle (sans author_ids) ne touche pas aux auteurs.
+        if (array_key_exists('author_ids', $data) || ! $request->isJson()) {
+            $document->authors()->sync($data['author_ids'] ?? []);
+        }
 
         // Audit : uniquement les champs réellement modifiés, avec leur valeur avant / après.
         $changes = ActivityLogService::diff($before, $this->auditSnapshot($document));

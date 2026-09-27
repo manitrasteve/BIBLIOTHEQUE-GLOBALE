@@ -1017,8 +1017,9 @@ class AccountRequestController extends Controller
             'last_name' => $member->last_name,
             'first_name' => $member->first_name,
             'email' => $validated['email'],
-            'phone' => $validated['phone'] ?: $member->phone,
-            'address' => $validated['address'] ?: $member->address,
+            // Champs facultatifs : absents de $validated s'ils ne sont pas envoyés.
+            'phone' => ($validated['phone'] ?? null) ?: $member->phone,
+            'address' => ($validated['address'] ?? null) ?: $member->address,
             'gender' => $member->gender,
             'role' => $member->role ?: 'etudiant',
             'library_id' => $member->library_id,
@@ -1215,6 +1216,7 @@ class AccountRequestController extends Controller
 
         // Compte inactif jusqu'à la création du mot de passe (mot de passe temporaire inutilisable).
         $validated['is_active'] = false;
+        $validated['first_name'] = $validated['first_name'] ?? null; // facultatif : absent s'il n'est pas envoyé
         $validated['name'] = trim($validated['first_name'].' '.$validated['last_name']);
         $validated['password'] = $this->provisioner->unusablePassword();
 
