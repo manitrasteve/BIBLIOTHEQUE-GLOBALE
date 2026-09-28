@@ -9,7 +9,7 @@
     "scope": "/",
     "display": "standalone",
     "orientation": "any",
-    "theme_color": "#1f3a5f",
+    "theme_color": "#11116f",
     "background_color": "#ffffff",
     "categories": ["education", "books"],
     "icons": [

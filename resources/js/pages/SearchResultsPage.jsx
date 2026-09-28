@@ -1,21 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { SearchX, Languages, ChevronDown, LayoutGrid, List, X } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { SearchX, Languages, ChevronDown, LayoutGrid, List, X, LibraryBig, Filter, Layers, Folder } from 'lucide-react';
 import { api } from '../lib/api';
 import { LANGUAGES, languageLabel } from '../lib/languages';
 import SearchBar from '../components/SearchBar';
-import CatalogueCard, { CATALOGUE_GRID_CLASS as GRID_CLASS } from '../components/CatalogueCard';
+import CatalogueCard from '../components/CatalogueCard';
 import Pager from '../components/Pager';
 import { Skeleton } from '../components/Skeleton';
 import { useFavoriteToggle } from '../lib/useFavoriteToggle';
 import { useAuth } from '../context/AuthContext';
 
+// Catégories : pastilles défilantes sur petit écran, liste verticale dans la colonne de gauche
+// sur grand écran (comme les « Catégories de documents » du site de l'Université de Mahajanga).
 const tabClass = (active) =>
-  `inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+  `inline-flex min-h-10 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-md border px-4 py-2 text-sm font-semibold transition-colors lg:w-full lg:whitespace-normal lg:px-3 lg:text-left ${
     active
       ? 'border-indigo-600 bg-indigo-600 text-white'
-      : 'border-slate-200 bg-surface text-slate-600 hover:border-indigo-300 hover:text-brass-deep'
+      : 'border-line bg-surface text-ink hover:border-indigo-300 hover:text-brass-deep lg:border-transparent lg:bg-transparent lg:hover:bg-indigo-50'
   }`;
+
+// Grille des résultats : la colonne des catégories réduit la largeur disponible.
+const GRID_CLASS = 'grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6';
 
 
 const VIEW_KEY = 'catalogue_view';
@@ -33,7 +38,7 @@ function SkeletonResults({ view }) {
     return (
       <div role="status" aria-busy="true" aria-label="Chargement des documents" className="grid gap-2.5">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="grid grid-cols-[3rem_1fr] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3 sm:grid-cols-[3.5rem_1fr]">
+          <div key={index} className="grid grid-cols-[3rem_1fr] items-center gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[3.5rem_1fr]">
             <Skeleton className="block aspect-[3/4] w-full rounded-md" />
             <div className="space-y-2">
               <Skeleton className="block h-4 w-3/5" />
@@ -151,57 +156,93 @@ export default function SearchResultsPage() {
   ].filter(Boolean);
 
   return (
-    <div ref={topRef} className={`w-full ${inLayout ? '' : 'px-4 py-6 sm:px-6 sm:py-8 xl:px-8'}`}>
-      <header className="mb-2">
-        <h1 className="font-display text-3xl font-extrabold leading-none tracking-tight text-slate-900 [overflow-wrap:anywhere] sm:text-4xl">
-          {q ? (
-            <>
-              Résultats pour <span className="text-brass">« {q} »</span>
-            </>
-          ) : (
-            'Catalogue'
-          )}
-        </h1>
+    <div ref={topRef} className={inLayout ? 'w-full' : 'umg-container py-6 sm:py-8'}>
+      {/* Fil d'Ariane (pages publiques), comme le site de l'Université de Mahajanga. */}
+      {!inLayout && (
+        <nav aria-label="Fil d'Ariane" className="mb-6 text-sm">
+          <ol className="flex flex-wrap items-center gap-2 text-ink-soft">
+            <li>
+              <Link to="/" className="font-medium text-brass hover:underline">Accueil</Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li aria-current="page">Catalogue</li>
+          </ol>
+        </nav>
+      )}
 
-        <div className="mt-5 max-w-3xl">
-          <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
+      {/* En-tête de page : icône, sur-titre, titre, description (charte UMG). */}
+      <header className="border-b border-line pb-6">
+        <div className="flex items-start gap-4">
+          <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-brass sm:flex">
+            <LibraryBig className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-soft">Bibliothèque numérique</p>
+            <h1 className="mt-1 font-display text-3xl font-bold leading-tight tracking-tight text-ink [overflow-wrap:anywhere] sm:text-4xl">
+              {q ? (
+                <>
+                  Résultats pour <span className="text-brass">« {q} »</span>
+                </>
+              ) : (
+                'Catalogue'
+              )}
+            </h1>
+            <p className="mt-2 text-[15px] text-ink-soft">
+              Livres, mémoires, thèses et rapports des bibliothèques de l'Université de Mahajanga.
+            </p>
+          </div>
         </div>
 
-        {categories.length > 0 && (
-          <div
-            className="-mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="group"
-            aria-label="Filtrer par catégorie"
-          >
-            <button type="button" onClick={() => setCategoryId('')} className={tabClass(categoryId === '')} aria-pressed={categoryId === ''}>
-              Toutes catégories
-            </button>
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCategoryId(String(c.id))}
-                className={tabClass(categoryId === String(c.id))}
-                aria-pressed={categoryId === String(c.id)}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="mt-6 max-w-3xl">
+          <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
+        </div>
       </header>
 
-      <section aria-label="Résultats" className="mt-4">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+        {/* Catégories : pastilles défilantes (petit écran) ou colonne de gauche (grand écran). */}
+        {categories.length > 0 && (
+          // Espace bibliothécaire : la page défile dans sa propre zone, la colonne n'y est pas « collante ».
+          <aside className={`min-w-0 lg:rounded-lg lg:border lg:border-line lg:bg-surface lg:p-3 ${inLayout ? '' : 'lg:sticky lg:top-[calc(var(--app-header-height)+1rem)]'}`}>
+            <p className="mb-2 hidden items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-soft lg:flex">
+              <Filter className="h-3.5 w-3.5" aria-hidden="true" />
+              Catégories
+            </p>
+            <div
+              className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden"
+              role="group"
+              aria-label="Filtrer par catégorie"
+            >
+              <button type="button" onClick={() => setCategoryId('')} className={tabClass(categoryId === '')} aria-pressed={categoryId === ''}>
+                <Layers className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
+                Toutes catégories
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategoryId(String(c.id))}
+                  className={tabClass(categoryId === String(c.id))}
+                  aria-pressed={categoryId === String(c.id)}
+                >
+                  <Folder className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+
+      <section aria-label="Résultats" className={`min-w-0 ${categories.length > 0 ? '' : 'lg:col-span-2'}`}>
         <div
-          className={`z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-surface py-2.5 pl-4 pr-2.5 sm:pl-5 ${
+          className={`z-10 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface py-2.5 pl-4 pr-2.5 sm:pl-5 ${
             inLayout ? '' : 'sticky top-[4.75rem]'
           }`}
         >
           <div className="min-w-[8rem] flex-1" aria-live="polite">
-            <p className="text-sm font-semibold text-slate-900 sm:text-base">
+            <p className="font-display text-base font-bold text-ink sm:text-lg">
               {loading ? '…' : `${total} document${total > 1 ? 's' : ''}`}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-soft">
               {loading
                 ? 'Chargement'
                 : total
@@ -216,7 +257,7 @@ export default function SearchResultsPage() {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="h-10 w-full appearance-none rounded-full border border-slate-200 bg-surface py-2 pl-10 pr-9 text-sm font-semibold text-slate-700 outline-none focus:border-brass"
+              className="h-10 w-full appearance-none rounded-md border border-line bg-surface py-2 pl-10 pr-9 text-sm font-semibold text-ink outline-none focus:border-brass"
             >
               <option value="">Toutes les langues</option>
               {LANGUAGES.map((l) => (
@@ -228,11 +269,12 @@ export default function SearchResultsPage() {
             <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" aria-hidden="true" />
           </label>
 
-          <div className="flex rounded-full border border-slate-200 bg-surface p-0.5" role="group" aria-label="Affichage">
+          {/* Bascule Grille / Liste (libellés visibles, comme le site UMG). */}
+          <div className="flex rounded-md border border-line bg-surface p-0.5" role="group" aria-label="Affichage">
             {[
-              { key: 'grid', label: 'Afficher en grille', Icon: LayoutGrid },
-              { key: 'list', label: 'Afficher en liste', Icon: List },
-            ].map(({ key, label, Icon }) => (
+              { key: 'grid', label: 'Afficher en grille', text: 'Grille', Icon: LayoutGrid },
+              { key: 'list', label: 'Afficher en liste', text: 'Liste', Icon: List },
+            ].map(({ key, label, text, Icon }) => (
               <button
                 key={key}
                 type="button"
@@ -240,11 +282,12 @@ export default function SearchResultsPage() {
                 aria-pressed={view === key}
                 aria-label={label}
                 title={label}
-                className={`flex h-9 w-10 items-center justify-center rounded-full transition-colors ${
-                  view === key ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-brass-deep'
+                className={`flex h-9 items-center justify-center gap-1.5 rounded px-3 text-sm font-semibold transition-colors ${
+                  view === key ? 'bg-indigo-600 text-white' : 'text-ink-soft hover:text-brass-deep'
                 }`}
               >
                 <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{text}</span>
               </button>
             ))}
           </div>
@@ -253,13 +296,13 @@ export default function SearchResultsPage() {
         {tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 px-0.5 pt-4">
             {tags.map((t) => (
-              <span key={t.key} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-surface py-1 pl-3.5 pr-1 text-sm font-medium text-brass-deep">
+              <span key={t.key} className="inline-flex items-center gap-2 rounded-md border border-line bg-surface py-1 pl-3 pr-1 text-sm font-medium text-brass-deep">
                 <span className="max-w-[16rem] truncate">{t.label}</span>
                 <button
                   type="button"
                   onClick={t.clear}
                   aria-label={`Retirer le filtre ${t.label}`}
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white"
+                  className="flex h-6 w-6 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -275,19 +318,19 @@ export default function SearchResultsPage() {
 
         <div className="pt-6">
           {loading && <SkeletonResults view={view} />}
-          {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          {error && <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
           {!loading && !error && results && (
             results.data.length === 0 ? (
-              <div className="flex flex-col items-center px-4 py-16 text-center">
+              <div className="flex flex-col items-center rounded-lg border border-dashed border-line px-4 py-16 text-center">
                 <SearchX className="mb-4 h-10 w-10 text-slate-400" strokeWidth={1.5} />
-                <h2 className="font-display text-2xl font-extrabold tracking-tight text-slate-900">Aucun document trouvé</h2>
-                <p className="mt-2 text-sm text-slate-500">Essayez un autre mot-clé, une autre catégorie ou une autre langue.</p>
+                <h2 className="font-display text-2xl font-bold tracking-tight text-ink">Aucun document trouvé</h2>
+                <p className="mt-2 text-sm text-ink-soft">Essayez un autre mot-clé, une autre catégorie ou une autre langue.</p>
                 {tags.length > 0 && (
                   <button
                     type="button"
                     onClick={clearAll}
-                    className="mt-5 inline-flex h-11 items-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700"
+                    className="mt-5 inline-flex h-11 items-center rounded-md bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700"
                   >
                     Effacer les filtres
                   </button>
@@ -306,6 +349,7 @@ export default function SearchResultsPage() {
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }

@@ -104,16 +104,13 @@ function SmartLink({ to, className, style, children }) {
 function Shell({ section, spacing, children }) {
     const style = section.style || {};
 
+    // Fond (couleur choisie) sur toute la largeur ; contenu centré dans le conteneur de la charte UMG.
     return (
         <section
-            className={cx(
-                "w-full px-4 sm:px-8 xl:px-10",
-                SPACING[style.spacing] ?? spacing,
-                style.align === "center" && "text-center",
-            )}
+            className={cx("w-full", SPACING[style.spacing] ?? spacing)}
             style={style.bg_color ? { backgroundColor: style.bg_color } : undefined}
         >
-            {children}
+            <div className={cx("umg-container", style.align === "center" && "text-center")}>{children}</div>
         </section>
     );
 }
@@ -138,9 +135,9 @@ function Heading({ section, icon: Icon, action, className = "mb-5" }) {
                 {title && (
                     <h2
                         className={cx(
-                            "mt-1 font-display [overflow-wrap:anywhere]",
-                            TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-2xl",
-                            WEIGHTS[style.title_weight] ?? "font-extrabold",
+                            "mt-1.5 font-display tracking-tight text-ink [overflow-wrap:anywhere]",
+                            TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-[28px]",
+                            WEIGHTS[style.title_weight] ?? "font-bold",
                         )}
                         style={color}
                     >
@@ -157,7 +154,7 @@ function Heading({ section, icon: Icon, action, className = "mb-5" }) {
 function PreviewNote({ section, children }) {
     return (
         <Shell section={section} spacing="py-6">
-            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                 {children}
             </div>
         </Shell>
@@ -199,8 +196,8 @@ function HeroSection({ section }) {
     const hasText = c.badge || c.title || c.description || c.show_search;
 
     return (
-        <section className="w-full px-4 pt-6 sm:px-8 xl:px-10">
-            <div className="overflow-hidden rounded-[30px]">
+        <section className="umg-container pt-6">
+            <div className="overflow-hidden rounded-lg">
                 {c.show_image && (
                     // Bannière sur toute la largeur du bloc, affichée entière (jamais recadrée) : sa hauteur
                     // suit sa proportion naturelle. Seule une image téléversée (proportion inconnue, parfois
@@ -221,7 +218,7 @@ function HeroSection({ section }) {
                     <div
                         className={cx(
                             "grid gap-6 p-6 text-white sm:p-8 lg:p-10",
-                            !style.bg_color && "bg-indigo-600",
+                            !style.bg_color && "bg-indigo-800",
                             c.show_search && !centered && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center",
                             centered && "justify-items-center text-center",
                         )}
@@ -229,18 +226,26 @@ function HeroSection({ section }) {
                     >
                         <div className="min-w-0">
                             {c.badge && (
-                                <span className="badge-modern w-fit max-w-full bg-surface text-brass-deep">
+                                // Sur-titre en capitales espacées (charte UMG : « Actualité de l'Université »).
+                                <p
+                                    className={cx(
+                                        "flex w-fit max-w-full items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]",
+                                        !color && "text-on-primary-soft",
+                                        centered && "mx-auto",
+                                    )}
+                                    style={color}
+                                >
                                     <LibraryBig className="h-3.5 w-3.5 shrink-0" />
                                     <span className="[overflow-wrap:anywhere]">{c.badge}</span>
-                                </span>
+                                </p>
                             )}
                             {c.title && (
                                 <h1
                                     className={cx(
-                                        "font-display leading-[1.1] tracking-tight [overflow-wrap:anywhere]",
-                                        c.badge && "mt-4",
-                                        HERO_TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-3xl",
-                                        WEIGHTS[style.title_weight] ?? "font-extrabold",
+                                        "font-display leading-[1.15] tracking-tight [overflow-wrap:anywhere]",
+                                        c.badge && "mt-3",
+                                        HERO_TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-[34px]",
+                                        WEIGHTS[style.title_weight] ?? "font-bold",
                                     )}
                                 >
                                     {withHighlight(c.title, c.highlight, color ? "underline decoration-4 underline-offset-8" : "text-on-primary-soft")}
@@ -256,7 +261,7 @@ function HeroSection({ section }) {
                             )}
                         </div>
                         {c.show_search && (
-                            <div className={cx("w-full max-w-2xl rounded-2xl bg-surface p-2 text-left", centered && "mx-auto")}>
+                            <div className={cx("w-full max-w-2xl rounded-md bg-surface p-2 text-left", centered && "mx-auto")}>
                                 <SearchBar />
                             </div>
                         )}
@@ -264,18 +269,23 @@ function HeroSection({ section }) {
                 )}
             </div>
             {features.length > 0 && (
-                <div className={cx("mt-6 grid gap-4 sm:grid-cols-2", features.length >= 3 && "lg:grid-cols-3", features.length === 4 && "xl:grid-cols-4")}>
+                // Tuiles reliées par des filets, comme les « Accès rapides » du site de l'Université.
+                <div
+                    className={cx(
+                        "mt-6 grid pl-px pt-px sm:grid-cols-2",
+                        features.length >= 3 && "lg:grid-cols-3",
+                        features.length === 4 && "xl:grid-cols-4",
+                    )}
+                >
                     {features.map((feature, index) => {
                         const Icon = HERO_FEATURE_ICONS[index % HERO_FEATURE_ICONS.length];
                         const detail = FEATURE_DETAILS[feature.trim().toLowerCase()];
                         return (
-                            <div key={index} className="modern-card flex gap-3 p-5">
-                                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-brass">
-                                    <Icon className="h-5 w-5" />
-                                </span>
+                            <div key={index} className="-ml-px -mt-px flex gap-3.5 border border-line bg-surface p-5">
+                                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brass" strokeWidth={1.8} />
                                 <div className="min-w-0">
-                                    <p className="font-display text-base font-bold [overflow-wrap:anywhere]">{feature}</p>
-                                    {detail && <p className="mt-1 text-sm leading-6 text-slate-500">{detail}</p>}
+                                    <p className="font-display text-[15px] font-bold text-ink [overflow-wrap:anywhere]">{feature}</p>
+                                    {detail && <p className="mt-1 text-sm leading-6 text-ink-soft">{detail}</p>}
                                 </div>
                             </div>
                         );
@@ -319,7 +329,8 @@ function CategoriesSection({ section, preview }) {
     return (
         <Shell section={section} spacing="py-10">
             <Heading section={section} icon={BookOpen} />
-            <div className="grid grid-cols-1 gap-3 text-left min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            {/* Tuiles reliées par des filets (« Accès rapides » du site de l'Université). */}
+            <div className="grid grid-cols-1 pl-px pt-px text-left min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 {categories.map((category) => {
                     const Icon = domainIcon(category.name);
                     const count = category.documents_count;
@@ -327,22 +338,20 @@ function CategoriesSection({ section, preview }) {
                         <Link
                             key={category.id}
                             to={`/recherche?category_id=${category.id}`}
-                            className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3.5 transition-colors hover:border-indigo-600 focus-visible:border-indigo-600"
+                            className="group -ml-px -mt-px grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 border border-line bg-surface px-5 py-4 transition-colors hover:bg-indigo-50 focus-visible:bg-indigo-50"
                         >
-                            <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-brass transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-                                <Icon className="h-5 w-5" strokeWidth={1.8} />
-                            </span>
+                            <Icon className="h-5 w-5 text-brass" strokeWidth={1.8} aria-hidden="true" />
                             <span className="min-w-0">
-                                <span className="block truncate font-display text-[15px] font-bold text-slate-900" title={category.name}>
+                                <span className="block truncate font-display text-[15px] font-bold text-ink group-hover:text-brass-deep" title={category.name}>
                                     {category.name}
                                 </span>
                                 {count != null && (
-                                    <span className="block text-xs tabular-nums text-slate-500">
+                                    <span className="block text-xs tabular-nums text-ink-soft">
                                         {count} document{count > 1 ? "s" : ""}
                                     </span>
                                 )}
                             </span>
-                            <ArrowRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-brass" aria-hidden="true" />
+                            <ArrowRight className="h-4 w-4 text-brass transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                         </Link>
                     );
                 })}
@@ -357,28 +366,39 @@ function FeaturedDocument({ document }) {
     const summary = document.abstract ? stripHtml(document.abstract).trim() : "";
     const views = document.consultation_count ?? 0;
 
+    // Bloc « À la une » de la charte UMG : visuel sur fond lavande à gauche, panneau bleu nuit à droite.
     return (
-        <article className="grid gap-5 rounded-[20px] border border-slate-200 bg-surface p-5 sm:grid-cols-[190px_minmax(0,1fr)] sm:gap-6">
-            <Link to={`/documents/${document.slug}`} className="block w-40 sm:w-auto" tabIndex={-1} aria-hidden="true">
-                <Cover document={document} typeCfg={typeCfg} />
+        <article className="grid overflow-hidden rounded-lg border border-line lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <Link
+                to={`/documents/${document.slug}`}
+                className="flex items-center justify-center bg-indigo-50 px-6 py-8 sm:py-10"
+                tabIndex={-1}
+                aria-hidden="true"
+            >
+                <span className="block w-40 sm:w-48">
+                    <Cover document={document} typeCfg={typeCfg} />
+                </span>
             </Link>
-            <div className="flex min-w-0 flex-col">
-                <span className="w-fit rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-brass-deep">À la une</span>
-                <h3 className="mt-2 font-display text-xl font-extrabold leading-tight text-slate-900 [overflow-wrap:anywhere] sm:text-2xl">
-                    <Link to={`/documents/${document.slug}`} className="hover:text-brass-deep">
+            <div className="flex min-w-0 flex-col bg-indigo-800 p-6 text-[#ffffff] sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-on-primary-soft">À la une</p>
+                <h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-[28px]">
+                    <Link to={`/documents/${document.slug}`} className="hover:underline">
                         {document.title}
                     </Link>
                 </h3>
-                <p className="mt-1.5 text-xs text-slate-500 [overflow-wrap:anywhere]">
+                <p className="mt-2 text-sm text-on-primary-soft [overflow-wrap:anywhere]">
                     {[authors, typeCfg.label, document.year, document.library].filter(Boolean).join(" · ")}
                 </p>
-                {summary && <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 [overflow-wrap:anywhere]">{summary}</p>}
-                <div className="mt-auto flex flex-wrap items-center gap-4 pt-4">
-                    <Link to={`/documents/${document.slug}`} className="btn-primary px-4 py-2 text-sm">
+                {summary && <p className="mt-4 line-clamp-4 text-[15px] leading-7 text-[#ffffff] [overflow-wrap:anywhere]">{summary}</p>}
+                <div className="mt-auto flex flex-wrap items-center gap-5 pt-6">
+                    <Link
+                        to={`/documents/${document.slug}`}
+                        className="inline-flex items-center gap-3 border-b border-[#ffffff] pb-2 text-sm font-bold hover:gap-4"
+                    >
                         Consulter
                         <ArrowRight className="h-4 w-4" />
                     </Link>
-                    <span className="inline-flex items-center gap-1.5 text-xs tabular-nums text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 text-xs tabular-nums text-on-primary-soft">
                         <Eye className="h-3.5 w-3.5" />
                         {views} consultation{views > 1 ? "s" : ""}
                     </span>
@@ -388,29 +408,31 @@ function FeaturedDocument({ document }) {
     );
 }
 
-function CompactDocument({ document }) {
+// Publications suivantes : rangée numérotée (02, 03…) comme les onglets « À la une » du site UMG.
+function CompactDocument({ document, number }) {
     const { typeCfg, authors } = docInfo(document);
 
     return (
-        <li>
+        <li className="border-b border-line">
             <Link
                 to={`/documents/${document.slug}`}
-                className="group grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-2.5 transition-colors hover:border-indigo-600 focus-visible:border-indigo-600"
+                className="group flex h-full gap-3 border-t-2 border-transparent px-1 py-4 transition-colors hover:border-brass focus-visible:border-brass sm:px-3"
             >
-                <Cover document={document} typeCfg={typeCfg} small />
+                <span className="pt-0.5 text-xs font-semibold tabular-nums text-ink-soft">{String(number).padStart(2, "0")}</span>
                 <span className="min-w-0">
-                    <span className="line-clamp-2 font-display text-sm font-bold leading-snug text-slate-900 [overflow-wrap:anywhere] group-hover:text-brass-deep">
+                    <span className="line-clamp-2 font-display text-sm font-semibold leading-snug text-ink [overflow-wrap:anywhere] group-hover:text-brass-deep">
                         {document.title}
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-slate-500">
-                        {authors} · {typeCfg.label}
+                    <span className="mt-1 block truncate text-xs text-ink-soft">
+                        {[authors, typeCfg.label, document.year].filter(Boolean).join(" · ")}
                     </span>
                 </span>
-                {document.year && <span className="pr-1 text-xs tabular-nums text-slate-500">{document.year}</span>}
             </Link>
         </li>
     );
 }
+
+const OTHERS_COLUMNS = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3" };
 
 function DocumentsSection({ section, preview }) {
     const response = usePublicData("documents");
@@ -431,12 +453,12 @@ function DocumentsSection({ section, preview }) {
     return (
         <Shell section={section} spacing="py-6">
             <Heading section={section} icon={Sparkles} action={action} className="mb-6" />
-            <div className={cx("grid gap-4 text-left", others.length > 0 && "lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]")}>
+            <div className="text-left">
                 <FeaturedDocument document={featured} />
                 {others.length > 0 && (
-                    <ul className="grid content-start gap-2.5">
-                        {others.map((doc) => (
-                            <CompactDocument key={doc.slug} document={doc} />
+                    <ul className={cx("mt-2 grid sm:grid-cols-2", OTHERS_COLUMNS[others.length] ?? "lg:grid-cols-4")}>
+                        {others.map((doc, index) => (
+                            <CompactDocument key={doc.slug} document={doc} number={index + 2} />
                         ))}
                     </ul>
                 )}
@@ -483,13 +505,14 @@ function StatsSection({ section, preview }) {
     return (
         <Shell section={section} spacing="py-8">
             <Heading section={section} icon={BarChart3} />
-            <div className="grid gap-4 sm:grid-cols-3">
-                {items.map((item) => (
-                    <div key={item.label} className="modern-card p-5">
-                        <p className="font-display text-3xl font-extrabold text-brass">
+            {/* Grands chiffres séparés par des filets (rangée de chiffres clés du site UMG). */}
+            <div className="grid border-t border-line sm:grid-cols-3">
+                {items.map((item, index) => (
+                    <div key={item.label} className={cx("py-5 sm:px-6", index > 0 && "border-t border-line sm:border-l sm:border-t-0", index === 0 && "sm:pl-0")}>
+                        <p className="font-display text-4xl font-bold tabular-nums leading-none text-brass sm:text-[42px]">
                             {item.value ?? "—"}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">{item.label}</p>
+                        <p className="mt-2 text-sm text-ink-soft">{item.label}</p>
                     </div>
                 ))}
             </div>
@@ -534,7 +557,7 @@ function ImageSection({ section, preview }) {
                 <img
                     src={homepageImageUrl(c.image)}
                     alt={c.alt || ""}
-                    className="max-h-[520px] w-full rounded-2xl object-cover"
+                    className="max-h-[520px] w-full rounded-lg object-cover"
                 />
                 {c.caption && (
                     <figcaption
@@ -557,12 +580,12 @@ function CardsSection({ section }) {
             <Heading section={section} icon={Sparkles} />
             <div className="grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item, index) => (
-                    <div key={index} className="modern-card flex flex-col p-5">
-                        {item.title && <h3 className="font-display text-lg font-bold text-slate-900 [overflow-wrap:anywhere]">{item.title}</h3>}
-                        {item.text && <p className="mt-2 flex-1 text-sm leading-6 text-slate-500 [overflow-wrap:anywhere]">{item.text}</p>}
+                    <div key={index} className="modern-card flex flex-col !border-t-2 !border-t-brass p-6">
+                        {item.title && <h3 className="font-display text-lg font-bold text-ink [overflow-wrap:anywhere]">{item.title}</h3>}
+                        {item.text && <p className="mt-2 flex-1 text-sm leading-6 text-ink-soft [overflow-wrap:anywhere]">{item.text}</p>}
                         <SmartLink
                             to={item.link}
-                            className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brass hover:text-brass-deep"
+                            className="mt-5 inline-flex w-fit items-center gap-2 border-b border-brass pb-1 text-sm font-bold text-brass hover:text-brass-deep"
                         >
                             En savoir plus
                             <ArrowRight className="h-4 w-4" />
@@ -599,16 +622,16 @@ function CallToAction({ section, icon: Icon, note }) {
                     {c.title && (
                         <h2
                             className={cx(
-                                "mt-2 font-display [overflow-wrap:anywhere]",
-                                TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-2xl",
-                                WEIGHTS[style.title_weight] ?? "font-extrabold",
+                                "mt-2 font-display tracking-tight [overflow-wrap:anywhere]",
+                                TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-[28px]",
+                                WEIGHTS[style.title_weight] ?? "font-bold",
                             )}
                         >
                             {c.title}
                         </h2>
                     )}
                     {c.description && (
-                        <p className={cx("mt-2 max-w-2xl text-sm leading-6 text-slate-500 [overflow-wrap:anywhere]", centered && "mx-auto")}>
+                        <p className={cx("mt-2 max-w-2xl text-sm leading-6 text-ink-soft [overflow-wrap:anywhere]", centered && "mx-auto")}>
                             {c.description}
                         </p>
                     )}
@@ -648,7 +671,7 @@ function SignupSection({ section, user, preview }) {
     return (
         <Shell section={{ ...section, style: { ...style, bg_color: undefined } }} spacing="py-8 sm:py-10">
             <div
-                className={cx("grid overflow-hidden rounded-[30px] text-white md:grid-cols-2", !style.bg_color && "bg-indigo-600")}
+                className={cx("grid overflow-hidden rounded-lg text-white md:grid-cols-2", !style.bg_color && "bg-indigo-800")}
                 style={style.bg_color ? { backgroundColor: style.bg_color } : undefined}
             >
                 <img
@@ -675,9 +698,9 @@ function SignupSection({ section, user, preview }) {
                     {c.title && (
                         <h2
                             className={cx(
-                                "font-display [overflow-wrap:anywhere]",
+                                "font-display tracking-tight [overflow-wrap:anywhere]",
                                 TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-3xl",
-                                WEIGHTS[style.title_weight] ?? "font-extrabold",
+                                WEIGHTS[style.title_weight] ?? "font-bold",
                             )}
                         >
                             {c.title}
@@ -692,7 +715,7 @@ function SignupSection({ section, user, preview }) {
                         <SmartLink
                             to={c.button_link}
                             className={cx(
-                                "mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition",
+                                "mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-md px-5 py-3 text-sm font-bold transition",
                                 !style.button_color && "bg-surface text-brass-deep hover:bg-indigo-50",
                             )}
                             style={style.button_color ? { backgroundColor: style.button_color, color: "#ffffff" } : undefined}

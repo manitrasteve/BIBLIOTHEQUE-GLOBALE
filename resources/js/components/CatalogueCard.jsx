@@ -127,7 +127,7 @@ export default function CatalogueCard({ document, query = '', view = 'grid', onT
       <div className="relative">
         <Link
           to={`/documents/${document.slug}`}
-          className="group grid grid-cols-[3rem_1fr] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3 pr-14 transition-colors hover:border-indigo-300 sm:grid-cols-[3.5rem_1fr_auto] sm:gap-4 sm:pr-16"
+          className="group grid grid-cols-[3rem_1fr] items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-14 transition-colors hover:border-indigo-300 hover:bg-indigo-50 sm:grid-cols-[3.5rem_1fr_auto] sm:gap-4 sm:pr-16"
         >
           <Cover document={document} typeCfg={typeCfg} small />
           <div className="min-w-0">

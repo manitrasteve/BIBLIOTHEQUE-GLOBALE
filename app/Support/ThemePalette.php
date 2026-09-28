@@ -23,25 +23,28 @@ class ThemePalette
     /** Rôles personnalisables, dans l'ordre de l'interface. */
     public const KEYS = ['primary', 'secondary', 'accent', 'background', 'surface', 'foreground', 'border'];
 
-    /** Couleurs d'origine du projet (valeurs de repli de resources/css/app.css : à garder synchronisées). */
+    /**
+     * Couleurs d'origine du projet : charte de l'Université de Mahajanga
+     * (valeurs de repli de resources/css/app.css : à garder synchronisées).
+     */
     public const DEFAULTS = [
         'light' => [
-            'primary' => '#1f3a5f',     // boutons, menu actif, bandeaux (--color-indigo-500…800)
-            'secondary' => '#1f3a5f',   // liens et texte de marque (--color-brass)
-            'accent' => '#f7f8fa',      // fonds teintés : survols, puces, sélection (--color-indigo-50…300)
-            'background' => '#f7f9fc',  // fond des pages (--color-canvas, --color-paper)
+            'primary' => '#1a1a8c',     // boutons, menu actif, bandeaux (--color-indigo-500…800)
+            'secondary' => '#1a1a8c',   // liens et texte de marque (--color-brass)
+            'accent' => '#f4f5fb',      // fonds teintés : survols, puces, sélection (--color-indigo-50…300)
+            'background' => '#f6f7fb',  // fond des pages (--color-canvas, --color-paper)
             'surface' => '#ffffff',     // cartes et panneaux (--color-surface)
-            'foreground' => '#1f2937',  // texte (--color-ink, slate-400…950)
-            'border' => '#d9dee5',      // bordures (--color-line, slate-200/300)
+            'foreground' => '#15212b',  // texte (--color-ink, slate-400…950)
+            'border' => '#dde0ee',      // bordures (--color-line, slate-200/300)
         ],
         'dark' => [
-            'primary' => '#1f3a5f',
-            'secondary' => '#7fb1e0',
-            'accent' => '#152238',
-            'background' => '#0b1220',
-            'surface' => '#111827',
-            'foreground' => '#e5e7eb',
-            'border' => '#263244',
+            'primary' => '#2525a5',
+            'secondary' => '#a5a5f5',
+            'accent' => '#15183a',
+            'background' => '#0a0b1c',
+            'surface' => '#121429',
+            'foreground' => '#e6e7f2',
+            'border' => '#272b4a',
         ],
     ];
 

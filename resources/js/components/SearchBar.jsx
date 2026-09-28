@@ -89,7 +89,7 @@ function useSuggestions(query) {
       id={listId}
       role="listbox"
       aria-label="Suggestions"
-      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-surface py-1.5 text-left shadow-lg"
+      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-line bg-surface py-1.5 text-left shadow-lg"
     >
       {items.map((item, index) => {
         const Icon = item.type === 'author' ? UserRound : BookOpen;
@@ -142,7 +142,7 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit, 
         suggestions.close();
         handleSubmit(e);
       }}
-      className="relative flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-surface p-2 pl-4 focus-within:border-brass focus-within:ring-2 focus-within:ring-indigo-200 sm:flex-nowrap sm:gap-3 sm:pl-5"
+      className="relative flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-2 pl-4 focus-within:border-brass focus-within:ring-2 focus-within:ring-indigo-200 sm:flex-nowrap sm:gap-3 sm:pl-5"
     >
       <Search className="h-5 w-5 shrink-0 text-slate-400" strokeWidth={2} aria-hidden="true" />
       <input
@@ -165,7 +165,7 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit, 
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="h-11 w-full appearance-none rounded-full border border-slate-200 bg-slate-50 py-2 pl-4 pr-9 text-sm font-semibold text-slate-700 outline-none focus:border-brass sm:w-auto"
+            className="h-11 w-full appearance-none rounded-md border border-line bg-slate-50 py-2 pl-4 pr-9 text-sm font-semibold text-slate-700 outline-none focus:border-brass sm:w-auto"
           >
             {FILTERS.map((f) => (
               <option key={f.key} value={f.key}>
@@ -177,7 +177,7 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit, 
         </label>
         <button
           type="submit"
-          className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-indigo-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
         >
           Rechercher
         </button>
@@ -229,7 +229,7 @@ export default function SearchBar({ initialQuery = '', initialBy = 'all', live =
         suggestions.close();
         handleSubmit(e);
       }}
-      className="relative rounded-xl border border-line bg-paper p-2 sm:p-2.5"
+      className="relative rounded-md border border-line bg-paper p-2 sm:p-2.5"
     >
       {/* onglet façon tiroir de fichier */}
       <div className="absolute -top-3 left-6 rounded-t-md bg-brass px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-paper font-semibold">

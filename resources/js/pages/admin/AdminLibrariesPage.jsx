@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import DetailModal, { ViewButton } from '../../components/DetailModal';
 import LibraryCover from '../../components/LibraryCover';
 import SortTh from '../../components/SortTh';
+import ActionsTh from '../../components/ActionsTh';
 import { librarySections } from '../../lib/detailSections';
 import CounterBar from '../../components/CounterBar';
 import RichTextEditor from '../../components/RichTextEditor';
@@ -53,6 +54,8 @@ export default function AdminLibrariesPage() {
   const [query, setQuery] = useState('');
   const [viewing, setViewing] = useState(null);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
     load();
@@ -182,7 +185,7 @@ export default function AdminLibrariesPage() {
                     <SortTh label="Nom" sortKey="name" sort={sort} setSort={setSort} />
                     <SortTh label="Adresse" sortKey="address" sort={sort} setSort={setSort} />
                     <SortTh label="Horaires" sortKey="hours" sort={sort} setSort={setSort} />
-                    {showActions && <th className="px-4 py-3 text-right">Actions</th>}
+                    {showActions && <ActionsTh open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} />}
                   </tr>
                 </thead>
                 <tbody>
@@ -193,11 +196,13 @@ export default function AdminLibrariesPage() {
                       <td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td>
                       {showActions && (
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-3">
-                            {canView && <ViewButton onClick={() => setViewing(lib)} />}
-                            {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
-                            {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
-                          </div>
+                          {actionsOpen && (
+                            <div className="flex items-center justify-end gap-3">
+                              {canView && <ViewButton onClick={() => setViewing(lib)} />}
+                              {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
+                              {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
+                            </div>
+                          )}
                         </td>
                       )}
                     </tr>

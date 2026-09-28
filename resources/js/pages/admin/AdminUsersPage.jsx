@@ -16,6 +16,7 @@ import CounterBar from "../../components/CounterBar";
 import Pager from "../../components/Pager";
 import DetailModal, { ViewButton } from "../../components/DetailModal";
 import SortTh from "../../components/SortTh";
+import ActionsTh from "../../components/ActionsTh";
 import { GLOBAL_LIBRARY, ROLES, userSections } from "../../lib/detailSections";
 
 function getUserVal(row, key) {
@@ -108,6 +109,8 @@ export default function AdminUsersPage() {
 
     const [meta, setMeta] = useState(null);
     const [sort, setSort] = useState({ key: null, dir: "asc" });
+    // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
+    const [showActions, setShowActions] = useState(false);
     const [error, setError] = useState(null);
     // Résultat de la dernière création : e-mail du lien envoyé ou non.
     const [notice, setNotice] = useState(null);
@@ -254,13 +257,13 @@ export default function AdminUsersPage() {
                 <>
                 <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-left">Bibliothèque</th><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-right">Actions</th></tr></thead>
+                        <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-left">Bibliothèque</th><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><ActionsTh open={showActions} onToggle={() => setShowActions((v) => !v)} /></tr></thead>
                         <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
                                 <td className="px-4 py-3">{ROLES[u.role] || u.role}</td><td className="px-4 py-3">{GLOBAL_LIBRARY}</td>
                                 <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span></td>
-                                <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div></td>
+                                <td className="px-4 py-3">{showActions && <div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div>}</td>
                             </tr>
                         ))}</tbody>
                     </table>

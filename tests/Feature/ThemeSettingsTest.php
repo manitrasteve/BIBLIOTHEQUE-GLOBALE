@@ -44,8 +44,8 @@ it('renvoie les couleurs par défaut sans thème publié', function () {
     themeAdmin();
 
     $this->getJson('/api/admin/theme')->assertOk()
-        ->assertJsonPath('defaults.light.primary', '#1f3a5f')
-        ->assertJsonPath('defaults.dark.background', '#0b1220')
+        ->assertJsonPath('defaults.light.primary', '#1a1a8c')
+        ->assertJsonPath('defaults.dark.background', '#0a0b1c')
         ->assertJsonPath('draft', null)
         ->assertJsonPath('published', null);
 

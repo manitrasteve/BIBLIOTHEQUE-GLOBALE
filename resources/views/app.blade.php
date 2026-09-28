@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1f3a5f">
+    <meta name="theme-color" content="#11116f">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/png" sizes="192x192" href="/images/pwa/icon-192.png">
     <link rel="apple-touch-icon" href="/images/pwa/apple-touch-icon.png">
@@ -26,8 +26,8 @@
     <style>
         /* Écran d'attente affiché avant le chargement de React (remplacé au démarrage de l'app). */
         /* Fond de l'écran d'attente : couleur publiée dans Apparence du site, sinon celle d'origine. */
-        body { margin: 0; background: var(--site-light-background, #f7f8fa); }
-        html.dark body { background: var(--site-dark-background, #0b1220); }
+        body { margin: 0; background: var(--site-light-background, #f6f7fb); }
+        html.dark body { background: var(--site-dark-background, #0a0b1c); }
         .boot-loading {
             margin: 0;
             min-height: 100vh;
@@ -43,7 +43,8 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+    {{-- Manrope : police de la charte UMG ; Newsreader : citations et mode Texte du lecteur. --}}
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
 

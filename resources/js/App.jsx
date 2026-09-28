@@ -45,6 +45,7 @@ function PageBoundary({ children }) {
     return <PageErrorBoundary resetKey={location.pathname}>{children}</PageErrorBoundary>;
 }
 
+// Pied de page : uniquement sur la page d'accueil.
 function HomeOnlyFooter() {
     const location = useLocation();
     return location.pathname === "/" ? <Footer /> : null;

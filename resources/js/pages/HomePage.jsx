@@ -52,8 +52,8 @@ export default function HomePage({ preview = false }) {
 
     if (!sections) {
         return (
-            <div className="w-full px-4 pt-6 sm:px-8 xl:px-10" role="status" aria-busy="true" aria-label="Chargement de la page d'accueil">
-                <Skeleton className="block h-[430px] w-full rounded-[30px]" />
+            <div className="umg-container pt-6" role="status" aria-busy="true" aria-label="Chargement de la page d'accueil">
+                <Skeleton className="block h-[430px] w-full rounded-lg" />
             </div>
         );
     }

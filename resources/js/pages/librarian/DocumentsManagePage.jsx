@@ -7,6 +7,7 @@ import { sortRows } from '../../lib/sort';
 import { useAuth } from '../../context/AuthContext';
 import StatusBadge from '../../components/StatusBadge';
 import SortTh from '../../components/SortTh';
+import ActionsTh from '../../components/ActionsTh';
 import { SkeletonTable } from '../../components/Skeleton';
 
 const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
@@ -34,6 +35,8 @@ export default function DocumentsManagePage() {
   const [meta, setMeta] = useState(null); // pagination du serveur
   const [counts, setCounts] = useState(null); // totaux réels (statuts + types), calculés par le serveur
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
+  const [showActions, setShowActions] = useState(false);
   const sortedDocuments = documents ? sortRows(documents, sort, getDocVal) : documents;
 
   // Changer de filtre ou de recherche repart de la première page.
@@ -233,7 +236,7 @@ export default function DocumentsManagePage() {
                 <SortTh label="Année" sortKey="year" sort={sort} setSort={setSort} />
                 <SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort} />
                 <SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort} />
-                <th className="px-4 py-3">Actions</th>
+                <ActionsTh open={showActions} onToggle={() => setShowActions((v) => !v)} align="left" />
               </tr>
             </thead>
             <tbody>
@@ -252,9 +255,11 @@ export default function DocumentsManagePage() {
                     <StatusBadge status={doc.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {renderDocActions(doc)}
-                    </div>
+                    {showActions && (
+                      <div className="flex items-center gap-3">
+                        {renderDocActions(doc)}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
