@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { UploadCloud, Image as ImageIcon, FileSpreadsheet, X } from "lucide-react";
 import { api } from "../../lib/api";
 import RichTextEditor from "../../components/RichTextEditor";
+import AiCoverGenerator from "../../components/AiCoverGenerator";
 
 // Langue reste un champ libre. Les anciens documents contiennent des codes
 // (« memoire », « fr ») : on affiche leur libellé à la modification.
@@ -15,6 +16,10 @@ const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
 
 const inputClass = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm";
+
+// Limites du serveur (règles « file » et « cover » de DocumentController).
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 const ACCESS_LEVELS = [
     { value: "public", label: "Public (aucune connexion requise)" },
@@ -189,6 +194,18 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
     async function handleSubmit(e) {
         e.preventDefault();
         setError(null);
+
+        // Mêmes limites que le serveur (DocumentController : PDF 50 Mo, couverture 5 Mo) :
+        // refusé tout de suite plutôt qu'après un long envoi.
+        if (file && file.size > MAX_PDF_BYTES) {
+            setError("Le PDF dépasse 50 Mo.");
+            return;
+        }
+        if (cover && cover.size > MAX_COVER_BYTES) {
+            setError("La couverture dépasse 5 Mo.");
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -231,7 +248,9 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                     ? Object.values(err.data.errors)[0][0]
                     : err.status === 403
                       ? err.data?.message || "Action non autorisée."
-                      : "L'enregistrement a échoué.",
+                      : err.status === 413
+                        ? "Les fichiers sont trop volumineux pour le serveur (limite d'envoi de PHP : post_max_size / upload_max_filesize)."
+                        : "L'enregistrement a échoué.",
             );
         } finally {
             setSubmitting(false);
@@ -628,6 +647,19 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                         </div>
                     </div>
                 )}
+
+                <AiCoverGenerator
+                    fields={{
+                        title: form.title,
+                        subtitle: form.subtitle,
+                        type: form.type,
+                        category: form.category,
+                        abstract: form.abstract,
+                        keywords: form.keywords,
+                    }}
+                    current={cover}
+                    onUse={setCover}
+                />
 
                 {error && <p className="text-sm text-red-700">{error}</p>}
 

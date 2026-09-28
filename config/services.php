@@ -74,4 +74,23 @@ return [
     ),
 ],
 
+    // « Générer une couverture par IA » (formulaire des documents) : génération d'images gratuite ;
+    // une couverture dessinée par le serveur est proposée si le service échoue.
+    // Sans jeton : accès anonyme (limité, filigrane). Jeton gratuit sur https://enter.pollinations.ai :
+    // API authentifiée (gen_url), sans filigrane.
+    'pollinations' => [
+        'base_url' => env('POLLINATIONS_BASE_URL', 'https://image.pollinations.ai'),
+        'gen_url' => env('POLLINATIONS_GEN_URL', 'https://gen.pollinations.ai'),
+        // Service de texte : décrit le document en une scène visuelle avant de la dessiner.
+        'text_url' => env('POLLINATIONS_TEXT_URL', 'https://text.pollinations.ai'),
+        'text_model' => env('POLLINATIONS_TEXT_MODEL', 'openai'),
+        // Vide : modèle d'image par défaut du service.
+        'model' => env('POLLINATIONS_MODEL'),
+        'token' => env('POLLINATIONS_TOKEN'),
+        // Délai maximal d'une image ; la tâche entière reste sous 90 s (voir GenerateAiCoverJob).
+        'timeout' => (int) env('POLLINATIONS_TIMEOUT', 60),
+        // Attente avant de réessayer quand le service est saturé (secondes).
+        'retry_delay' => (int) env('POLLINATIONS_RETRY_DELAY', 8),
+    ],
+
 ];

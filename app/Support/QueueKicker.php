@@ -26,7 +26,11 @@ class QueueKicker
 
         try {
             $php = stripos(basename(PHP_BINARY), 'php') !== false ? PHP_BINARY : 'php';
-            $worker = '"' . $php . '" "' . base_path('artisan') . '" queue:work --stop-when-empty --tries=1 --quiet';
+            // Tâche placée sur une file nommée (->onQueue()) : le worker éphémère doit écouter cette file.
+            $queue = property_exists($job, 'queue') && is_string($job->queue) && preg_match('/^[\w-]+$/', $job->queue)
+                ? ' --queue=' . $job->queue
+                : '';
+            $worker = '"' . $php . '" "' . base_path('artisan') . '" queue:work' . $queue . ' --stop-when-empty --tries=1 --quiet';
             $command = PHP_OS_FAMILY === 'Windows'
                 ? 'start /B "" ' . $worker . ' > NUL 2>&1'
                 : $worker . ' > /dev/null 2>&1 &';

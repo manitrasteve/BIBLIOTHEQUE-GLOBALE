@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountRequestController;
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\AiCoverController;
 use App\Http\Controllers\Api\AiQueryController;
 use App\Http\Controllers\Api\AppNotificationController;
 use App\Http\Controllers\Api\AuthController;
@@ -167,6 +168,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Importation par Excel : prépare les valeurs du formulaire ; la création reste POST /documents.
         Route::get('/document-imports/template', [DocumentImportController::class, 'template']);
         Route::post('/document-imports/analyze', [DocumentImportController::class, 'analyze'])->middleware('throttle:30,1');
+        // Couverture générée par IA (Pollinations) : lancement puis suivi de l'état par le formulaire.
+        Route::post('/ai-covers', [AiCoverController::class, 'generate'])->middleware('throttle:5,1');
+        Route::get('/ai-covers/{requestId}', [AiCoverController::class, 'status'])->middleware('throttle:60,1');
         Route::put('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');

@@ -85,6 +85,10 @@ class AiQueryController extends Controller
         $document = $this->authorizedDocument($request, $slug);
         $data = $this->validated($request);
 
+        // Comme askStream : plusieurs modèles Gemini peuvent être essayés à la suite ; sous `php -S`,
+        // la limite par défaut (60 s) couperait la requête sans réponse JSON.
+        @set_time_limit(180);
+
         $result = app(RagService::class)->answer($document, $data['question'], $this->options($data));
 
         if (!empty($result['error'])) {

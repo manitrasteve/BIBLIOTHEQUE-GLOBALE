@@ -376,6 +376,10 @@ export const api = {
             body: formData,
         }),
 
+    // Couverture générée par IA (Pollinations) : lancement, puis état jusqu'à l'image.
+    generateAiCover: (data) => request("/ai-covers", { method: "POST", body: data }),
+    getAiCoverStatus: (requestId) => request(`/ai-covers/${requestId}`),
+
     // Paramètres → Apparence du site (administrateur).
     getThemeSettings: () => request("/admin/theme"),
     previewTheme: (colors) => request("/admin/theme/preview", { method: "POST", body: { colors } }),

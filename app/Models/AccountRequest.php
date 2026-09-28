@@ -192,56 +192,7 @@ class AccountRequest extends Model
             && now()->greaterThan($this->expires_at);
     }
 
-    /**
-     * Génère automatiquement un matricule
-     * selon le rôle.
-     *
-     * ETU-2026-0001
-     * ENS-2026-0001
-     * CHR-2026-0001
-     */
-    public static function generateMatricule(
-        string $role = 'etudiant'
-    ): string {
-        $prefixes = [
-            'etudiant' => 'ETU',
-            'enseignant' => 'ENS',
-            'chercheur' => 'CHR',
-        ];
-
-        $prefix = $prefixes[$role] ?? 'USR';
-
-        $year = now()->year;
-
-        $count = static::where(
-            'role',
-            $role
-        )
-            ->whereYear(
-                'created_at',
-                $year
-            )
-            ->count() + 1;
-
-        do {
-            $matricule = sprintf(
-                '%s-%d-%04d',
-                $prefix,
-                $year,
-                $count++
-            );
-        } while (
-            static::where(
-                'matricule',
-                $matricule
-            )->exists()
-            ||
-            User::where(
-                'matricule',
-                $matricule
-            )->exists()
-        );
-
-        return $matricule;
-    }
+    // Le matricule (numéro de compte) est généré par User::generateNumeroCompte() :
+    // séquence verrouillée qui tient compte des utilisateurs, du registre et des demandes.
+    // L'ancien générateur de ce modèle (comptage non verrouillé) produisait des doublons.
 }

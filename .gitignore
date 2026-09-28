@@ -12,6 +12,8 @@
 /storage/framework/testing/*
 /storage/logs/*
 /storage/framework/views/*
+# Fichiers temporaires de l'extension PHP IntelliSense (VS Code)
+/storage/framework/lsp-*.php
 /storage/app/private/*
 /public/storage
 /bootstrap/cache/*
