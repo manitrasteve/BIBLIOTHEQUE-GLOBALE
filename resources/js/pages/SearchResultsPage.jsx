@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { SearchX, Languages, ChevronDown, LayoutGrid, List, X, LibraryBig, Filter, Layers, Folder } from 'lucide-react';
 import { api } from '../lib/api';
@@ -71,7 +71,20 @@ export default function SearchResultsPage() {
   const q = searchParams.get('q') || '';
   const by = searchParams.get('by') || '';
   const topRef = useRef(null);
+  // Bande de recherche fixée sous la barre du haut : sa hauteur (variable selon l'écran)
+  // place juste en dessous la colonne des catégories et la barre des résultats.
+  const bandRef = useRef(null);
+  const [bandHeight, setBandHeight] = useState(0);
   const [view, setView] = useState(readView);
+
+  useLayoutEffect(() => {
+    const band = bandRef.current;
+    if (!band || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => setBandHeight(band.offsetHeight));
+    observer.observe(band);
+    setBandHeight(band.offsetHeight);
+    return () => observer.disconnect();
+  }, []);
   // Change quand l'étiquette de recherche est retirée : la barre de recherche repart vide.
   const [searchKey, setSearchKey] = useState(0);
 
@@ -155,8 +168,41 @@ export default function SearchResultsPage() {
     language && { key: 'language', label: languageLabel(language) || language, clear: () => setLanguage('') },
   ].filter(Boolean);
 
+  // Boutons de catégorie : pastilles défilantes (petit écran, dans la bande fixée) ou colonne (grand écran).
+  const categoryButtons = (
+    <div
+      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden"
+      role="group"
+      aria-label="Filtrer par catégorie"
+    >
+      <button type="button" onClick={() => setCategoryId('')} className={tabClass(categoryId === '')} aria-pressed={categoryId === ''}>
+        <Layers className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
+        Toutes catégories
+      </button>
+      {categories.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => setCategoryId(String(c.id))}
+          className={tabClass(categoryId === String(c.id))}
+          aria-pressed={categoryId === String(c.id)}
+        >
+          <Folder className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
+          {c.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Hauteurs de référence des éléments fixés : sous la barre du haut (page publique) ou en haut
+  // de la zone qui défile (espace bibliothécaire), puis sous la bande de recherche.
+  const stickyVars = {
+    '--catalog-top': inLayout ? '0px' : 'var(--app-header-height)',
+    '--catalog-band': `${bandHeight}px`,
+  };
+
   return (
-    <div ref={topRef} className={inLayout ? 'w-full' : 'umg-container py-6 sm:py-8'}>
+    <div ref={topRef} className={inLayout ? 'w-full' : 'umg-container py-6 sm:py-8'} style={stickyVars}>
       {/* Fil d'Ariane (pages publiques), comme le site de l'Université de Mahajanga. */}
       {!inLayout && (
         <nav aria-label="Fil d'Ariane" className="mb-6 text-sm">
@@ -171,7 +217,7 @@ export default function SearchResultsPage() {
       )}
 
       {/* En-tête de page : icône, sur-titre, titre, description (charte UMG). */}
-      <header className="border-b border-line pb-6">
+      <header className="pb-3">
         <div className="flex items-start gap-4">
           <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-brass sm:flex">
             <LibraryBig className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
@@ -192,52 +238,40 @@ export default function SearchResultsPage() {
             </p>
           </div>
         </div>
-
-        <div className="mt-6 max-w-3xl">
-          <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
-        </div>
       </header>
 
+      {/* Bande de recherche : défile avec la page puis reste fixée sous la barre du haut (fond plein,
+          sur toute la largeur du contenu). Sur petit écran, elle porte aussi les catégories. */}
+      <div
+        ref={bandRef}
+        className={`sticky top-[var(--catalog-top)] z-30 border-b border-line bg-paper py-3 ${
+          inLayout ? '-mx-4 px-4 sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8' : '-mx-4 px-4 sm:-mx-8 sm:px-8 xl:-mx-10 xl:px-10'
+        }`}
+      >
+        <div className="max-w-3xl">
+          <SearchBar key={searchKey} initialQuery={q} initialBy={by || undefined} live variant="catalogue" />
+        </div>
+        {categories.length > 0 && <div className="mt-3 lg:hidden">{categoryButtons}</div>}
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
-        {/* Catégories : pastilles défilantes (petit écran) ou colonne de gauche (grand écran). */}
+        {/* Catégories (grand écran) : colonne fixée sous la bande de recherche, avec son propre
+            défilement si la liste dépasse la hauteur de l'écran. */}
         {categories.length > 0 && (
-          // Espace bibliothécaire : la page défile dans sa propre zone, la colonne n'y est pas « collante ».
-          <aside className={`min-w-0 lg:rounded-lg lg:border lg:border-line lg:bg-surface lg:p-3 ${inLayout ? '' : 'lg:sticky lg:top-[calc(var(--app-header-height)+1rem)]'}`}>
-            <p className="mb-2 hidden items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-soft lg:flex">
+          <aside className="sticky top-[calc(var(--catalog-top)+var(--catalog-band)+1rem)] hidden max-h-[calc(100dvh-var(--app-header-height)-var(--catalog-band)-2rem)] min-w-0 overflow-y-auto rounded-lg border border-line bg-surface p-3 lg:block">
+            <p className="mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
               <Filter className="h-3.5 w-3.5" aria-hidden="true" />
               Catégories
             </p>
-            <div
-              className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden"
-              role="group"
-              aria-label="Filtrer par catégorie"
-            >
-              <button type="button" onClick={() => setCategoryId('')} className={tabClass(categoryId === '')} aria-pressed={categoryId === ''}>
-                <Layers className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
-                Toutes catégories
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCategoryId(String(c.id))}
-                  className={tabClass(categoryId === String(c.id))}
-                  aria-pressed={categoryId === String(c.id)}
-                >
-                  <Folder className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
-                  {c.name}
-                </button>
-              ))}
-            </div>
+            {categoryButtons}
           </aside>
         )}
 
       <section aria-label="Résultats" className={`min-w-0 ${categories.length > 0 ? '' : 'lg:col-span-2'}`}>
-        <div
-          className={`z-10 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface py-2.5 pl-4 pr-2.5 sm:pl-5 ${
-            inLayout ? '' : 'sticky top-[4.75rem]'
-          }`}
-        >
+        {/* Barre des résultats : fixée sous la bande de recherche sur grand écran. L'enveloppe (fond de
+            page, -mt-4 / pt-4) masque les livres qui passent dans l'espace au-dessus d'elle. */}
+        <div className="relative z-20 bg-paper lg:sticky lg:top-[calc(var(--catalog-top)+var(--catalog-band))] lg:-mt-4 lg:pt-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface py-2.5 pl-4 pr-2.5 sm:pl-5">
           <div className="min-w-[8rem] flex-1" aria-live="polite">
             <p className="font-display text-base font-bold text-ink sm:text-lg">
               {loading ? '…' : `${total} document${total > 1 ? 's' : ''}`}
@@ -291,6 +325,7 @@ export default function SearchResultsPage() {
               </button>
             ))}
           </div>
+        </div>
         </div>
 
         {tags.length > 0 && (

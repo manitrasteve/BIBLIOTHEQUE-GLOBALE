@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Heart, Languages, CalendarDays } from 'lucide-react';
 import { TYPE_CONFIG, normalizeType } from './DocumentCard';
 import { languageLabel } from '../lib/languages';
+import { COVER_SOFT_TEXT, coverColor } from '../lib/coverColor';
 
 // Grille des cartes livre (catalogue, page d'accueil, Mes favoris).
 export const CATALOGUE_GRID_CLASS =
@@ -42,28 +43,31 @@ export function docInfo(document) {
 }
 
 // Couverture façon livre : dos plus foncé à gauche, coins arrondis côté tranche.
+// Sans image : couleur propre au document (lib/coverColor), dos dans une nuance plus foncée.
 export function Cover({ document, typeCfg, small = false }) {
   const TypeIcon = typeCfg.icon;
+  const color = document.cover_url ? null : coverColor(document);
   return (
     <div
-      className={`relative aspect-[3/4] overflow-hidden border-indigo-800 bg-indigo-600 text-white ${
+      className={`relative aspect-[3/4] overflow-hidden text-white ${color ? '' : 'border-indigo-800 bg-indigo-600'} ${
         small ? 'rounded-l rounded-r-md border-l-4' : 'rounded-l-md rounded-r-xl border-l-[6px]'
       }`}
+      style={color ? { backgroundColor: color.bg, borderColor: color.spine, color: COVER_SOFT_TEXT } : undefined}
     >
       {document.cover_url ? (
         <img src={document.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
       ) : small ? (
         <span className="flex h-full items-center justify-center">
-          <TypeIcon className="h-5 w-5 text-on-primary-soft" strokeWidth={1.5} />
+          <TypeIcon className="h-5 w-5" strokeWidth={1.5} />
         </span>
       ) : (
         <div className="flex h-full flex-col justify-between p-3 sm:p-4">
-          <span className="text-[11px] font-semibold text-on-primary-soft">
+          <span className="text-[11px] font-semibold">
             {typeCfg.label}
             {document.year ? ` · ${document.year}` : ''}
           </span>
-          <TypeIcon className="h-10 w-10 self-center text-on-primary-soft" strokeWidth={1.25} />
-          <span className="line-clamp-2 text-[11px] font-medium text-on-primary-soft">
+          <TypeIcon className="h-10 w-10 self-center" strokeWidth={1.25} />
+          <span className="line-clamp-2 text-[11px] font-medium">
             {document.category || 'Catalogue'}
           </span>
         </div>

@@ -22,10 +22,30 @@ import {
 export const PREVIEW_MESSAGE = "homepage-preview";
 export const PREVIEW_READY = "homepage-preview-ready";
 
-// Bannière d'ouverture par défaut (WebP 1600×900, ~170 Ko) et sa description (accessibilité).
-export const DEFAULT_HERO_IMAGE = "/images/umg-banniere.webp";
-export const DEFAULT_HERO_IMAGE_ALT =
-    "Bibliothèque Globale de l'Université de Mahajanga, avec votre assistant IA";
+// Bannière d'ouverture par défaut : logos des établissements de l'Université de Mahajanga (WebP,
+// fond blanc), en diaporama tant qu'aucune image n'est téléversée dans l'éditeur de la page
+// d'accueil ; texte de remplacement pour l'accessibilité.
+export const DEFAULT_HERO_SLIDES = [
+    { src: "/images/etablissements/isstm.webp", alt: "Logo de l'ISSTM, Institut Supérieur des Sciences et Technologies de Mahajanga" },
+    { src: "/images/etablissements/iutam.webp", alt: "Logo de l'IUTAM, Institut Universitaire de Technologie et d'Agronomie de Mahajanga" },
+    { src: "/images/etablissements/edsp.webp", alt: "Logo de l'EDSP, École de Droit et Science Politiques de l'Université de Mahajanga" },
+    { src: "/images/etablissements/ecole-tourisme.webp", alt: "Logo de l'École de Tourisme" },
+    { src: "/images/etablissements/iostm.webp", alt: "Logo de l'IOSTM, Institut d'Odonto-Stomatologie Tropicale de Madagascar" },
+    { src: "/images/etablissements/iugm.webp", alt: "Logo de l'IUGM, Institut Universitaire de Gestion et de Management" },
+    { src: "/images/etablissements/elci.webp", alt: "Logo de l'ELCI, École des Langues Commerciales Internationales" },
+    { src: "/images/etablissements/fste.webp", alt: "Logo de la FSTE, Faculté des Sciences, de Technologies et de l'Environnement" },
+    { src: "/images/etablissements/edgvm.webp", alt: "Logo de l'EDGVM, École Doctorale Génie du Vivant et Modélisation de l'Université de Mahajanga" },
+    { src: "/images/etablissements/ens.webp", alt: "Logo de l'ENS de l'Université de Mahajanga" },
+    { src: "/images/etablissements/ecole-veterinaire.webp", alt: "Logo de l'École de Vétérinaire de l'Université de Mahajanga" },
+    { src: "/images/etablissements/eatp.webp", alt: "Logo de l'E.A.T.P" },
+    { src: "/images/etablissements/eden.webp", alt: "Logo de l'EDEN, École Doctorale Écosystèmes Naturels" },
+    { src: "/images/etablissements/etablissement-14.webp", alt: "Logo d'un établissement de l'Université de Mahajanga" },
+    { src: "/images/etablissements/ecole-pharmacie.webp", alt: "Logo de l'École de Pharmacie" },
+];
+// Logo de l'Université affiché en haut à gauche du diaporama, par-dessus chaque logo.
+export const HERO_UNIVERSITY_LOGO = "/images/etablissements/umg.webp";
+export const DEFAULT_HERO_IMAGE = DEFAULT_HERO_SLIDES[0].src;
+export const DEFAULT_HERO_IMAGE_ALT = DEFAULT_HERO_SLIDES[0].alt;
 // Photo de la salle de lecture accompagnant l'invitation à s'inscrire (WebP 1600×800).
 export const SIGNUP_IMAGE = "/images/salle-lecture-large.webp";
 

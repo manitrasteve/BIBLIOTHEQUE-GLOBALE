@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Layers } from "lucide-react";
 import { api } from "../lib/api";
+import { COVER_SOFT_TEXT, coverColor } from "../lib/coverColor";
 
 // « Documents similaires » : mêmes auteurs, même catégorie ou mots-clés communs (calculé par le serveur).
 export default function SimilarDocuments({ slug }) {
@@ -39,7 +40,10 @@ export default function SimilarDocuments({ slug }) {
                                 {d.cover_url ? (
                                     <img src={d.cover_url} alt="" className="aspect-[3/4] w-full object-cover" loading="lazy" />
                                 ) : (
-                                    <div className="flex aspect-[3/4] w-full items-center justify-center text-slate-400">
+                                    <div
+                                        className="flex aspect-[3/4] w-full items-center justify-center"
+                                        style={{ backgroundColor: coverColor(d).bg, color: COVER_SOFT_TEXT }}
+                                    >
                                         <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                                     </div>
                                 )}

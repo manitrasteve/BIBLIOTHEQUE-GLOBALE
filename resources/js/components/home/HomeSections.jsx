@@ -30,9 +30,10 @@ import {
     Eye,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { DEFAULT_HERO_IMAGE, DEFAULT_HERO_IMAGE_ALT, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
+import { DEFAULT_HERO_SLIDES, HERO_UNIVERSITY_LOGO, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
 import { docInfo } from "../CatalogueCard";
+import { COVER_SOFT_TEXT, coverColor } from "../../lib/coverColor";
 import { stripHtml } from "../../lib/utils";
 import LibraryCard from "../LibraryCard";
 
@@ -183,10 +184,89 @@ const FEATURE_DETAILS = {
     "consultation sécurisée": "Lecture en ligne dans le lecteur intégré, sans téléchargement.",
 };
 
+const HERO_SLIDE_DELAY = 2000;
+
 /**
- * Bandeau d'accueil « Vitrine » : bannière pleine largeur (image téléversée, sinon la bannière
- * de l'Université), puis une bande pleine (couleur principale) avec le titre, la description et la
- * recherche, et enfin les points forts en cartes.
+ * Logos des établissements en diaporama : le suivant arrive par la droite toutes les deux secondes, puis
+ * on recommence. En pause sous la souris ; sans défilement automatique si le système demande de
+ * réduire les animations. Seules l'image qui entre et celle qui sort sont animées : les autres se
+ * replacent instantanément hors de la vue.
+ */
+function HeroSlideshow() {
+    const slides = DEFAULT_HERO_SLIDES;
+    const [index, setIndex] = useState(0);
+    const [paused, setPaused] = useState(false);
+    const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+
+    useEffect(() => {
+        if (paused || reducedMotion || slides.length < 2) return undefined;
+        const timer = setTimeout(() => setIndex((value) => (value + 1) % slides.length), HERO_SLIDE_DELAY);
+        return () => clearTimeout(timer);
+    }, [index, paused, reducedMotion, slides.length]);
+
+    const previous = (index - 1 + slides.length) % slides.length;
+
+    return (
+        <div
+            className="relative aspect-[4/3] w-full overflow-hidden border border-line bg-[#ffffff] sm:aspect-[5/2]"
+            role="region"
+            aria-roledescription="diaporama"
+            aria-label="Bannière de la Bibliothèque Globale"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+        >
+            {slides.map((slide, i) => {
+                const position = i === index ? "translate-x-0" : i === previous ? "-translate-x-full" : "translate-x-full";
+                const moving = i === index || i === previous;
+                return (
+                    <div
+                        key={slide.src}
+                        aria-hidden={i === index ? undefined : "true"}
+                        className={cx(
+                            "absolute inset-0 flex items-center justify-center px-6 pb-10 pt-6 sm:px-10 sm:pb-12 sm:pt-8",
+                            position,
+                            moving ? "transition-transform duration-700 ease-in-out motion-reduce:transition-none" : "transition-none",
+                        )}
+                    >
+                        {/* Logo entier et centré, réduit si besoin mais jamais agrandi (les petits logos restent nets). */}
+                        <img
+                            src={slide.src}
+                            alt={i === index ? slide.alt : ""}
+                            fetchPriority={i === 0 ? "high" : undefined}
+                            decoding="async"
+                            className="max-h-full max-w-full object-contain"
+                        />
+                    </div>
+                );
+            })}
+            {/* Logo de l'Université, fixe en haut à gauche : présent sur chaque logo qui défile. */}
+            <img
+                src={HERO_UNIVERSITY_LOGO}
+                alt="Université de Mahajanga"
+                decoding="async"
+                className="absolute left-3 top-3 z-10 h-14 w-auto sm:left-5 sm:top-4 sm:h-20 lg:h-24"
+            />
+            <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2" role="tablist" aria-label="Choisir une bannière">
+                {slides.map((slide, i) => (
+                    <button
+                        key={slide.src}
+                        type="button"
+                        role="tab"
+                        aria-selected={i === index}
+                        aria-label={`Afficher la bannière ${i + 1}`}
+                        onClick={() => setIndex(i)}
+                        className={cx("h-2 rounded-full border border-indigo-800 transition-all duration-300", i === index ? "w-7 bg-gold" : "w-2 bg-[#ffffff]")}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Bandeau d'accueil « Vitrine » : bannière pleine largeur (image téléversée, sinon le diaporama des
+ * bannières par défaut), puis une bande pleine (couleur principale) avec le titre, la description et
+ * la recherche, et enfin les points forts en cartes.
  */
 function HeroSection({ section }) {
     const c = section.content;
@@ -200,22 +280,24 @@ function HeroSection({ section }) {
     return (
         <section className="umg-container pt-6">
             <div className="overflow-hidden rounded-lg">
-                {c.show_image && (
-                    // Bannière sur toute la largeur du bloc, affichée entière (jamais recadrée) : sa hauteur
-                    // suit sa proportion naturelle. Seule une image téléversée (proportion inconnue, parfois
-                    // très haute) est limitée à la hauteur de l'écran, sans être coupée.
-                    <div className="w-full bg-indigo-100">
-                        <img
-                            src={customImage || DEFAULT_HERO_IMAGE}
-                            alt={customImage ? c.image_alt || "" : DEFAULT_HERO_IMAGE_ALT}
-                            width="1600"
-                            height="900"
-                            fetchPriority="high"
-                            decoding="async"
-                            className={cx("block h-auto w-full", customImage && "mx-auto max-h-[85vh] object-contain")}
-                        />
-                    </div>
-                )}
+                {c.show_image &&
+                    (customImage ? (
+                        // Image téléversée : affichée entière (proportion inconnue, parfois très haute),
+                        // limitée à la hauteur de l'écran sans être coupée.
+                        <div className="w-full bg-indigo-100">
+                            <img
+                                src={customImage}
+                                alt={c.image_alt || ""}
+                                width="1600"
+                                height="900"
+                                fetchPriority="high"
+                                decoding="async"
+                                className="mx-auto block h-auto max-h-[85vh] w-full object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <HeroSlideshow />
+                    ))}
                 {hasText && (
                     <div
                         className={cx(
@@ -377,14 +459,15 @@ function PublicationFrame({ document, active }) {
             <Link
                 to={`/documents/${document.slug}`}
                 className="relative block h-56 overflow-hidden bg-indigo-600 min-[480px]:h-auto min-[480px]:w-40 lg:w-48"
+                style={document.cover_url ? undefined : { backgroundColor: coverColor(document).bg }}
                 tabIndex={-1}
                 aria-hidden="true"
             >
                 {document.cover_url ? (
                     <img src={document.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                        <TypeIcon className="h-12 w-12 text-on-primary-soft" strokeWidth={1.25} />
+                    <span className="absolute inset-0 flex items-center justify-center" style={{ color: COVER_SOFT_TEXT }}>
+                        <TypeIcon className="h-12 w-12" strokeWidth={1.25} />
                     </span>
                 )}
             </Link>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, GraduationCap, ScrollText, ClipboardList, FileText, Globe, Lock, ArrowUpRight, Languages, CalendarDays } from 'lucide-react';
 import { stripHtml } from '../lib/utils';
 import { languageLabel } from '../lib/languages';
+import { COVER_SOFT_TEXT, coverColor } from '../lib/coverColor';
 
 export const TYPE_CONFIG = {
   livre: { label: 'Livre', icon: BookOpen },
@@ -45,7 +46,10 @@ function GridCard({ document, typeCfg, TypeIcon, AccessIcon, language }) {
             className="h-24 w-auto max-w-[60%] rounded object-cover transition-transform duration-300 group-hover:-translate-y-0.5"
           />
         ) : (
-          <span className="flex h-24 w-[4.5rem] items-center justify-center rounded bg-indigo-600 text-on-primary-soft transition-transform duration-300 group-hover:-translate-y-0.5">
+          <span
+            className="flex h-24 w-[4.5rem] items-center justify-center rounded transition-transform duration-300 group-hover:-translate-y-0.5"
+            style={{ backgroundColor: coverColor(document).bg, color: COVER_SOFT_TEXT }}
+          >
             <TypeIcon className="h-6 w-6" strokeWidth={1.5} />
           </span>
         )}
@@ -145,7 +149,10 @@ export default function DocumentCard({ document, showCategory = false, variant =
         {document.cover_url ? (
           <img src={document.cover_url} alt="" className="hidden h-28 w-20 shrink-0 rounded-xl border border-slate-200 object-cover  sm:block" />
         ) : (
-          <span className="hidden h-28 w-20 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-indigo-400 sm:flex">
+          <span
+            className="hidden h-28 w-20 shrink-0 items-center justify-center rounded-xl sm:flex"
+            style={{ backgroundColor: coverColor(document).bg, color: COVER_SOFT_TEXT }}
+          >
             <BookOpen className="h-8 w-8" />
           </span>
         )}

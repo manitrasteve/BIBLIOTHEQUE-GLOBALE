@@ -26,6 +26,7 @@ import SimilarDocuments from "../components/SimilarDocuments";
 import { SkeletonDocumentDetail } from "../components/Skeleton";
 import { TYPE_CONFIG, normalizeType } from "../components/DocumentCard";
 import { languageLabel } from "../lib/languages";
+import { COVER_SOFT_TEXT, coverColor } from "../lib/coverColor";
 
 // Résumé saisi en texte enrichi : seules quelques balises de mise en forme sont conservées.
 function sanitizeAbstract(html) {
@@ -67,12 +68,15 @@ function GuestDocumentView({ doc }) {
                             className="aspect-[3/4] w-full rounded-l-md rounded-r-2xl border-l-[6px] border-indigo-800 object-cover"
                         />
                     ) : (
-                        <div className="flex aspect-[3/4] w-full flex-col justify-between rounded-l-md rounded-r-2xl border-l-[6px] border-indigo-800 bg-indigo-600 p-4 text-white">
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-on-primary-soft">
+                        <div
+                            className="flex aspect-[3/4] w-full flex-col justify-between rounded-l-md rounded-r-2xl border-l-[6px] p-4 text-white"
+                            style={{ backgroundColor: coverColor(doc).bg, borderColor: coverColor(doc).spine }}
+                        >
+                            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: COVER_SOFT_TEXT }}>
                                 {[typeLabel, doc.year].filter(Boolean).join(" · ")}
                             </span>
                             <span className="font-display text-lg font-extrabold leading-tight [overflow-wrap:anywhere]">{doc.title}</span>
-                            <span className="text-[11px] font-semibold text-on-primary-soft">{doc.category || "Catalogue"}</span>
+                            <span className="text-[11px] font-semibold" style={{ color: COVER_SOFT_TEXT }}>{doc.category || "Catalogue"}</span>
                         </div>
                     )}
                 </div>
@@ -262,7 +266,10 @@ export default function DocumentDetailPage() {
                                                 className="w-full aspect-[3/4] object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full aspect-[3/4] flex flex-col items-center justify-center text-slate-400 px-2 text-center">
+                                            <div
+                                                className="w-full aspect-[3/4] flex flex-col items-center justify-center px-2 text-center"
+                                                style={{ backgroundColor: coverColor(doc).bg, color: COVER_SOFT_TEXT }}
+                                            >
                                                 <BookOpen
                                                     className="h-7 w-7 mb-2"
                                                     strokeWidth={1.25}
