@@ -89,7 +89,13 @@ export const SECTION_TYPES = {
             { name: "show_search", kind: "bool", label: "Afficher la barre de recherche" },
             { name: "features", kind: "list", label: "Points forts", maxItems: 4, max: 40 },
             { name: "show_image", kind: "bool", label: "Afficher la bannière" },
-            { name: "image", kind: "image", label: "Bannière (format paysage 16:9 conseillé)", fallback: DEFAULT_HERO_IMAGE },
+            {
+                name: "image",
+                kind: "image",
+                label: "Bannière (format paysage 16:9 conseillé)",
+                fallback: DEFAULT_HERO_IMAGE,
+                help: "Sans image téléversée, la bannière est le diaporama des logos des établissements (aperçu : premier logo).",
+            },
             { name: "image_alt", kind: "text", label: "Description de la bannière (accessibilité)", max: 160, help: "Utilisée pour une bannière téléversée." },
         ],
         defaults: {

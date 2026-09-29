@@ -195,7 +195,9 @@ export default function SearchResultsPage() {
   );
 
   // Hauteurs de référence des éléments fixés : sous la barre du haut (page publique) ou en haut
-  // de la zone qui défile (espace bibliothécaire), puis sous la bande de recherche.
+  // de la zone qui défile (espace bibliothécaire, grand écran), puis sous la bande de recherche.
+  // Sous 1024 px, l'espace bibliothécaire défile avec la fenêtre : la bande se place alors sous
+  // la barre du haut (classe top-[var(--app-header-height)] de la bande).
   const stickyVars = {
     '--catalog-top': inLayout ? '0px' : 'var(--app-header-height)',
     '--catalog-band': `${bandHeight}px`,
@@ -244,7 +246,7 @@ export default function SearchResultsPage() {
           sur toute la largeur du contenu). Sur petit écran, elle porte aussi les catégories. */}
       <div
         ref={bandRef}
-        className={`sticky top-[var(--catalog-top)] z-30 border-b border-line bg-paper py-3 ${
+        className={`sticky top-[var(--app-header-height)] z-30 border-b lg:top-[var(--catalog-top)] border-line bg-paper py-3 ${
           inLayout ? '-mx-4 px-4 sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8' : '-mx-4 px-4 sm:-mx-8 sm:px-8 xl:-mx-10 xl:px-10'
         }`}
       >

@@ -66,7 +66,7 @@ function ImageField({ field, value, onChange }) {
             <div className="flex flex-wrap items-center gap-3">
                 <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                     {src ? (
-                        <img src={src} alt="" className="h-full w-full object-cover" />
+                        <img src={src} alt="" className={`h-full w-full ${value ? "object-cover" : "bg-[#ffffff] object-contain p-1"}`} />
                     ) : (
                         <ImagePlus className="h-6 w-6 text-slate-400" />
                     )}
@@ -86,6 +86,7 @@ function ImageField({ field, value, onChange }) {
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} className="sr-only" tabIndex={-1} />
             <p className="mt-1 text-xs text-slate-500">JPG, PNG ou WebP — 4 Mo maximum.</p>
+            {field.help && <p className="mt-1 text-xs text-slate-500">{field.help}</p>}
             {error && <p className="mt-1 text-xs font-semibold text-rose-700">{error}</p>}
         </div>
     );
