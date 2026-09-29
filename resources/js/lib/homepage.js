@@ -35,11 +35,11 @@ export const DEFAULT_HERO_SLIDES = [
     { src: "/images/etablissements/elci.webp", alt: "Logo de l'ELCI, École des Langues Commerciales Internationales" },
     { src: "/images/etablissements/fste.webp", alt: "Logo de la FSTE, Faculté des Sciences, de Technologies et de l'Environnement" },
     { src: "/images/etablissements/edgvm.webp", alt: "Logo de l'EDGVM, École Doctorale Génie du Vivant et Modélisation de l'Université de Mahajanga" },
-    { src: "/images/etablissements/ens.webp", alt: "Logo de l'ENS de l'Université de Mahajanga" },
+    { src: "/images/etablissements/ens.webp", alt: "Logo de l'ENS, École Normale Supérieure de l'Université de Mahajanga" },
     { src: "/images/etablissements/ecole-veterinaire.webp", alt: "Logo de l'École de Vétérinaire de l'Université de Mahajanga" },
-    { src: "/images/etablissements/eatp.webp", alt: "Logo de l'E.A.T.P" },
+    { src: "/images/etablissements/eatp.webp", alt: "Logo de l'E.A.T.P, École des Arts et Techniques en Prothèse dentaires" },
     { src: "/images/etablissements/eden.webp", alt: "Logo de l'EDEN, École Doctorale Écosystèmes Naturels" },
-    { src: "/images/etablissements/etablissement-14.webp", alt: "Logo d'un établissement de l'Université de Mahajanga" },
+    { src: "/images/etablissements/faculte-medecine.webp", alt: "Logo de la Faculté de Médecine de l'Université de Mahajanga" },
     { src: "/images/etablissements/ecole-pharmacie.webp", alt: "Logo de l'École de Pharmacie" },
 ];
 // Logo de l'Université affiché en haut à gauche du diaporama, par-dessus chaque logo.
