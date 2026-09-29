@@ -68,7 +68,7 @@ export default function ReaderNotesPanel({ slug, pageNum, notes, setNotes, onGoT
             aria-label="Mes notes"
             // Le lecteur bloque la sélection (protection du PDF) ; les notes, elles, restent éditables normalement.
             style={{ userSelect: "text", WebkitUserSelect: "text" }}
-            className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-slate-200 bg-surface shadow-xl"
+            className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-slate-200 bg-surface"
         >
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -130,7 +130,7 @@ export default function ReaderNotesPanel({ slug, pageNum, notes, setNotes, onGoT
                 {notes.map((note) => (
                     <li
                         key={note.id}
-                        className={`rounded-lg border p-3 ${note.page === pageNum ? "border-brass bg-indigo-50/50" : "border-slate-200"}`}
+                        className={`rounded-lg border p-3 ${note.page === pageNum ? "border-brass bg-indigo-50" : "border-slate-200"}`}
                     >
                         <div className="flex items-center gap-2">
                             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${NOTE_COLORS[note.color]?.dot || NOTE_COLORS.jaune.dot}`} aria-hidden="true" />

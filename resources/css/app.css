@@ -2,8 +2,6 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
@@ -36,8 +34,8 @@
     --color-paper-dim: var(--site-light-paper-dim, #ececfb);
     --color-ink: var(--site-light-foreground, #15212b);
     --color-ink-soft: var(--site-light-fg-muted, #575e75);
-    --color-brass: var(--site-light-secondary, #1a1a8c);
-    --color-brass-deep: var(--site-light-secondary-deep, #11116f);
+    --color-brass: var(--site-light-secondary, #9e6612);
+    --color-brass-deep: var(--site-light-secondary-deep, #7a4e0d);
     --color-line: var(--site-light-border, #dde0ee);
 
     /*
@@ -61,6 +59,11 @@
     /* Bandeau supérieur et pied de page (bleu nuit UMG), identiques dans les deux thèmes. */
     --color-umg-night: #11116f;
     --color-umg-night-deep: #0c0c4f;
+    /* Accent doré (boutons d'action, point actif du carrousel, liens sur fond bleu nuit), fixe dans les deux thèmes. */
+    --color-gold: #e4a525;
+    --color-gold-soft: #f2c14e;
+    --color-gold-deep: #c98d14;
+    --color-footer: #11116f;
     --color-umg-logo: #2323fe;
 
     /* Neutres Tailwind (valeurs par défaut de Tailwind), rattachés aux couleurs du texte, des bordures et des cartes. */
@@ -95,16 +98,16 @@
  * Tailwind v4 compile chaque utilitaire de couleur en var(--color-…).
  * Plutôt que de surcharger les classes une à une, on redéfinit ici les
  * variables de la palette : bg-*, text-*, border-*, ring-*, les variantes
- * hover:/focus:/group-hover: et les opacités (/50…) suivent toutes seules.
+ * hover:/focus:/group-hover: suivent toutes seules.
  *
  * Conventions à respecter dans les composants pour que cela fonctionne :
  *  - fond de carte / panneau : bg-surface (pas bg-white) ;
  *  - texte de marque : text-brass / text-brass-deep (pas text-indigo-*) ;
  *  - texte coloré d'état : nuance 700 (text-red-700…) ; les nuances
  *    500-600 sont réservées aux fonds pleins (boutons) et ne changent pas ;
- *  - voile de modale : bg-black/40 (pas bg-slate-950/40) ;
+ *  - voile de modale : bg-overlay (couleur pleine, sans transparence) ;
  *  - bg-white / text-white restent blancs dans les deux thèmes
- *    (texte sur bouton, pastille du logo, effet « verre » bg-white/10) ;
+ *    (texte sur bouton, pastille du logo) ;
  *  - bg-indigo-500…950 (marine) restent inchangés : boutons, menu actif.
  * Aucune classe dark: n'est nécessaire.
  */
@@ -120,8 +123,9 @@ html.dark {
     --color-paper-dim: var(--site-dark-paper-dim, #1b1e3a);
     --color-ink: var(--site-dark-foreground, #e6e7f2);
     --color-ink-soft: var(--site-dark-fg-muted, #a3a8c3);
-    --color-brass: var(--site-dark-secondary, #a5a5f5);
-    --color-brass-deep: var(--site-dark-secondary-deep, #c9c9fa);
+    --color-brass: var(--site-dark-secondary, #e4a525);
+    --color-brass-deep: var(--site-dark-secondary-deep, #f2c14e);
+    --color-footer: #0b0b3f;
     --color-line: var(--site-dark-border, #272b4a);
     --color-indigo-50: var(--site-dark-accent, #15183a);
     --color-indigo-100: var(--site-dark-accent-2, #1c2050);
@@ -130,7 +134,7 @@ html.dark {
     --color-indigo-500: var(--site-dark-primary, #2525a5);
     --color-indigo-600: var(--site-dark-primary, #2525a5);
     --color-indigo-700: var(--site-dark-primary-deep, #1a1a8c);
-    --color-indigo-800: var(--site-dark-primary-deep, #1a1a8c);
+    --color-indigo-800: var(--site-dark-primary-deep, #23246b);
 
     /* Neutres : échelle inversée (50 = fond légèrement relevé, 950 = texte le plus clair). */
     --color-slate-50: var(--site-dark-surface-2, #151f30);
@@ -436,6 +440,22 @@ button:active {
 .btn-primary:hover {
     background: var(--btn-bg, var(--color-indigo-700)) !important;
 }
+/* Bouton d'action principal en doré (Connexion, Rechercher, S'inscrire) : texte bleu nuit. */
+.btn-accent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 0 !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 0.8rem;
+    color: var(--color-umg-night) !important;
+    background: var(--color-gold) !important;
+    font-weight: 700;
+}
+.btn-accent:hover {
+    background: var(--color-gold-deep) !important;
+}
 
 .skeleton {
     background: var(--color-slate-200);
@@ -648,7 +668,7 @@ summary:focus-visible,
     color: var(--color-brass);
     padding: 0.5rem 1rem;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+    border: 1px solid var(--color-line);
 }
 
 .skip-link:focus {
@@ -664,5 +684,12 @@ summary:focus-visible,
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+}
+
+/* Texte indicatif des champs : gris plein (Tailwind le rend par défaut en transparence). */
+@layer base {
+    ::placeholder {
+        color: var(--color-slate-400);
     }
 }

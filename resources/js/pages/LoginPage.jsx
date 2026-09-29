@@ -113,7 +113,7 @@ export default function LoginPage() {
                 <div className="mt-4 text-center">
                     <Link
                         to="/mot-de-passe-oublie"
-                        className="text-sm font-bold text-brass hover:text-brass-deep"
+                        className="text-sm font-bold text-blue-700 hover:underline"
                     >
                         Mot de passe oublié ?
                     </Link>
@@ -122,7 +122,7 @@ export default function LoginPage() {
                     Pas encore de compte ?{" "}
                     <Link
                         to="/creer-un-compte"
-                        className="font-bold text-brass hover:text-brass-deep"
+                        className="font-bold text-blue-700 hover:underline"
                     >
                         Créer un compte
                     </Link>

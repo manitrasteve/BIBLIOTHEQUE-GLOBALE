@@ -113,7 +113,7 @@ export default function NotificationsPage() {
                 {hasUnread && (
                     <button
                         onClick={markAllRead}
-                        className="flex items-center gap-1.5 text-sm text-brass hover:text-brass-deep"
+                        className="flex items-center gap-1.5 text-sm text-blue-700 hover:underline"
                     >
                         <CheckCheck className="h-4 w-4" strokeWidth={1.75} />
                         Tout marquer comme lu
@@ -171,7 +171,7 @@ export default function NotificationsPage() {
                                     </p>
                                 </div>
                                 <div className="mt-1 flex shrink-0 items-center gap-2" onClick={(e)=>e.stopPropagation()}>
-                                    {n.read_at ? <button type="button" onClick={()=>markUnread(n)} className="text-[11px] font-semibold text-brass hover:text-brass-deep">Marquer comme non lu</button> : <span className="h-2 w-2 rounded-full bg-brass" />}
+                                    {n.read_at ? <button type="button" onClick={()=>markUnread(n)} className="text-[11px] font-semibold text-blue-700 hover:underline">Marquer comme non lu</button> : <span className="h-2 w-2 rounded-full bg-blue-700" />}
                                 </div>
                             </li>
                         );

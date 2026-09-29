@@ -2,13 +2,13 @@ import { Mail, Phone, MapPin } from 'lucide-react';
 
 // Pied de page bleu nuit (page d'accueil), sur le modèle du site de l'Université de Mahajanga :
 // présentation et coordonnées, puis ligne de copyright.
-// Couleurs fixes (bg-umg-night, texte blanc) : identiques en thème clair et sombre.
+// Fond bleu nuit (bg-footer, plus foncé en thème sombre) et texte blanc.
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-8 bg-umg-night text-[#ffffff]">
+    <footer className="mt-8 bg-footer text-[#ffffff]">
       <div className="umg-container grid gap-8 py-12 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-start">
         {/* Présentation */}
         <div>

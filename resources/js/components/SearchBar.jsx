@@ -89,7 +89,7 @@ function useSuggestions(query) {
       id={listId}
       role="listbox"
       aria-label="Suggestions"
-      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-line bg-surface py-1.5 text-left shadow-lg"
+      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-line bg-surface py-1.5 text-left"
     >
       {items.map((item, index) => {
         const Icon = item.type === 'author' ? UserRound : BookOpen;
@@ -256,7 +256,7 @@ export default function SearchBar({ initialQuery = '', initialBy = 'all', live =
           className="flex-1"
         />
 
-        <Button type="submit" className="sm:px-3.5">
+        <Button type="submit" className="btn-accent sm:px-3.5">
           <Search className="h-4 w-4" strokeWidth={1.5} />
           Rechercher
         </Button>

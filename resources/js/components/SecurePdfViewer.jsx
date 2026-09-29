@@ -714,8 +714,8 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
                                     ref={h.active ? activeHighlightRef : undefined}
                                     className={`pointer-events-none absolute z-10 rounded-sm mix-blend-multiply ${
                                         h.active
-                                            ? "bg-slate-400/60 ring-2 ring-slate-600"
-                                            : "bg-yellow-300/60"
+                                            ? "bg-slate-400 ring-2 ring-slate-600"
+                                            : "bg-yellow-300"
                                     }`}
                                     style={{
                                         left: h.left,

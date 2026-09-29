@@ -30,7 +30,7 @@ class ThemePalette
     public const DEFAULTS = [
         'light' => [
             'primary' => '#1a1a8c',     // boutons, menu actif, bandeaux (--color-indigo-500…800)
-            'secondary' => '#1a1a8c',   // liens et texte de marque (--color-brass)
+            'secondary' => '#9e6612',   // accent doré : liens, surtitres, icônes (--color-brass)
             'accent' => '#f4f5fb',      // fonds teintés : survols, puces, sélection (--color-indigo-50…300)
             'background' => '#f6f7fb',  // fond des pages (--color-canvas, --color-paper)
             'surface' => '#ffffff',     // cartes et panneaux (--color-surface)
@@ -39,7 +39,7 @@ class ThemePalette
         ],
         'dark' => [
             'primary' => '#2525a5',
-            'secondary' => '#a5a5f5',
+            'secondary' => '#e4a525',
             'accent' => '#15183a',
             'background' => '#0a0b1c',
             'surface' => '#121429',

@@ -15,7 +15,6 @@ import {
     LayoutTemplate,
     Palette,
     LibraryBig,
-    Search,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -352,15 +351,6 @@ export default function Header() {
 
                     {/* ================= ACTIONS ================= */}
                     <nav aria-label="Compte et outils" className="flex shrink-0 items-center gap-1.5 sm:gap-3 text-sm">
-                        {/* Recherche (bouton carré, comme le site de l'Université) */}
-                        <Link
-                            to="/recherche"
-                            title="Rechercher dans le catalogue"
-                            aria-label="Rechercher dans le catalogue"
-                            className="hidden h-10 w-10 items-center justify-center rounded-md border border-line text-ink hover:border-brass hover:text-brass lg:inline-flex"
-                        >
-                            <Search className="h-[18px] w-[18px]" aria-hidden="true" />
-                        </Link>
 
                         {/* =====================================================
                             PAGES PUBLIQUES + DÉCONNECTÉ

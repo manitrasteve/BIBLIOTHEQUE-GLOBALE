@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     ArrowRight,
+    ChevronLeft,
+    ChevronRight,
     Search,
     Sparkles,
     ShieldCheck,
@@ -30,7 +32,7 @@ import {
 import { api } from "../../lib/api";
 import { DEFAULT_HERO_IMAGE, DEFAULT_HERO_IMAGE_ALT, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
-import { Cover, docInfo } from "../CatalogueCard";
+import { docInfo } from "../CatalogueCard";
 import { stripHtml } from "../../lib/utils";
 import LibraryCard from "../LibraryCard";
 
@@ -124,7 +126,7 @@ function Heading({ section, icon: Icon, action, className = "mb-5" }) {
     if (!label && !title && !action) return null;
 
     return (
-        <div className={cx(className, "flex gap-4", centered ? "flex-col items-center" : "items-end justify-between")}>
+        <div className={cx(className, "flex gap-4", centered ? "flex-col items-center" : "flex-wrap items-end justify-between")}>
             <div className="min-w-0">
                 {label && (
                     <p className="section-label" style={color}>
@@ -360,40 +362,50 @@ function CategoriesSection({ section, preview }) {
     );
 }
 
-// « À la une » : la publication la plus récente en vedette, les suivantes en lignes compactes.
-function FeaturedDocument({ document }) {
+// Une publication dans son cadre blanc « tirage photo » : couverture pleine hauteur, fiche bleu nuit.
+// Les cadres en retrait du carrousel ne sont pas atteignables au clavier (active = false).
+function PublicationFrame({ document, active }) {
     const { typeCfg, authors } = docInfo(document);
     const summary = document.abstract ? stripHtml(document.abstract).trim() : "";
     const views = document.consultation_count ?? 0;
+    const focus = active ? undefined : -1;
+    const TypeIcon = typeCfg.icon;
 
-    // Bloc « À la une » de la charte UMG : visuel sur fond lavande à gauche, panneau bleu nuit à droite.
     return (
-        <article className="grid overflow-hidden rounded-lg border border-line lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <article className="grid h-full overflow-hidden rounded-[2px] min-[480px]:grid-cols-[auto_minmax(0,1fr)]">
+            {/* Couverture sur toute la hauteur du cadre (recadrée si besoin) ; sinon, icône du type. */}
             <Link
                 to={`/documents/${document.slug}`}
-                className="flex items-center justify-center bg-indigo-50 px-6 py-8 sm:py-10"
+                className="relative block h-56 overflow-hidden bg-indigo-600 min-[480px]:h-auto min-[480px]:w-40 lg:w-48"
                 tabIndex={-1}
                 aria-hidden="true"
             >
-                <span className="block w-40 sm:w-48">
-                    <Cover document={document} typeCfg={typeCfg} />
-                </span>
+                {document.cover_url ? (
+                    <img src={document.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                        <TypeIcon className="h-12 w-12 text-on-primary-soft" strokeWidth={1.25} />
+                    </span>
+                )}
             </Link>
-            <div className="flex min-w-0 flex-col bg-indigo-800 p-6 text-[#ffffff] sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-on-primary-soft">À la une</p>
-                <h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-[28px]">
-                    <Link to={`/documents/${document.slug}`} className="hover:underline">
+            <div className="flex min-w-0 flex-col bg-indigo-800 p-5 text-[#ffffff] sm:p-6 lg:p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-on-primary-soft">
+                    {[typeCfg.label, document.year].filter(Boolean).join(" · ")}
+                </p>
+                <h3 className="mt-2 line-clamp-2 font-display text-xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] lg:text-2xl">
+                    <Link to={`/documents/${document.slug}`} className="hover:underline" tabIndex={focus}>
                         {document.title}
                     </Link>
                 </h3>
-                <p className="mt-2 text-sm text-on-primary-soft [overflow-wrap:anywhere]">
-                    {[authors, typeCfg.label, document.year, document.library].filter(Boolean).join(" · ")}
+                <p className="mt-1.5 truncate text-sm text-on-primary-soft">
+                    {[authors, document.library].filter(Boolean).join(" · ")}
                 </p>
-                {summary && <p className="mt-4 line-clamp-4 text-[15px] leading-7 text-[#ffffff] [overflow-wrap:anywhere]">{summary}</p>}
-                <div className="mt-auto flex flex-wrap items-center gap-5 pt-6">
+                {summary && <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#ffffff] [overflow-wrap:anywhere]">{summary}</p>}
+                <div className="mt-auto flex flex-wrap items-center gap-5 pt-5">
                     <Link
                         to={`/documents/${document.slug}`}
-                        className="inline-flex items-center gap-3 border-b border-[#ffffff] pb-2 text-sm font-bold hover:gap-4"
+                        className="inline-flex items-center gap-3 border-b border-gold-soft pb-1.5 text-sm font-bold text-gold-soft hover:gap-4"
+                        tabIndex={focus}
                     >
                         Consulter
                         <ArrowRight className="h-4 w-4" />
@@ -408,39 +420,52 @@ function FeaturedDocument({ document }) {
     );
 }
 
-// Publications suivantes : rangée numérotée (02, 03…) comme les onglets « À la une » du site UMG.
-function CompactDocument({ document, number }) {
-    const { typeCfg, authors } = docInfo(document);
+// Cadres sans bordure. Position d'un cadre dans le carrousel : au centre, en retrait à gauche / à droite, ou masqué.
+// Sur mobile, seul le cadre central est affiché (dans le flux, hauteur libre).
+const SLIDE_POSITIONS = {
+    active: "z-20 sm:-translate-x-1/2 w-full sm:w-[400px] lg:w-[460px]",
+    next: "z-10 max-sm:hidden sm:-translate-x-[5%] sm:w-[400px] lg:w-[460px] scale-[0.82] brightness-[0.65]",
+    prev: "z-10 max-sm:hidden sm:-translate-x-[95%] sm:w-[400px] lg:w-[460px] scale-[0.82] brightness-[0.65]",
+    hidden: "z-0 max-sm:hidden sm:-translate-x-1/2 sm:w-[400px] lg:w-[460px] scale-75 invisible pointer-events-none",
+};
 
-    return (
-        <li className="border-b border-line">
-            <Link
-                to={`/documents/${document.slug}`}
-                className="group flex h-full gap-3 border-t-2 border-transparent px-1 py-4 transition-colors hover:border-brass focus-visible:border-brass sm:px-3"
-            >
-                <span className="pt-0.5 text-xs font-semibold tabular-nums text-ink-soft">{String(number).padStart(2, "0")}</span>
-                <span className="min-w-0">
-                    <span className="line-clamp-2 font-display text-sm font-semibold leading-snug text-ink [overflow-wrap:anywhere] group-hover:text-brass-deep">
-                        {document.title}
-                    </span>
-                    <span className="mt-1 block truncate text-xs text-ink-soft">
-                        {[authors, typeCfg.label, document.year].filter(Boolean).join(" · ")}
-                    </span>
-                </span>
-            </Link>
-        </li>
-    );
+function slidePosition(i, current, count) {
+    if (i === current) return "active";
+    if (count > 1 && i === (current + 1) % count) return "next";
+    if (count > 2 && i === (current - 1 + count) % count) return "prev";
+    return "hidden";
 }
 
-const OTHERS_COLUMNS = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3" };
+const AUTOPLAY_DELAY = 2000;
 
+const CAROUSEL_BUTTON =
+    "inline-flex h-11 w-11 items-center justify-center rounded-sm border border-line bg-surface text-brass transition-colors hover:border-indigo-800 hover:bg-indigo-800 hover:text-[#ffffff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+/**
+ * Dernières publications en carrousel : la publication courante au centre dans un cadre blanc,
+ * les voisines en retrait derrière elle ; flèches à côté du titre et points de position dessous.
+ */
 function DocumentsSection({ section, preview }) {
     const response = usePublicData("documents");
     const documents = (response?.data || []).slice(0, section.content.limit || 6);
-    if (!documents.length) {
+    const [current, setCurrent] = useState(0);
+    const [paused, setPaused] = useState(false);
+    const count = documents.length;
+
+    // Défilement automatique : publication suivante toutes les deux secondes, en pause sous la souris ou au clavier.
+    // Relancé après chaque changement (flèches, points), pour laisser le délai complet à chaque publication.
+    useEffect(() => {
+        if (count < 2 || paused) return undefined;
+        const timer = setTimeout(() => setCurrent((value) => (value + 1) % count), AUTOPLAY_DELAY);
+        return () => clearTimeout(timer);
+    }, [count, paused, current]);
+
+    if (!count) {
         return preview ? <PreviewNote section={section}>Documents récents : aucun document publié pour le moment.</PreviewNote> : null;
     }
-    const [featured, ...others] = documents;
+    const index = current % count;
+    const go = (step) => setCurrent((index + step + count) % count);
+
     const action = section.content.link_text ? (
         <Link
             to="/recherche"
@@ -450,19 +475,88 @@ function DocumentsSection({ section, preview }) {
             <ArrowRight className="h-4 w-4" />
         </Link>
     ) : null;
+    // Flèches : de part et d'autre des cadres (grand écran), autour des points (mobile).
+    const arrow = (step, className) => (
+        <button
+            type="button"
+            className={cx(CAROUSEL_BUTTON, className)}
+            onClick={() => go(step)}
+            aria-label={step < 0 ? "Publication précédente" : "Publication suivante"}
+        >
+            {step < 0 ? <ChevronLeft className="h-5 w-5" aria-hidden="true" /> : <ChevronRight className="h-5 w-5" aria-hidden="true" />}
+        </button>
+    );
+    const sideArrow = "absolute top-1/2 z-30 -translate-y-1/2 max-sm:hidden";
+
     return (
-        <Shell section={section} spacing="py-6">
+        <Shell section={section} spacing="py-10">
             <Heading section={section} icon={Sparkles} action={action} className="mb-6" />
-            <div className="text-left">
-                <FeaturedDocument document={featured} />
-                {others.length > 0 && (
-                    <ul className={cx("mt-2 grid sm:grid-cols-2", OTHERS_COLUMNS[others.length] ?? "lg:grid-cols-4")}>
-                        {others.map((doc, index) => (
-                            <CompactDocument key={doc.slug} document={doc} number={index + 2} />
-                        ))}
-                    </ul>
-                )}
+            <div
+                className="relative text-left sm:h-[340px] lg:h-[380px]"
+                role="region"
+                aria-roledescription="carrousel"
+                aria-label="Dernières publications"
+                onMouseEnter={() => setPaused(true)}
+                onMouseLeave={() => setPaused(false)}
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
+                onKeyDown={(event) => {
+                    if (event.key === "ArrowLeft") go(-1);
+                    if (event.key === "ArrowRight") go(1);
+                }}
+            >
+                {documents.map((doc, i) => {
+                    const position = slidePosition(i, index, count);
+                    return (
+                        <div
+                            key={doc.slug}
+                            className={cx(
+                                "overflow-hidden rounded-sm transition-all duration-500 ease-in-out motion-reduce:transition-none",
+                                "sm:absolute sm:left-1/2 sm:top-1/2 sm:h-full sm:-translate-y-1/2",
+                                position === "active" ? "relative" : "absolute max-sm:inset-0",
+                                SLIDE_POSITIONS[position],
+                            )}
+                            aria-hidden={position === "active" ? undefined : "true"}
+                        >
+                            <PublicationFrame document={doc} active={position === "active"} />
+                            {(position === "prev" || position === "next") && (
+                                // Cadre en retrait : un clic l'amène au centre.
+                                <button
+                                    type="button"
+                                    tabIndex={-1}
+                                    className="absolute inset-0 z-10 cursor-pointer"
+                                    onClick={() => setCurrent(i)}
+                                    aria-label={`Afficher « ${doc.title} »`}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+                {count > 1 && arrow(-1, cx(sideArrow, "left-[max(0px,calc(50%_-_420px))] lg:left-[max(0px,calc(50%_-_480px))]"))}
+                {count > 1 && arrow(1, cx(sideArrow, "right-[max(0px,calc(50%_-_420px))] lg:right-[max(0px,calc(50%_-_480px))]"))}
             </div>
+            {count > 1 && (
+                <div className="mt-5 flex items-center justify-center gap-2">
+                    {arrow(-1, "mr-2 sm:hidden")}
+                    <div className="flex items-center gap-2" role="tablist" aria-label="Position dans le carrousel">
+                    {documents.map((doc, i) => (
+                        <button
+                            key={doc.slug}
+                            type="button"
+                            role="tab"
+                            aria-selected={i === index}
+                            aria-label={`Afficher la publication ${i + 1}`}
+                            onClick={() => setCurrent(i)}
+                            className={cx(
+                                "h-2 rounded-full transition-all duration-300",
+                                i === index ? "w-8 bg-gold" : "w-2 bg-line hover:bg-brass",
+                            )}
+                        />
+                    ))}
+                    </div>
+                    {arrow(1, "ml-2 sm:hidden")}
+                </div>
+            )}
         </Shell>
     );
 }
@@ -640,7 +734,8 @@ function CallToAction({ section, icon: Icon, note }) {
                 {c.button_text && (
                     <SmartLink
                         to={c.button_link}
-                        className="btn-primary max-w-full shrink-0"
+                        // Bouton doré par défaut ; couleur choisie dans l'éditeur : bouton plein à texte blanc.
+                        className={cx(style.button_color ? "btn-primary" : "btn-accent", "max-w-full shrink-0")}
                         style={style.button_color ? { "--btn-bg": style.button_color } : undefined}
                     >
                         <span className="[overflow-wrap:anywhere]">{c.button_text}</span>
@@ -716,7 +811,7 @@ function SignupSection({ section, user, preview }) {
                             to={c.button_link}
                             className={cx(
                                 "mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-md px-5 py-3 text-sm font-bold transition",
-                                !style.button_color && "bg-surface text-brass-deep hover:bg-indigo-50",
+                                !style.button_color && "bg-gold text-umg-night hover:bg-gold-deep",
                             )}
                             style={style.button_color ? { backgroundColor: style.button_color, color: "#ffffff" } : undefined}
                         >
