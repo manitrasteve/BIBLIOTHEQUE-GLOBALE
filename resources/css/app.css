@@ -63,6 +63,8 @@
     --color-gold: #e4a525;
     --color-gold-soft: #f2c14e;
     --color-gold-deep: #c98d14;
+    /* Mot mis en avant dans le titre de la bannière d'accueil : bleu nuit (clair), lavande (sombre). */
+    --color-hero-accent: #1a1a8c;
     --color-footer: #11116f;
     --color-umg-logo: #2323fe;
 
@@ -126,6 +128,7 @@ html.dark {
     --color-brass: var(--site-dark-secondary, #e4a525);
     --color-brass-deep: var(--site-dark-secondary-deep, #f2c14e);
     --color-footer: #0b0b3f;
+    --color-hero-accent: #a5a5f5;
     --color-line: var(--site-dark-border, #272b4a);
     --color-indigo-50: var(--site-dark-accent, #15183a);
     --color-indigo-100: var(--site-dark-accent-2, #1c2050);
@@ -460,6 +463,22 @@ button:active {
 .skeleton {
     background: var(--color-slate-200);
     animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* Ruban de logos dans l'écran du robot (bannière d'accueil) : la liste est présente deux fois, le
+   ruban recule de la moitié de sa largeur puis recommence, sans à-coup. Pause au survol. */
+.hero-ribbon {
+    animation: hero-ribbon 45s linear infinite;
+}
+.hero-ribbon:hover {
+    animation-play-state: paused;
+}
+@keyframes hero-ribbon {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hero-ribbon { animation: none; }
 }
 
 @keyframes skeleton-pulse {

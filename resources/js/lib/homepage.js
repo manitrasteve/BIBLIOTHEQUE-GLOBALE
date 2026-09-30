@@ -22,9 +22,10 @@ import {
 export const PREVIEW_MESSAGE = "homepage-preview";
 export const PREVIEW_READY = "homepage-preview-ready";
 
-// Bannière d'ouverture par défaut : logos des établissements de l'Université de Mahajanga (WebP,
-// fond blanc), en diaporama tant qu'aucune image n'est téléversée dans l'éditeur de la page
-// d'accueil ; texte de remplacement pour l'accessibilité.
+// Bannière d'ouverture par défaut (tant qu'aucune image n'est téléversée dans l'éditeur de la page
+// d'accueil) : le robot de l'assistant IA (WebP 1200×800, fond transparent) présente les logos des
+// établissements de l'Université de Mahajanga en ruban continu ; texte de remplacement pour
+// l'accessibilité.
 export const DEFAULT_HERO_SLIDES = [
     { src: "/images/etablissements/isstm.webp", alt: "Logo de l'ISSTM, Institut Supérieur des Sciences et Technologies de Mahajanga" },
     { src: "/images/etablissements/iutam.webp", alt: "Logo de l'IUTAM, Institut Universitaire de Technologie et d'Agronomie de Mahajanga" },
@@ -42,10 +43,10 @@ export const DEFAULT_HERO_SLIDES = [
     { src: "/images/etablissements/faculte-medecine.webp", alt: "Logo de la Faculté de Médecine de l'Université de Mahajanga" },
     { src: "/images/etablissements/ecole-pharmacie.webp", alt: "Logo de l'École de Pharmacie" },
 ];
-// Logo de l'Université affiché en haut à gauche du diaporama, par-dessus chaque logo.
-export const HERO_UNIVERSITY_LOGO = "/images/etablissements/umg.webp";
-export const DEFAULT_HERO_IMAGE = DEFAULT_HERO_SLIDES[0].src;
-export const DEFAULT_HERO_IMAGE_ALT = DEFAULT_HERO_SLIDES[0].alt;
+export const HERO_ROBOT_IMAGE = "/images/robot-banniere.webp";
+// Logo de l'Université recadré au carré, affiché comme une icône en haut à gauche de la bannière.
+export const HERO_UNIVERSITY_ICON = "/images/umg-icone.webp";
+export const DEFAULT_HERO_IMAGE = HERO_ROBOT_IMAGE;
 // Photo de la salle de lecture accompagnant l'invitation à s'inscrire (WebP 1600×800).
 export const SIGNUP_IMAGE = "/images/salle-lecture-large.webp";
 
@@ -94,7 +95,7 @@ export const SECTION_TYPES = {
                 kind: "image",
                 label: "Bannière (format paysage 16:9 conseillé)",
                 fallback: DEFAULT_HERO_IMAGE,
-                help: "Sans image téléversée, la bannière est le diaporama des logos des établissements (aperçu : premier logo).",
+                help: "Sans image téléversée : le robot de l'assistant IA présente les logos des établissements, à côté du texte et de la recherche.",
             },
             { name: "image_alt", kind: "text", label: "Description de la bannière (accessibilité)", max: 160, help: "Utilisée pour une bannière téléversée." },
         ],

@@ -30,7 +30,7 @@ import {
     Eye,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { DEFAULT_HERO_SLIDES, HERO_UNIVERSITY_LOGO, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
+import { DEFAULT_HERO_SLIDES, HERO_ROBOT_IMAGE, HERO_UNIVERSITY_ICON, SIGNUP_IMAGE, homepageImageUrl, safeLink } from "../../lib/homepage";
 import SearchBar from "../SearchBar";
 import { docInfo } from "../CatalogueCard";
 import { COVER_SOFT_TEXT, coverColor } from "../../lib/coverColor";
@@ -184,89 +184,113 @@ const FEATURE_DETAILS = {
     "consultation sécurisée": "Lecture en ligne dans le lecteur intégré, sans téléchargement.",
 };
 
-const HERO_SLIDE_DELAY = 2000;
-
 /**
- * Logos des établissements en diaporama : le suivant arrive par la droite toutes les deux secondes, puis
- * on recommence. En pause sous la souris ; sans défilement automatique si le système demande de
- * réduire les animations. Seules l'image qui entre et celle qui sort sont animées : les autres se
- * replacent instantanément hors de la vue.
+ * Robot de l'assistant IA (image détourée : le fond suit le thème) présentant, dans l'écran blanc
+ * qu'il tient, les logos des établissements en ruban continu. La zone du ruban est posée sur le
+ * rectangle blanc de l'image en pourcentages (mesurés sur l'image) : elle suit toutes les tailles.
+ * Pause au survol ; ruban immobile si le système demande de réduire les animations.
  */
-function HeroSlideshow() {
+function RobotShowcase() {
     const slides = DEFAULT_HERO_SLIDES;
-    const [index, setIndex] = useState(0);
-    const [paused, setPaused] = useState(false);
-    const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
-
-    useEffect(() => {
-        if (paused || reducedMotion || slides.length < 2) return undefined;
-        const timer = setTimeout(() => setIndex((value) => (value + 1) % slides.length), HERO_SLIDE_DELAY);
-        return () => clearTimeout(timer);
-    }, [index, paused, reducedMotion, slides.length]);
-
-    const previous = (index - 1 + slides.length) % slides.length;
-
     return (
-        <div
-            className="relative aspect-[4/3] w-full overflow-hidden border border-line bg-[#ffffff] sm:aspect-[5/2]"
-            role="region"
-            aria-roledescription="diaporama"
-            aria-label="Bannière de la Bibliothèque Globale"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-        >
-            {slides.map((slide, i) => {
-                const position = i === index ? "translate-x-0" : i === previous ? "-translate-x-full" : "translate-x-full";
-                const moving = i === index || i === previous;
-                return (
-                    <div
-                        key={slide.src}
-                        aria-hidden={i === index ? undefined : "true"}
-                        className={cx(
-                            "absolute inset-0 flex items-center justify-center px-6 pb-10 pt-6 sm:px-10 sm:pb-12 sm:pt-8",
-                            position,
-                            moving ? "transition-transform duration-700 ease-in-out motion-reduce:transition-none" : "transition-none",
-                        )}
-                    >
-                        {/* Logo entier et centré, réduit si besoin mais jamais agrandi (les petits logos restent nets). */}
-                        <img
-                            src={slide.src}
-                            alt={i === index ? slide.alt : ""}
-                            fetchPriority={i === 0 ? "high" : undefined}
-                            decoding="async"
-                            className="max-h-full max-w-full object-contain"
-                        />
-                    </div>
-                );
-            })}
-            {/* Logo de l'Université, fixe en haut à gauche : présent sur chaque logo qui défile. */}
+        <div className="relative mx-auto aspect-[3/2] w-full max-w-[680px]">
             <img
-                src={HERO_UNIVERSITY_LOGO}
-                alt="Université de Mahajanga"
+                src={HERO_ROBOT_IMAGE}
+                alt="Le robot de l'assistant IA présente les établissements de l'Université de Mahajanga"
+                width="1200"
+                height="800"
+                fetchPriority="high"
                 decoding="async"
-                className="absolute left-3 top-3 z-10 h-14 w-auto sm:left-5 sm:top-4 sm:h-20 lg:h-24"
+                className="absolute inset-0 h-full w-full object-contain"
             />
-            <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2" role="tablist" aria-label="Choisir une bannière">
-                {slides.map((slide, i) => (
-                    <button
-                        key={slide.src}
-                        type="button"
-                        role="tab"
-                        aria-selected={i === index}
-                        aria-label={`Afficher la bannière ${i + 1}`}
-                        onClick={() => setIndex(i)}
-                        className={cx("h-2 rounded-full border border-indigo-800 transition-all duration-300", i === index ? "w-7 bg-gold" : "w-2 bg-[#ffffff]")}
-                    />
-                ))}
+            <div
+                className="absolute left-[5.1%] top-[22.4%] h-[28.2%] w-[39.2%] overflow-hidden rounded-lg bg-[#ffffff]"
+                role="img"
+                aria-label={`Logos des établissements : ${slides.map((slide) => slide.alt.replace(/^Logo (de l'|de la |d'un |de )/, "")).join(", ")}`}
+            >
+                {/* Deux fois la liste : le ruban recule de la moitié de sa largeur puis recommence, sans à-coup. */}
+                <div className="hero-ribbon flex h-full w-max">
+                    {[...slides, ...slides].map((slide, i) => (
+                        <img
+                            key={i}
+                            src={slide.src}
+                            alt=""
+                            decoding="async"
+                            className="aspect-square h-full w-auto shrink-0 object-contain p-1.5 sm:p-2.5"
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
 }
 
+// Logo de l'Université en icône : pastille blanche arrondie, nette sur fond clair comme sombre.
+// L'affichage (flex / hidden) est donné par l'appelant, selon la taille d'écran.
+function UniversityIcon({ className }) {
+    return (
+        <span className={cx("items-center justify-center overflow-hidden rounded-xl border border-line bg-[#ffffff] p-1", className)}>
+            <img src={HERO_UNIVERSITY_ICON} alt="Université de Mahajanga" decoding="async" className="h-full w-full object-contain" />
+        </span>
+    );
+}
+
+// Sur-titre, titre et description du bandeau d'accueil : sur la couleur principale (bandeau sous une
+// bannière téléversée) ou sur le fond de la page (bannière du robot).
+function HeroText({ c, style, color, centered, onPrimary }) {
+    const soft = onPrimary ? "text-on-primary-soft" : "text-ink-soft";
+    return (
+        <div className="min-w-0">
+            {c.badge && (
+                // Sur-titre en capitales espacées (charte UMG : « Actualité de l'Université »).
+                <p
+                    className={cx(
+                        "flex w-fit max-w-full items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]",
+                        !color && (onPrimary ? "text-on-primary-soft" : "text-brass"),
+                        centered && "mx-auto",
+                    )}
+                    style={color}
+                >
+                    <LibraryBig className="h-3.5 w-3.5 shrink-0" />
+                    <span className="[overflow-wrap:anywhere]">{c.badge}</span>
+                </p>
+            )}
+            {c.title && (
+                <h1
+                    className={cx(
+                        "font-display leading-[1.15] tracking-tight [overflow-wrap:anywhere]",
+                        c.badge && "mt-3",
+                        !onPrimary && !color && "text-ink",
+                        HERO_TITLE_SIZES[style.title_size] ?? (onPrimary ? "text-2xl sm:text-[34px]" : "text-3xl sm:text-4xl xl:text-[42px]"),
+                        WEIGHTS[style.title_weight] ?? (onPrimary ? "font-bold" : "font-extrabold"),
+                    )}
+                >
+                    {withHighlight(
+                        c.title,
+                        c.highlight,
+                        color ? "underline decoration-4 underline-offset-8" : onPrimary ? "text-on-primary-soft" : "text-hero-accent",
+                    )}
+                </h1>
+            )}
+            {c.description && (
+                <p
+                    className={cx("mt-3 max-w-2xl text-sm leading-6 sm:text-base sm:leading-7 [overflow-wrap:anywhere]", !color && soft, centered && "mx-auto")}
+                    style={color}
+                >
+                    {c.description}
+                </p>
+            )}
+        </div>
+    );
+}
+
 /**
- * Bandeau d'accueil « Vitrine » : bannière pleine largeur (image téléversée, sinon le diaporama des
- * bannières par défaut), puis une bande pleine (couleur principale) avec le titre, la description et
- * la recherche, et enfin les points forts en cartes.
+ * Bandeau d'accueil « Vitrine ».
+ * - Par défaut : une seule bannière sur le fond de la page, avec le texte et la recherche à gauche et
+ *   le robot présentant les établissements à droite (robot en premier sur téléphone).
+ * - Avec une image téléversée dans l'éditeur : l'image, puis la bande sur la couleur principale avec
+ *   le texte et la recherche.
+ * Viennent ensuite les points forts en cartes.
  */
 function HeroSection({ section }) {
     const c = section.content;
@@ -276,12 +300,40 @@ function HeroSection({ section }) {
     const features = (c.features || []).filter(Boolean);
     const customImage = homepageImageUrl(c.image);
     const hasText = c.badge || c.title || c.description || c.show_search;
+    const background = style.bg_color ? { backgroundColor: style.bg_color } : {};
 
     return (
         <section className="umg-container pt-6">
-            <div className="overflow-hidden rounded-lg">
-                {c.show_image &&
-                    (customImage ? (
+            {c.show_image && !customImage ? (
+                <div
+                    className={cx(
+                        "relative grid items-center overflow-hidden rounded-lg border border-line",
+                        !style.bg_color && "bg-surface",
+                        hasText && "lg:grid-cols-[minmax(0,46fr)_minmax(0,54fr)]",
+                    )}
+                    style={{ ...background, ...color }}
+                >
+                    {/* Logo de l'Université en icône : en haut à gauche du bloc sur petit écran (au-dessus du robot). */}
+                    <UniversityIcon className="absolute left-4 top-4 z-10 flex h-11 w-11 sm:left-6 sm:top-5 sm:h-14 sm:w-14 lg:hidden" />
+                    {hasText && (
+                        <div className={cx("order-2 min-w-0 px-6 pb-8 sm:px-10 lg:order-1 lg:py-10 lg:pl-12 lg:pr-2", centered && "text-center")}>
+                            {/* Sur grand écran : l'icône dans la colonne du texte, alignée sur le surtitre. */}
+                            <UniversityIcon className={cx("mb-5 hidden h-16 w-16 lg:flex", centered && "mx-auto")} />
+                            <HeroText c={c} style={style} color={color} centered={centered} />
+                            {c.show_search && (
+                                <div className={cx("mt-8 w-full max-w-xl text-left", centered && "mx-auto")}>
+                                    <SearchBar />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <div className="order-1 px-4 pt-4 sm:px-8 lg:order-2 lg:p-6">
+                        <RobotShowcase />
+                    </div>
+                </div>
+            ) : (
+                <div className="overflow-hidden rounded-lg">
+                    {c.show_image && (
                         // Image téléversée : affichée entière (proportion inconnue, parfois très haute),
                         // limitée à la hauteur de l'écran sans être coupée.
                         <div className="w-full bg-indigo-100">
@@ -295,63 +347,27 @@ function HeroSection({ section }) {
                                 className="mx-auto block h-auto max-h-[85vh] w-full object-contain"
                             />
                         </div>
-                    ) : (
-                        <HeroSlideshow />
-                    ))}
-                {hasText && (
-                    <div
-                        className={cx(
-                            "grid gap-6 p-6 text-white sm:p-8 lg:p-10",
-                            !style.bg_color && "bg-indigo-800",
-                            c.show_search && !centered && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center",
-                            centered && "justify-items-center text-center",
-                        )}
-                        style={{ ...(style.bg_color ? { backgroundColor: style.bg_color } : {}), ...color }}
-                    >
-                        <div className="min-w-0">
-                            {c.badge && (
-                                // Sur-titre en capitales espacées (charte UMG : « Actualité de l'Université »).
-                                <p
-                                    className={cx(
-                                        "flex w-fit max-w-full items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]",
-                                        !color && "text-on-primary-soft",
-                                        centered && "mx-auto",
-                                    )}
-                                    style={color}
-                                >
-                                    <LibraryBig className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="[overflow-wrap:anywhere]">{c.badge}</span>
-                                </p>
+                    )}
+                    {hasText && (
+                        <div
+                            className={cx(
+                                "grid gap-6 p-6 text-white sm:p-8 lg:p-10",
+                                !style.bg_color && "bg-indigo-800",
+                                c.show_search && !centered && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center",
+                                centered && "justify-items-center text-center",
                             )}
-                            {c.title && (
-                                <h1
-                                    className={cx(
-                                        "font-display leading-[1.15] tracking-tight [overflow-wrap:anywhere]",
-                                        c.badge && "mt-3",
-                                        HERO_TITLE_SIZES[style.title_size] ?? "text-2xl sm:text-[34px]",
-                                        WEIGHTS[style.title_weight] ?? "font-bold",
-                                    )}
-                                >
-                                    {withHighlight(c.title, c.highlight, color ? "underline decoration-4 underline-offset-8" : "text-on-primary-soft")}
-                                </h1>
-                            )}
-                            {c.description && (
-                                <p
-                                    className={cx("mt-3 max-w-2xl text-sm leading-6 sm:text-base [overflow-wrap:anywhere]", !color && "text-on-primary-soft", centered && "mx-auto")}
-                                    style={color}
-                                >
-                                    {c.description}
-                                </p>
+                            style={{ ...background, ...color }}
+                        >
+                            <HeroText c={c} style={style} color={color} centered={centered} onPrimary />
+                            {c.show_search && (
+                                <div className={cx("w-full max-w-2xl rounded-md bg-surface p-2 text-left", centered && "mx-auto")}>
+                                    <SearchBar />
+                                </div>
                             )}
                         </div>
-                        {c.show_search && (
-                            <div className={cx("w-full max-w-2xl rounded-md bg-surface p-2 text-left", centered && "mx-auto")}>
-                                <SearchBar />
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
             {features.length > 0 && (
                 // Tuiles reliées par des filets, comme les « Accès rapides » du site de l'Université.
                 <div
