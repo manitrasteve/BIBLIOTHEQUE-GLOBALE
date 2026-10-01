@@ -26,7 +26,9 @@ class PollinationsClient
         . '(title, subtitle, field, summary; often in French), reply with ONE English sentence of at most 35 words '
         . 'describing a concrete visual scene that clearly represents its specific subject (places, landscapes, '
         . 'objects, activities, symbols). Use the subtitle and summary to be specific. No text, no letters, '
-        . 'no book, no person holding a book. Output only the sentence.';
+        . 'no book, no person holding a book. If a requested art style is given (possibly in French), '
+        . 'translate it into English and start the sentence with it (for example "Watercolor illustration of ..."). '
+        . 'Output only the sentence.';
 
     private function token(): string
     {
@@ -43,7 +45,7 @@ class PollinationsClient
     /**
      * Décrit en une phrase anglaise une scène visuelle représentant le document.
      *
-     * @param  array<string, ?string>  $details  title, subtitle, category, type, keywords, abstract
+     * @param  array<string, ?string>  $details  title, subtitle, category, type, keywords, abstract, instructions (style souhaité)
      */
     public function describeScene(array $details, int $timeout = 25): string
     {
@@ -54,6 +56,8 @@ class PollinationsClient
             !empty($details['category']) ? 'Field: ' . $details['category'] : null,
             !empty($details['keywords']) ? 'Keywords: ' . $details['keywords'] : null,
             !empty($details['abstract']) ? 'Summary: ' . $details['abstract'] : null,
+            // Style choisi dans le formulaire : traduit et placé en tête de la scène par le modèle.
+            !empty($details['instructions']) ? 'Requested art style: ' . $details['instructions'] : null,
         ]));
 
         $url = $this->token() !== ''

@@ -100,6 +100,31 @@ test('le style saisi est ajouté au prompt d\'image', function () {
     Http::assertSent(fn (HttpRequest $r) => str_contains(sentImagePrompt($r), 'Style: aquarelle.'));
 });
 
+test('le style saisi est placé en tête du prompt d\'image, pour ne pas être coupé', function () {
+    Http::fake([
+        'text.pollinations.ai/*' => pollinationsScene(),
+        'image.pollinations.ai/*' => Http::response(pollinationsJpeg(), 200),
+    ]);
+    Sanctum::actingAs(pollinationsLibrarian());
+
+    $this->postJson('/api/ai-covers', ['title' => 'Titre', 'instructions' => 'aquarelle, minimaliste'])->assertStatus(202);
+
+    Http::assertSent(fn (HttpRequest $r) => str_starts_with(sentImagePrompt($r), 'Style: aquarelle, minimaliste. ' . POLLINATIONS_SCENE . '.'));
+});
+
+test('le style saisi est transmis à la description de la scène', function () {
+    Http::fake([
+        'text.pollinations.ai/*' => pollinationsScene(),
+        'image.pollinations.ai/*' => Http::response(pollinationsJpeg(), 200),
+    ]);
+    Sanctum::actingAs(pollinationsLibrarian());
+
+    $this->postJson('/api/ai-covers', ['title' => 'Titre', 'instructions' => 'aquarelle'])->assertStatus(202);
+
+    Http::assertSent(fn (HttpRequest $r) => $r->url() === 'https://text.pollinations.ai/openai'
+        && str_contains($r['messages'][1]['content'] ?? '', 'Requested art style: aquarelle'));
+});
+
 test('sans description de scène, le titre et le sous-titre sont placés en tête du prompt', function () {
     Http::fake([
         'text.pollinations.ai/*' => Http::response('down', 503),

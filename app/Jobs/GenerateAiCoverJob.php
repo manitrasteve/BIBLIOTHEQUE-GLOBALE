@@ -142,15 +142,21 @@ class GenerateAiCoverJob implements ShouldQueue
     }
 
     /**
-     * Prompt d'image court, sujet en tête : les petits modèles tronquent vers ~77 jetons.
+     * Prompt d'image court : les petits modèles ne lisent que le début (~77 jetons).
+     * - Style choisi dans le formulaire : placé en tête, sinon il serait coupé et ignoré
+     *   (la scène, décrite en anglais, commence déjà normalement par sa traduction).
+     * - Sans style : la scène en tête, suivie d'un style d'illustration par défaut.
      */
     public static function imagePrompt(string $scene, ?string $instructions = null): string
     {
-        $style = trim((string) $instructions) !== ''
-            ? 'Style: ' . Str::limit(trim(preg_replace('/\s+/u', ' ', $instructions)), 120, '') . '.'
-            : 'Editorial illustration, painterly, rich harmonious colors.';
+        $scene = rtrim($scene, '. ');
+        $style = trim(preg_replace('/\s+/u', ' ', (string) $instructions));
 
-        return rtrim($scene, '. ') . '. ' . $style . ' High quality, no text, no letters.';
+        if ($style !== '') {
+            return 'Style: ' . Str::limit($style, 120, '') . '. ' . $scene . '. High quality, no text, no letters.';
+        }
+
+        return $scene . '. Editorial illustration, painterly, rich harmonious colors. High quality, no text, no letters.';
     }
 
     public function failed(?\Throwable $e): void
