@@ -18,29 +18,15 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('library:id,name')->whereIn('role', ['etudiant','enseignant','chercheur'])->orderByDesc('created_at');
+        $query = $this->membersQuery();
 
         // Compteurs : mêmes comptes que la liste (étudiants, enseignants, chercheurs ; corbeille exclue) et même
         // recherche, mais sans les filtres de rôle / d'état, pour que chaque compteur garde son propre nombre.
         $counted = clone $query;
-        if ($search = $request->get('search')) {
-            $counted->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
-            });
-        }
+        $this->applySearch($counted, $request->get('search'));
         $counts = $this->userCounts($counted);
 
-        if ($request->has('is_active')) {
-            $query->where('is_active', filter_var($request->get('is_active'), FILTER_VALIDATE_BOOLEAN));
-        }
-        if ($role = $request->get('role')) {
-            $query->where('role', $role);
-        }
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
-            });
-        }
+        $this->applyFilters($query, $request);
 
         $page = $query->paginate(20);
         $awaiting = $this->awaitingPasswordIds($page->getCollection());
@@ -136,6 +122,78 @@ class UserController extends Controller
         }
 
         return true;
+    }
+
+    /** Comptes membres (étudiants, enseignants, chercheurs), corbeille exclue, du plus récent au plus ancien. */
+    private function membersQuery()
+    {
+        return User::with('library:id,name')->whereIn('role', ['etudiant', 'enseignant', 'chercheur'])->orderByDesc('created_at');
+    }
+
+    private function applySearch($query, ?string $search): void
+    {
+        if ($search = trim((string) $search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
+            });
+        }
+    }
+
+    /** Filtres de la liste : carte sélectionnée (rôle ou état) et recherche. */
+    private function applyFilters($query, Request $request): void
+    {
+        if ($request->has('is_active')) {
+            $query->where('is_active', filter_var($request->get('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($role = $request->get('role')) {
+            $query->where('role', $role);
+        }
+        $this->applySearch($query, $request->get('search'));
+    }
+
+    /** Export Excel de la liste affichée (mêmes filtres), toutes les pages. */
+    public function export(Request $request)
+    {
+        $query = $this->membersQuery();
+        $this->applyFilters($query, $request);
+        $users = $query->get();
+        $awaiting = $this->awaitingPasswordIds($users);
+        $roles = ['etudiant' => 'Étudiant', 'enseignant' => 'Enseignant', 'chercheur' => 'Chercheur'];
+
+        $rows = [['Nom complet', 'Adresse e-mail', 'Téléphone', 'Rôle', 'Numéro de compte', 'Établissement', 'Statut', 'Mot de passe créé', 'Créé le']];
+        foreach ($users as $user) {
+            $rows[] = [
+                (string) $user->name,
+                (string) $user->email,
+                (string) $user->phone,
+                $roles[$user->role] ?? (string) $user->role,
+                (string) $user->matricule,
+                (string) ($user->school ?: $user->faculty),
+                $user->is_active ? 'Actif' : 'Désactivé',
+                $user->password_set_at ? 'Oui' : (in_array($user->id, $awaiting, true) ? 'Non (lien envoyé)' : 'Non'),
+                $user->created_at?->timezone(config('app.display_timezone'))->format('d/m/Y H:i') ?? '',
+            ];
+        }
+
+        return $this->xlsxResponse('Utilisateurs', $rows, [28, 32, 18, 14, 18, 30, 12, 20, 18], 'utilisateurs');
+    }
+
+    /** Classeur Excel à une feuille, en téléchargement. */
+    private function xlsxResponse(string $sheet, array $rows, array $widths, string $filename)
+    {
+        $content = \App\Support\SimpleXlsx::build([[
+            'name' => $sheet,
+            'rows' => $rows,
+            'widths' => $widths,
+            'header' => true,
+            'textColumns' => array_keys($rows[0]), // numéros (téléphone, compte) gardés tels quels
+        ]]);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'-'.now(config('app.display_timezone'))->format('Y-m-d').'.xlsx"',
+            'Cache-Control' => 'no-store',
+        ]);
     }
 
     private function userCounts($scoped): array

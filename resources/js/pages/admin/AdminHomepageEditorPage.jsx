@@ -22,6 +22,7 @@ import { DEFAULT_SECTIONS, SECTION_TYPES, createSection, sectionSummary } from "
 import SectionEditor from "../../components/home/SectionEditor";
 import HomepagePreviewFrame from "../../components/home/HomepagePreviewFrame";
 import HomepageVersionsDialog from "../../components/home/HomepageVersionsDialog";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 const formatDate = (value) =>
     value ? new Date(value).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "";
@@ -79,6 +80,7 @@ function AddSectionDialog({ onAdd, onClose }) {
 }
 
 export default function AdminHomepageEditorPage() {
+    const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [sections, setSections] = useState([]);
     const [savedJson, setSavedJson] = useState("[]"); // dernier état enregistré (brouillon ou version publiée)
@@ -143,9 +145,9 @@ export default function AdminHomepageEditorPage() {
         setShowAdd(false);
     }
 
-    function removeSection(section) {
+    async function removeSection(section) {
         const label = sectionSummary(section) || SECTION_TYPES[section.type].label;
-        if (!window.confirm(`Supprimer la section « ${label} » ? Vous pouvez la masquer à la place pour garder son contenu.`)) return;
+        if (!(await confirm({ title: `Supprimer la section « ${label} » ?`, message: `Vous pouvez la masquer à la place pour garder son contenu.`, danger: true }))) return;
         setSections((list) => list.filter((s) => s.id !== section.id));
     }
 
@@ -173,7 +175,7 @@ export default function AdminHomepageEditorPage() {
     }
 
     async function publish() {
-        if (!window.confirm("Publier ce brouillon ? Il remplacera la page d'accueil visible par tous.")) return;
+        if (!(await confirm({ title: "Publier ce brouillon ?", message: "Il remplacera la page d'accueil visible par tous." }))) return;
         if ((dirty || !draft) && !(await saveDraft())) return;
 
         setBusy("publish");
@@ -190,7 +192,7 @@ export default function AdminHomepageEditorPage() {
     }
 
     async function discard() {
-        if (!window.confirm("Abandonner le brouillon et revenir à la version publiée ?")) return;
+        if (!(await confirm({ title: "Abandonner le brouillon et revenir à la version publiée ?", danger: true }))) return;
         setBusy("discard");
         try {
             if (draft) await api.discardHomepageDraft();
@@ -215,7 +217,7 @@ export default function AdminHomepageEditorPage() {
 
     async function restore(version) {
         const warning = dirty || draft ? "\n\nLe brouillon en cours sera abandonné." : "";
-        if (!window.confirm(`Restaurer la version ${version} ? Elle sera republiée comme nouvelle version ; l'historique est conservé.${warning}`)) return false;
+        if (!(await confirm({ title: `Restaurer la version ${version} ?`, message: `Elle sera republiée comme nouvelle version ; l'historique est conservé.${warning}` }))) return false;
 
         setBusy("restore");
         try {

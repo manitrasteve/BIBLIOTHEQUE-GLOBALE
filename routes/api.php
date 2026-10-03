@@ -60,7 +60,8 @@ Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware
 Route::get('/documents/{slug}/similar', [DocumentController::class, 'similar']);
 
 Route::post('/account-requests', [AccountRequestController::class, 'store']);
-Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show']);
+// whereUuid : « /account-requests/export » (route authentifiée plus bas) n'est pas pris pour un identifiant.
+Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show'])->whereUuid('uuid');
 // Limité : chaque appel vérifie le jeton (bcrypt) contre toutes les demandes validées en attente.
 Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm'])->middleware('throttle:30,1');
 // Limité : sans ça, un numéro de carte se devine par force brute (comme forgot-password ci-dessus).
@@ -185,6 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin-messages', [AdminMessageController::class, 'clearHistory']);
 
         Route::get('/account-requests', [AccountRequestController::class, 'index']);
+        Route::get('/account-requests/export', [AccountRequestController::class, 'export']);
         Route::post('/account-requests/{accountRequest}/create-account', [AccountRequestController::class, 'createAccount']);
         Route::post('/account-requests/{accountRequest}/verify', [AccountRequestController::class, 'verify']);
         Route::post('/account-requests/{accountRequest}/reject', [AccountRequestController::class, 'reject']);
@@ -216,6 +218,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/problem-reports/{report}', [ProblemReportController::class, 'destroy']);
 
        Route::get('/users', [UserController::class, 'index']);
+       Route::get('/users/export', [UserController::class, 'export']);
        Route::post('/users/creer', [AccountRequestController::class, 'adminCreate']);
        Route::post('/users/{user}/reactivate', [UserController::class, 'reactivate']);
        Route::post('/users/{user}/resend-setup-link', [UserController::class, 'resendSetupLink']);

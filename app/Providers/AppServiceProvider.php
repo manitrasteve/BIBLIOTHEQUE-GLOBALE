@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\ReminderKicker;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Rappels « créez votre mot de passe » sans planificateur : déclenchés après une requête web (1 fois / heure).
+        if (!$this->app->runningInConsole()) {
+            $this->app->terminating(fn () => ReminderKicker::maybeRun());
+        }
+
         // Connexion : limite par couple e-mail + IP (anti force brute) sans bloquer tout un réseau
         // partagé (salle informatique, Wi-Fi de l'université) derrière une même adresse IP.
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(10)

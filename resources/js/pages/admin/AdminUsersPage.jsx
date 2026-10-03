@@ -13,9 +13,10 @@ import {
     FlaskConical,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { matchesSearch } from "../../lib/search";
+import { useDebouncedValue } from "../../lib/search";
 import { sortRows } from "../../lib/sort";
 import CreateUserForm from "../../components/CreateUserForm";
+import ExportButton from "../../components/ExportButton";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 import { ViewButton } from "../../components/DetailModal";
@@ -23,6 +24,8 @@ import ProfileDetailModal from "../../components/ProfileDetailModal";
 import SortTh from "../../components/SortTh";
 import ActionsTh from "../../components/ActionsTh";
 import { GLOBAL_LIBRARY, ROLES, formatDateTime, userSections } from "../../lib/detailSections";
+import { useConfirm } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 
 // Filtre envoyé au serveur pour chaque carte de compteur (mêmes critères que les compteurs).
 const FILTER_PARAMS = {
@@ -114,10 +117,13 @@ function ReasonModal({ title, confirmLabel, danger, onCancel, onConfirm }) {
 }
 
 export default function AdminUsersPage() {
+    const confirm = useConfirm();
+    const toast = useToast();
     const [users, setUsers] = useState(null);
     const [modal, setModal] = useState(null); // { type: 'delete'|'deactivate', user }
     const [showCreate, setShowCreate] = useState(false);
     const [query, setQuery] = useState("");
+    const searchTerm = useDebouncedValue(query.trim(), 350);
     const [viewing, setViewing] = useState(null);
     const [counts, setCounts] = useState(null);
 
@@ -133,7 +139,7 @@ export default function AdminUsersPage() {
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
         setError(null);
-        api.getUsers({ page, ...FILTER_PARAMS[filter] })
+        api.getUsers({ page, ...FILTER_PARAMS[filter], ...(searchTerm ? { search: searchTerm } : {}) })
             .then((r) => {
                 // Dernier utilisateur d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1);
@@ -145,8 +151,8 @@ export default function AdminUsersPage() {
     }
 
     useEffect(() => {
-        load(1); // nouveau filtre : première page
-    }, [filter]);
+        load(1); // nouveau filtre ou nouvelle recherche : première page
+    }, [filter, searchTerm]);
 
     // Clic sur une carte : la liste n'affiche que ces utilisateurs (« Total » ou la carte active : tout), puis on y descend.
     function selectFilter(key) {
@@ -161,7 +167,7 @@ export default function AdminUsersPage() {
             setModal(null);
             load(); // compteurs à jour
         } catch (err) {
-            alert(err?.message || "Suppression impossible.");
+            toast(err?.message || "Suppression impossible.");
             setModal(null);
         }
     }
@@ -175,16 +181,14 @@ export default function AdminUsersPage() {
             setModal(null);
             load(); // compteurs à jour
         } catch (err) {
-            alert(err?.message || "Désactivation impossible.");
+            toast(err?.message || "Désactivation impossible.");
             setModal(null);
         }
     }
 
     async function handleReactivate(user) {
         if (
-            !confirm(
-                `Réactiver le compte de ${user.name} ? Un e-mail lui sera envoyé pour créer son mot de passe.`,
-            )
+            !(await confirm({ title: `Réactiver le compte de ${user.name} ?`, message: "Un e-mail lui sera envoyé pour créer son mot de passe.", confirmLabel: "Oui, réactiver" }))
         )
             return;
         try {
@@ -194,7 +198,7 @@ export default function AdminUsersPage() {
             );
             load(); // compteurs à jour
         } catch (err) {
-            alert(err?.message || "Réactivation impossible.");
+            toast(err?.message || "Réactivation impossible.");
         }
     }
 
@@ -215,13 +219,8 @@ export default function AdminUsersPage() {
         }
     }
 
-    const filteredUsers = sortRows(
-        (users || []).filter((u) =>
-            matchesSearch(`${u.name} ${u.email} ${u.role} ${GLOBAL_LIBRARY}`, query),
-        ),
-        sort,
-        getUserVal,
-    );
+    // Recherche faite par le serveur (nom, e-mail, numéro de compte), sur toutes les pages.
+    const filteredUsers = sortRows(users || [], sort, getUserVal);
 
     if (showCreate) {
         return (
@@ -239,16 +238,19 @@ export default function AdminUsersPage() {
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
                     <Users className="h-5 w-5 text-brass" /> Utilisateurs
                 </h2>
+                <div className="flex flex-wrap gap-2">
+                <ExportButton onExport={() => api.exportUsers({ ...FILTER_PARAMS[filter], search: searchTerm })} />
                 <button
                     onClick={() => setShowCreate(true)}
                     className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
                     <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
                 </button>
+                </div>
             </div>
 
             <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" role="status" aria-live="polite">

@@ -12,12 +12,13 @@ import {
 } from "lucide-react";
 
 import { api } from "../../lib/api";
-import { matchesSearch } from "../../lib/search";
+import { useDebouncedValue } from "../../lib/search";
 import { sortRows } from "../../lib/sort";
 import StatusBadge from "../../components/StatusBadge";
 import { ViewButton } from "../../components/DetailModal";
 import ProfileDetailModal from "../../components/ProfileDetailModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import ExportButton from "../../components/ExportButton";
 import SortTh from "../../components/SortTh";
 import { ROLES, formatDateTime, requestSections } from "../../lib/detailSections";
 import { useAuth } from "../../context/AuthContext";
@@ -90,12 +91,9 @@ export default function AccountRequestsPage() {
     const [viewing, setViewing] = useState(null);
     const [busyId, setBusyId] = useState(null);
     const [sort, setSort] = useState({ key: null, dir: "asc" });
-    const matchRow = (r) =>
-        matchesSearch(
-            `${r.first_name} ${r.last_name} ${r.email} ${r.request_number} ${r.matricule || ""}`,
-            query,
-        );
-    const visibleRows = rows ? sortRows(rows.filter(matchRow), sort, getRequestVal) : [];
+    // Recherche faite par le serveur, sur toutes les pages (et non plus sur la seule page affichée).
+    const searchTerm = useDebouncedValue(query.trim(), 350);
+    const visibleRows = rows ? sortRows(rows, sort, getRequestVal) : [];
 
     const [filter, setFilter] = useState(() => {
         const fromUrl = searchParams.get("status");
@@ -110,6 +108,9 @@ export default function AccountRequestsPage() {
     // Le serveur pagine (20 par page) : on garde la page courante pour qu'une action ne renvoie pas au début.
     const [meta, setMeta] = useState(null);
 
+    // « Total » : toutes les catégories affichées en cartes.
+    const statusParam = filter === "total" ? filters.join(",") : filter;
+
     async function load(page = meta?.current_page || 1) {
         try {
             setError(null);
@@ -117,7 +118,8 @@ export default function AccountRequestsPage() {
 
             const response = await api.getAccountRequests({
                 // « Total » : toutes les catégories affichées en cartes.
-                status: filter === "total" ? filters.join(",") : filter,
+                status: statusParam,
+                ...(searchTerm ? { search: searchTerm } : {}),
                 page,
             });
 
@@ -136,8 +138,8 @@ export default function AccountRequestsPage() {
     }
 
     useEffect(() => {
-        load(1); // changement de filtre : première page
-    }, [filter]);
+        load(1); // changement de filtre ou de recherche : première page
+    }, [filter, searchTerm]);
 
     // Clic sur une carte : la liste n'affiche que cette catégorie, puis on y descend.
     const listRef = useRef(null);
@@ -191,11 +193,23 @@ export default function AccountRequestsPage() {
     const selectedRows = selectableRows.filter((r) => selected.has(r.id));
     const allSelected = selectableRows.length > 0 && selectedRows.length === selectableRows.length;
 
+    // « Sélectionner toutes les demandes » : toutes les pages de la catégorie et de la recherche en cours.
+    const [allPages, setAllPages] = useState(false);
+    const actionableStatuses = isAdmin ? ["en_attente", "verifiee"] : ["en_attente"];
+    const totalSelectable = counts
+        ? actionableStatuses
+            .filter((status) => filter === "total" || filter === status)
+            .reduce((sum, status) => sum + (counts[status] ?? 0), 0)
+        : 0;
+    const selectedCount = allPages ? totalSelectable : selectedRows.length;
+
     useEffect(() => {
         setSelected(new Set());
+        setAllPages(false);
     }, [rows]);
 
     function toggleOne(id) {
+        setAllPages(false);
         setSelected((current) => {
             const next = new Set(current);
             next.has(id) ? next.delete(id) : next.add(id);
@@ -204,21 +218,25 @@ export default function AccountRequestsPage() {
     }
 
     function toggleAll() {
+        setAllPages(false);
         setSelected(allSelected ? new Set() : new Set(selectableRows.map((r) => r.id)));
     }
 
     // « Oui » dans la confirmation : traitement groupé des demandes sélectionnées.
     async function runBulk(reason) {
-        const ids = selectedRows.map((r) => r.id);
+        // Toutes les pages : le serveur reprend les mêmes filtres que la liste ; sinon, les demandes cochées.
+        const target = allPages
+            ? { all: true, status: statusParam, ...(searchTerm ? { search: searchTerm } : {}) }
+            : { ids: selectedRows.map((r) => r.id) };
         setBulkBusy(true);
         try {
             setError(null);
             setNotice(null);
             const response = bulk.action === "reject"
-                ? await api.rejectAllAccountRequests(ids, reason)
+                ? await api.rejectAllAccountRequests(target, reason)
                 : bulk.action === "verify"
-                    ? await api.verifyAllAccountRequests(ids)
-                    : await api.validateAllAccountRequests(ids);
+                    ? await api.verifyAllAccountRequests(target)
+                    : await api.validateAllAccountRequests(target);
             setNotice(response.message);
             setBulk(null);
             await load();
@@ -374,6 +392,8 @@ export default function AccountRequestsPage() {
                     <Ticket className="h-5 w-5 text-brass" />
                     Demandes de création de compte
                 </h2>
+                {/* Export de la liste affichée : catégorie sélectionnée et recherche, toutes les pages. */}
+                <ExportButton onExport={() => api.exportAccountRequests({ status: statusParam, search: searchTerm })} />
             </div>
 
             <form
@@ -451,8 +471,22 @@ export default function AccountRequestsPage() {
                             />
                             {selectedRows.length === 0
                                 ? "Tout sélectionner"
-                                : `${selectedRows.length} demande(s) sélectionnée(s) sur ${selectableRows.length}`}
+                                : allPages
+                                    ? `Les ${totalSelectable} demande(s) sont sélectionnées (toutes les pages)`
+                                    : `${selectedRows.length} demande(s) sélectionnée(s) sur ${selectableRows.length}`}
                         </label>
+                        {/* Toute la page est cochée et d'autres demandes existent sur les pages suivantes. */}
+                        {allSelected && totalSelectable > selectableRows.length && (
+                            <button
+                                type="button"
+                                onClick={() => setAllPages((value) => !value)}
+                                className="text-sm font-semibold text-brass underline-offset-2 hover:underline"
+                            >
+                                {allPages
+                                    ? `Ne sélectionner que cette page (${selectableRows.length})`
+                                    : `Sélectionner les ${totalSelectable} demandes`}
+                            </button>
+                        )}
                         {selectedRows.length > 0 && !isAdmin && (
                             <button type="button" onClick={() => setBulk({ action: "verify", all: allSelected })} className="btn-primary">
                                 <CheckCircle2 className="h-4 w-4" />
@@ -658,9 +692,9 @@ export default function AccountRequestsPage() {
                         validate: bulk.all ? "Valider toutes les demandes ?" : "Valider les demandes sélectionnées ?",
                     }[bulk.action]}
                     message={{
-                        reject: `${selectedRows.length} demande(s) seront rejetées. Chaque demandeur recevra le motif par e-mail.`,
-                        verify: `${selectedRows.length} demande(s) seront marquées « Vérifiée » et transmises à l'administrateur pour validation.`,
-                        validate: `${selectedRows.length} demande(s) seront validées. Chaque compte sera créé (actif) et recevra le lien de création du mot de passe.`,
+                        reject: `${selectedCount} demande(s) seront rejetées. Chaque demandeur recevra le motif par e-mail.`,
+                        verify: `${selectedCount} demande(s) seront marquées « Vérifiée » et transmises à l'administrateur pour validation.`,
+                        validate: `${selectedCount} demande(s) seront validées. Chaque compte sera créé (actif) et recevra le lien de création du mot de passe.`,
                     }[bulk.action]}
                     confirmLabel={{ reject: "Oui, rejeter", verify: "Oui, vérifier", validate: "Oui, valider" }[bulk.action]}
                     reasonLabel={bulk.action === "reject" ? "Motif du rejet (obligatoire, envoyé aux demandeurs)" : undefined}

@@ -67,30 +67,102 @@ class AccountRequestController extends Controller
         // (Après une suppression définitive, la demande est elle-même supprimée.)
         $query->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'));
 
+        // Recherche (toutes les pages) : appliquée aussi aux compteurs, qui décrivent les résultats trouvés.
+        $this->applySearch($query, $request->get('search'));
+
         // Compteurs : même périmètre que la liste, calculés avant d'appliquer le filtre de statut.
         $counts = $this->requestCounts(clone $query);
 
-        if ($request->filled('status') && str_contains($request->status, ',')) {
-            // Carte « Total » : plusieurs statuts à la fois (« compte_active » est une demande « validee »).
-            $statuses = collect(explode(',', $request->status))
-                ->map(fn ($status) => $status === 'compte_active' ? 'validee' : trim($status))
-                ->unique()
-                ->values()
-                ->all();
-            $query->whereIn('status', $statuses);
-        } elseif ($request->filled('status')) {
-            // Une demande validée donne un compte actif tout de suite (mot de passe créé ou non) :
-            // « compte_active » regroupe toutes les demandes « validee ».
-            match ($request->status) {
-                'compte_active', 'validee' => $query->where('status', 'validee'),
-                default => $query->where('status', $request->status),
-            };
-        }
+        $this->applyStatusFilter($query, $request->get('status'));
 
         return response()->json([
             ...$query->latest()->paginate(20)->toArray(),
             'counts' => $counts,
         ]);
+    }
+
+    /** Export Excel de la liste affichée (même catégorie, même recherche), toutes les pages. */
+    public function export(Request $request)
+    {
+        $query = AccountRequest::query();
+        $request->user()->restrictToManagedLibrary($query);
+        $query->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'));
+        $this->applySearch($query, $request->get('search'));
+        $this->applyStatusFilter($query, $request->get('status'));
+
+        $statuses = [
+            'en_attente' => 'En cours', 'verifiee' => 'Vérifiée', 'validee' => 'Compte activé',
+            'rejetee' => 'Rejetée', 'expiree' => 'Expirée', 'traitee' => 'Traitée',
+        ];
+        $roles = ['etudiant' => 'Étudiant', 'enseignant' => 'Enseignant', 'chercheur' => 'Chercheur'];
+
+        $rows = [['N° de demande', 'Nom', 'Prénom', 'Adresse e-mail', 'Téléphone', 'Rôle', 'Établissement', 'Statut', 'Date de demande', 'Traitée le', 'Numéro de compte', 'Motif du rejet']];
+        foreach ($query->latest()->get() as $row) {
+            $rows[] = [
+                (string) $row->request_number,
+                (string) $row->last_name,
+                (string) $row->first_name,
+                (string) $row->email,
+                (string) $row->phone,
+                $roles[$row->role] ?? (string) $row->role,
+                (string) ($row->school ?: $row->faculty),
+                $statuses[$row->status] ?? (string) $row->status,
+                $row->created_at?->timezone(config('app.display_timezone'))->format('d/m/Y H:i') ?? '',
+                $row->processed_at?->timezone(config('app.display_timezone'))->format('d/m/Y H:i') ?? '',
+                (string) $row->matricule,
+                (string) $row->rejection_reason,
+            ];
+        }
+
+        $content = \App\Support\SimpleXlsx::build([[
+            'name' => 'Demandes de compte',
+            'rows' => $rows,
+            'widths' => [24, 20, 20, 30, 18, 14, 30, 16, 18, 18, 18, 40],
+            'header' => true,
+            'textColumns' => array_keys($rows[0]),
+        ]]);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="demandes-de-compte-'.now(config('app.display_timezone'))->format('Y-m-d').'.xlsx"',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /**
+     * Recherche par nom, prénom, e-mail, téléphone, numéro de demande ou numéro de compte. Chaque mot doit
+     * apparaître dans l'un de ces champs (« Jean Rakoto » trouve le prénom Jean et le nom Rakoto).
+     */
+    private function applySearch($query, ?string $search): void
+    {
+        $words = preg_split('/\s+/', trim((string) $search), -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach (array_slice($words, 0, 5) as $word) {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $word).'%';
+            $query->where(function ($q) use ($like) {
+                foreach (['first_name', 'last_name', 'email', 'phone', 'request_number', 'matricule'] as $column) {
+                    $q->orWhere($column, 'like', $like);
+                }
+            });
+        }
+    }
+
+    /**
+     * Filtre de statut d'une carte : un statut, ou plusieurs séparés par des virgules (carte « Total »).
+     * Une demande validée donne un compte actif tout de suite : « compte_active » regroupe les demandes « validee ».
+     */
+    private function applyStatusFilter($query, ?string $status): void
+    {
+        if (!filled($status)) {
+            return;
+        }
+
+        $statuses = collect(explode(',', $status))
+            ->map(fn ($value) => trim($value) === 'compte_active' ? 'validee' : trim($value))
+            ->unique()
+            ->values()
+            ->all();
+        $query->whereIn('status', $statuses);
     }
 
     /** Total et nombre par statut dans le périmètre autorisé (une seule requête GROUP BY, aucune ligne chargée). */
@@ -874,6 +946,10 @@ class AccountRequestController extends Controller
         $data = $request->validate([
             'ids' => ['sometimes', 'array'],
             'ids.*' => ['integer'],
+            // « Sélectionner toutes les demandes » (toutes les pages) : mêmes filtres que la liste affichée.
+            'all' => ['sometimes', 'boolean'],
+            'status' => ['nullable', 'string', 'max:200'],
+            'search' => ['nullable', 'string', 'max:200'],
             'reason' => [$action === 'reject' ? 'required' : 'nullable', 'string', 'max:1000'],
         ]);
 
@@ -881,6 +957,10 @@ class AccountRequestController extends Controller
         // des demandes non validées ET vérifiées.
         $query = AccountRequest::whereIn('status', $action === 'verify' ? ['en_attente'] : ['en_attente', 'verifiee'])
             ->when(isset($data['ids']), fn ($query) => $query->whereIn('id', $data['ids']));
+        if (!isset($data['ids']) && ($data['all'] ?? false)) {
+            $this->applyStatusFilter($query, $data['status'] ?? null);
+            $this->applySearch($query, $data['search'] ?? null);
+        }
         $admin->restrictToManagedLibrary($query); // bibliothécaire : demandes de sa bibliothèque uniquement
         $requests = $query->get();
 

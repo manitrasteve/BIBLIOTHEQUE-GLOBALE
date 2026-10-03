@@ -178,7 +178,8 @@ class User extends Authenticatable
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo_path ? asset('storage/'.$this->photo_path) : null;
+        // Adresse relative (et non asset()) : la photo reste visible si l'IP ou l'adresse du serveur change.
+        return $this->photo_path ? '/storage/'.$this->photo_path : null;
     }
 
     public function library(): BelongsTo

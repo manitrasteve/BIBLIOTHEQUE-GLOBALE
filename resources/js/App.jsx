@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
+import { ConfirmProvider } from "./components/ConfirmDialog";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -83,6 +84,7 @@ export default function App() {
         <AuthProvider>
             <BrowserRouter>
                 <ToastProvider>
+                <ConfirmProvider>
                 <div className="min-h-screen bg-paper text-ink font-sans flex flex-col dashboard-bg">
                     <a href="#contenu" className="skip-link">Aller au contenu</a>
                     <Header />
@@ -362,6 +364,7 @@ export default function App() {
                     </main>
                     <HomeOnlyFooter />
                 </div>
+                </ConfirmProvider>
                 </ToastProvider>
             </BrowserRouter>
         </AuthProvider>

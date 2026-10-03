@@ -69,6 +69,7 @@ class AccountRequest extends Model
         // Création du mot de passe
         'setup_token_hash',
         'setup_expires_at',
+        'setup_reminder_sent_at',
     ];
 
     // Empreinte du lien de création du mot de passe : jamais renvoyée par l'API.
@@ -81,6 +82,7 @@ class AccountRequest extends Model
         'processed_at' => 'datetime',
         'validation_deadline_at' => 'datetime',
         'setup_expires_at' => 'datetime',
+        'setup_reminder_sent_at' => 'datetime',
     ];
 
     /**
@@ -89,6 +91,13 @@ class AccountRequest extends Model
      */
     protected static function booted(): void
     {
+        // Nouveau délai pour le lien (validation, renvoi, restauration…) : un nouveau rappel pourra être envoyé.
+        static::saving(function (AccountRequest $req) {
+            if ($req->isDirty('setup_expires_at') && !$req->isDirty('setup_reminder_sent_at')) {
+                $req->setup_reminder_sent_at = null;
+            }
+        });
+
         static::creating(function (AccountRequest $req) {
             $req->uuid ??= (string) \Illuminate\Support\Str::uuid();
 

@@ -20,7 +20,8 @@ class Library extends Model
     // Photo de couverture : null pour les bibliothèques créées avant l'ajout du champ.
     public function getCoverUrlAttribute(): ?string
     {
-        return $this->photo_path ? asset('storage/'.$this->photo_path) : null;
+        // Adresse relative (et non asset()) : la photo reste visible si l'IP ou l'adresse du serveur change.
+        return $this->photo_path ? '/storage/'.$this->photo_path : null;
     }
 
     protected static function booted(): void

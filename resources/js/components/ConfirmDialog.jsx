@@ -1,6 +1,47 @@
-import { useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
+
+// Confirmation globale, à la place de window.confirm / window.prompt :
+//   const confirm = useConfirm();
+//   if (!(await confirm({ title: "Supprimer ?", message: "…", danger: true }))) return;
+//   const reason = await confirm({ title: "…", reasonLabel: "Motif" }); // motif saisi, ou false si annulé
+const ConfirmContext = createContext(async () => false);
+
+export function ConfirmProvider({ children }) {
+    const [request, setRequest] = useState(null); // { options, resolve }
+    const requestRef = useRef(null);
+
+    const confirm = useCallback((options) => new Promise((resolve) => {
+        requestRef.current?.resolve(false); // une seule confirmation à la fois
+        const next = { options: typeof options === "string" ? { title: options } : options, resolve };
+        requestRef.current = next;
+        setRequest(next);
+    }), []);
+
+    function close(result) {
+        request?.resolve(result);
+        requestRef.current = null;
+        setRequest(null);
+    }
+
+    return (
+        <ConfirmContext.Provider value={confirm}>
+            {children}
+            {request && (
+                <ConfirmDialog
+                    {...request.options}
+                    onConfirm={(reason) => close(request.options.reasonLabel ? reason : true)}
+                    onCancel={() => close(false)}
+                />
+            )}
+        </ConfirmContext.Provider>
+    );
+}
+
+export function useConfirm() {
+    return useContext(ConfirmContext);
+}
 
 // Fenêtre de confirmation « Oui / Non » : « Oui » lance l'opération, « Non » (ou Échap, ou un clic à côté) l'annule.
 // `reasonLabel` : demande en plus un motif obligatoire (ex. rejet, envoyé au demandeur), transmis à onConfirm.
@@ -11,6 +52,7 @@ export default function ConfirmDialog({
     cancelLabel = "Non, annuler",
     danger = false,
     reasonLabel,
+    reasonPlaceholder = "Expliquez la raison ici…",
     busy = false,
     onConfirm,
     onCancel,
@@ -69,7 +111,7 @@ export default function ConfirmDialog({
                             value={reason}
                             onChange={(event) => setReason(event.target.value)}
                             disabled={busy}
-                            placeholder="Expliquez la raison ici…"
+                            placeholder={reasonPlaceholder}
                             className="w-full rounded-xl border border-slate-200 bg-surface p-3 text-sm outline-none focus:border-brass"
                         />
                     </label>

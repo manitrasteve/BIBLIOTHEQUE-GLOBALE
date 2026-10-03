@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Radar, Plus, Trash2, Tag, Hash } from "lucide-react";
 import { api } from "../lib/api";
+import { useConfirm } from "../components/ConfirmDialog";
 
 const inputClass = "w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm";
 
@@ -11,6 +12,7 @@ function formatDate(value) {
 }
 
 export default function ScientificWatchPage() {
+    const confirm = useConfirm();
     const [topics, setTopics] = useState(null);
     const [categories, setCategories] = useState([]);
     const [error, setError] = useState(null);
@@ -76,7 +78,7 @@ export default function ScientificWatchPage() {
     }
 
     async function remove(topic) {
-        if (!confirm(`Ne plus suivre « ${topic.label} » ?`)) return;
+        if (!(await confirm({ title: `Ne plus suivre « ${topic.label} » ?` }))) return;
         try {
             await api.deleteWatchTopic(topic.id);
             if (selected?.id === topic.id) {

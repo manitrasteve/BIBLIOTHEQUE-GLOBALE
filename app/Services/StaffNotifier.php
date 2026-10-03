@@ -91,7 +91,7 @@ class StaffNotifier
     private static function message(User $actor, Document $document, string $event, array $changedFields, array $libraryIds): string
     {
         $libraries = Library::whereIn('id', $libraryIds)->pluck('name')->implode(', ');
-        $when = now()->setTimezone(config('app.display_timezone', 'Indian/Antananarivo'))->format('d/m/Y à H:i');
+        $when = now()->setTimezone(config('app.display_timezone'))->format('d/m/Y à H:i');
 
         $text = "« {$document->title} » a été " . self::VERBS[$event] . " par {$actor->name}"
             . ($libraries !== '' ? " ({$libraries})" : '')

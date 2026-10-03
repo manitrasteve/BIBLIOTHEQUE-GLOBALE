@@ -3,8 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { Mail, Trash2, UserRound, CheckCheck } from "lucide-react";
 import { api } from "../lib/api";
 import Pager from "../components/Pager";
+import { useConfirm } from "../components/ConfirmDialog";
 
 export default function MessagesPage() {
+    const confirm = useConfirm();
     const [items, setItems] = useState(null);
     const [params] = useSearchParams();
     const [error, setError] = useState(null);
@@ -34,12 +36,12 @@ export default function MessagesPage() {
         try { await api.markMessageRead(item.id); } catch { load(); }
     }
     async function remove(id) {
-        if (!window.confirm("Supprimer ce message de votre compte ?")) return;
+        if (!(await confirm({ title: "Supprimer ce message de votre compte ?", danger: true }))) return;
         try { await api.deleteMessage(id); setItems((current) => current.filter((x) => x.id !== id)); }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }
     async function clear() {
-        if (!window.confirm("Supprimer tous vos historiques/messages ?")) return;
+        if (!(await confirm({ title: "Supprimer tous vos historiques/messages ?", danger: true }))) return;
         try { await api.clearMessages(); setItems([]); }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }

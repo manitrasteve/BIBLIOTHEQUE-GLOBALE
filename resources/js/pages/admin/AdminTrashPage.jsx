@@ -7,10 +7,14 @@ import { matchesSearch } from "../../lib/search";
 import { sortRows } from "../../lib/sort";
 import SortTh from "../../components/SortTh";
 import ActionsTh from "../../components/ActionsTh";
+import { useConfirm } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 
 function getVal(row, key) { return key === "library" ? row.library?.name : row[key]; }
 
 export default function AdminTrashPage() {
+    const confirm = useConfirm();
+    const toast = useToast();
   const { user } = useAuth();
   const [data, setData] = useState({ users: [], documents: [] });
   const [q, setQ] = useState("");
@@ -27,7 +31,7 @@ export default function AdminTrashPage() {
   useEffect(load, []);
   const users = useMemo(() => sortRows(data.users.filter(u => matchesSearch(`${u.name} ${u.email} ${u.matricule} ${u.role} ${u.library?.name}`, q)), usersSort, getVal), [data.users, q, usersSort]);
   const documents = useMemo(() => sortRows(data.documents.filter(d => matchesSearch(`${d.title} ${d.author} ${d.type} ${d.niveau} ${d.library?.name}`, q)), docsSort, getVal), [data.documents, q, docsSort]);
-  async function action(fn, msg) { if (!confirm(msg)) return; try { await fn(); load(); } catch (e) { alert(e?.data?.message || e?.message || "Action impossible."); } }
+  async function action(fn, msg) { if (!(await confirm({ title: msg, danger: /supprim|définitiv|vider/i.test(msg) }))) return; try { await fn(); load(); } catch (e) { toast(e?.data?.message || e?.message || "Action impossible."); } }
   return <div>
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4"><div><h2 className="flex items-center gap-2 font-display text-2xl font-extrabold"><Trash2 className="h-6 w-6 text-red-700"/>Corbeille</h2><p className="mt-1 text-sm text-slate-500">Éléments supprimés et récupérables.</p></div>{can("supprimer_definitivement_corbeille") && <button disabled={data.users.length + data.documents.length === 0} onClick={() => action(api.emptyTrash, "Vider définitivement toute la corbeille ? Cette action est irréversible.")} className="rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-40"><Trash className="mr-2 inline h-4 w-4"/>Vider la corbeille</button>}</div>
     <form onSubmit={e => e.preventDefault()} className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un compte ou un document…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Search className="h-4 w-4"/> Rechercher</button></form>

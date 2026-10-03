@@ -221,3 +221,112 @@ test('aucune route GET de l\'API ne provoque d\'erreur 500, quel que soit le rô
 
     expect($errors)->toBe([]);
 });
+
+// ---------- Recherche serveur, sélection sur toutes les pages, exports, rappels, URL relatives ----------
+
+test('la recherche des demandes porte sur toutes les pages et sur plusieurs mots', function () {
+    $library = Library::factory()->create();
+    AccountRequest::factory()->count(25)->create(['status' => 'en_attente', 'library_id' => $library->id]);
+    $target = AccountRequest::factory()->create(['status' => 'en_attente', 'library_id' => $library->id, 'first_name' => 'Hery', 'last_name' => 'Randriamampionona']);
+    Sanctum::actingAs(sessionAdmin());
+
+    $response = $this->getJson('/api/account-requests?search=' . urlencode('hery randria'))->assertOk();
+    expect($response->json('total'))->toBe(1)
+        ->and($response->json('data.0.id'))->toBe($target->id)
+        ->and($response->json('counts.total'))->toBe(1);
+});
+
+test('« sélectionner toutes les demandes » traite toutes les pages de la catégorie affichée', function () {
+    $library = Library::factory()->create();
+    AccountRequest::factory()->count(23)->create(['status' => 'verifiee', 'library_id' => $library->id, 'validation_deadline_at' => now()->addDay()]);
+    $other = AccountRequest::factory()->create(['status' => 'en_attente', 'library_id' => $library->id]);
+    Sanctum::actingAs(sessionAdmin());
+
+    $this->postJson('/api/account-requests/reject-all', ['all' => true, 'status' => 'verifiee', 'reason' => 'Session close'])
+        ->assertOk()->assertJsonPath('rejected_count', 23);
+
+    expect(AccountRequest::where('status', 'rejetee')->count())->toBe(23)
+        ->and($other->fresh()->status)->toBe('en_attente');
+});
+
+test('les exports Excel suivent les filtres de la liste et sont protégés', function () {
+    User::factory()->create(['role' => 'etudiant', 'name' => 'Alpha Étudiant']);
+    User::factory()->create(['role' => 'enseignant', 'name' => 'Beta Enseignant']);
+    $library = Library::factory()->create();
+    AccountRequest::factory()->create(['status' => 'en_attente', 'library_id' => $library->id]);
+    Sanctum::actingAs(sessionAdmin());
+
+    $users = $this->get('/api/users/export?role=etudiant')->assertOk();
+    expect($users->headers->get('Content-Type'))->toContain('spreadsheetml')
+        ->and($users->headers->get('Content-Disposition'))->toContain('utilisateurs-');
+    $rows = \App\Support\SimpleXlsx::readFirstSheet(tap(tempnam(sys_get_temp_dir(), 'x'), fn ($p) => file_put_contents($p, $users->getContent())));
+    expect(collect($rows)->flatten()->implode(' '))->toContain('Alpha Étudiant')->not->toContain('Beta Enseignant');
+
+    $this->get('/api/account-requests/export?status=en_attente')->assertOk()
+        ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    Sanctum::actingAs(User::factory()->create(['role' => 'etudiant', 'is_active' => true]));
+    $this->get('/api/users/export')->assertForbidden();
+    $this->get('/api/account-requests/export')->assertForbidden();
+});
+
+test('le rappel part une seule fois avant l\'expiration, avec un nouveau lien et le même délai', function () {
+    $request = verifiedRequest();
+    Sanctum::actingAs(sessionAdmin());
+    $this->postJson("/api/account-requests/{$request->id}/validate")->assertOk();
+
+    // Lien encore loin de l'expiration : pas de rappel.
+    expect(app(\App\Services\SetupLinkReminder::class)->sendDue())->toBe(0);
+
+    $this->travel(50)->hours();
+    $request->refresh();
+    $expires = $request->setup_expires_at->toIso8601String();
+    $oldHash = $request->setup_token_hash;
+
+    expect(app(\App\Services\SetupLinkReminder::class)->sendDue())->toBe(1);
+    $request->refresh();
+    expect($request->setup_reminder_sent_at)->not->toBeNull()
+        ->and($request->setup_token_hash)->not->toBe($oldHash)
+        ->and($request->setup_expires_at->toIso8601String())->toBe($expires); // délai inchangé
+
+    // Un seul rappel par lien.
+    expect(app(\App\Services\SetupLinkReminder::class)->sendDue())->toBe(0);
+
+    // Un nouveau lien (renvoi) rouvre la possibilité d'un rappel.
+    $this->postJson("/api/account-requests/{$request->id}/resend-setup-link")->assertOk();
+    expect($request->fresh()->setup_reminder_sent_at)->toBeNull();
+
+    $this->artisan('comptes:rappel-mot-de-passe')->assertSuccessful();
+});
+
+test('aucun rappel quand le mot de passe est déjà créé', function () {
+    $request = verifiedRequest();
+    Sanctum::actingAs(sessionAdmin());
+    $this->postJson("/api/account-requests/{$request->id}/validate")->assertOk();
+    $request->refresh()->createdUser->update(['password_set_at' => now()]);
+
+    $this->travel(60)->hours();
+    expect(app(\App\Services\SetupLinkReminder::class)->sendDue())->toBe(0)
+        ->and($request->fresh()->setup_reminder_sent_at)->not->toBeNull();
+});
+
+test('les photos utilisent une adresse relative, indépendante de l\'IP du serveur', function () {
+    $user = User::factory()->create(['photo_path' => 'profiles/photo.jpg']);
+    $library = Library::factory()->create(['photo_path' => 'libraries/couverture.jpg']);
+
+    expect($user->photo_url)->toBe('/storage/profiles/photo.jpg')
+        ->and($library->cover_url)->toBe('/storage/libraries/couverture.jpg');
+});
+
+test('les exports affichent les dates à l\'heure de Madagascar (les dates restent stockées en UTC)', function () {
+    config(['app.display_timezone' => 'Indian/Antananarivo']);
+    $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-03 22:30:00', 'UTC'));
+    User::factory()->create(['role' => 'etudiant', 'name' => 'Fuseau Horaire']);
+    Sanctum::actingAs(sessionAdmin());
+
+    $response = $this->get('/api/users/export')->assertOk();
+    expect($response->headers->get('Content-Disposition'))->toContain('utilisateurs-2026-10-04.xlsx');
+
+    $rows = \App\Support\SimpleXlsx::readFirstSheet(tap(tempnam(sys_get_temp_dir(), 'x'), fn ($p) => file_put_contents($p, $response->getContent())));
+    expect(collect($rows)->flatten()->implode(' '))->toContain('04/10/2026 01:30');
+});

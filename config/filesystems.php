@@ -36,7 +36,8 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            // Adresse relative : les fichiers s'affichent quelle que soit l'adresse du serveur (IP qui change, nom de domaine…).
+            'url' => '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

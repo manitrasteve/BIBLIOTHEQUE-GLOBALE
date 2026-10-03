@@ -3,8 +3,10 @@ import { ArrowLeft, MessageCircle, Send, Trash2, UserRound } from "lucide-react"
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useConfirm } from "../components/ConfirmDialog";
 
 export default function StaffDiscussionPage() {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const [params] = useSearchParams();
     const [librarians, setLibrarians] = useState([]);
@@ -49,13 +51,13 @@ export default function StaffDiscussionPage() {
     }
 
     async function remove(id) {
-        if (!window.confirm("Supprimer ce message de votre historique ?")) return;
+        if (!(await confirm({ title: "Supprimer ce message de votre historique ?", danger: true }))) return;
         try { await api.deleteStaffMessage(id); setMessages((list) => list.filter((m) => m.id !== id)); }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }
 
     async function clearHistory() {
-        if (!window.confirm("Supprimer tout votre historique de discussion ?")) return;
+        if (!(await confirm({ title: "Supprimer tout votre historique de discussion ?", danger: true }))) return;
         try { await api.clearStaffHistory(); setMessages([]); }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }

@@ -4,8 +4,10 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 function Inbox({ kind }) {
+    const confirm = useConfirm();
     // Consultation seule pour le bibliothécaire : répondre / supprimer restent réservés à l'administrateur.
     const { user } = useAuth();
     const isAdmin = user?.role === "administrateur";
@@ -42,7 +44,7 @@ function Inbox({ kind }) {
     }, [filter]);
 
     async function reply(row) {
-        const text = prompt("Votre réponse :");
+        const text = await confirm({ title: "Répondre", reasonLabel: "Votre réponse (envoyée à l’utilisateur)", reasonPlaceholder: "Écrivez votre réponse…", confirmLabel: "Envoyer" });
         if (!text) return;
         try {
             if (isFeedback)
@@ -68,11 +70,9 @@ function Inbox({ kind }) {
 
     async function removeOne(row) {
         if (
-            !confirm(
-                isFeedback
+            !(await confirm({ title: isFeedback
                     ? "Supprimer cet avis ?"
-                    : "Supprimer ce signalement ?",
-            )
+                    : "Supprimer ce signalement ?", danger: true }))
         )
             return;
         try {
@@ -87,9 +87,7 @@ function Inbox({ kind }) {
         if (!rows?.length) return;
         const label = isFeedback ? "tous les avis" : "tous les signalements";
         if (
-            !confirm(
-                `Effacer définitivement ${label} ? Cette action est irréversible.`,
-            )
+            !(await confirm({ title: `Effacer définitivement ${label} ?`, message: "Cette action est irréversible.", danger: true }))
         )
             return;
         try {

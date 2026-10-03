@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Building2, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Building2, ImageIcon, ImageOff, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { matchesSearch } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
@@ -11,8 +11,9 @@ import LibraryCover from '../../components/LibraryCover';
 import SortTh from '../../components/SortTh';
 import ActionsTh from '../../components/ActionsTh';
 import { librarySections } from '../../lib/detailSections';
-import CounterBar from '../../components/CounterBar';
+import StatCard, { StatCardSkeleton } from '../../components/StatCard';
 import RichTextEditor from '../../components/RichTextEditor';
+import { useConfirm } from "../../components/ConfirmDialog";
 
 function getLibraryVal(row, key) {
   if (key === 'hours') return `${row.opening_days || ''} ${row.opening_hours || ''}`;
@@ -35,6 +36,7 @@ const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const inputClass = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5';
 
 export default function AdminLibrariesPage() {
+    const confirm = useConfirm();
   const { user } = useAuth();
   // Chaque bouton dépend de sa propre permission (l'administrateur les a toutes) :
   // Ajouter → ajouter_bibliotheque, Voir → voir_bibliotheques, Modifier → modifier_bibliotheque.
@@ -55,6 +57,14 @@ export default function AdminLibrariesPage() {
   const [query, setQuery] = useState('');
   const [viewing, setViewing] = useState(null);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  // Carte de compteur sélectionnée : toutes, avec ou sans photo de couverture (un nouveau clic sur la carte active : toutes).
+  const [coverFilter, setCoverFilter] = useState('total');
+  const listRef = useRef(null);
+  function selectCoverFilter(key) {
+    setCoverFilter((current) => (key === 'total' || current === key ? 'total' : key));
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const matchesCover = (lib) => coverFilter === 'total' || (coverFilter === 'avec_photo' ? !!lib.cover_url : !lib.cover_url);
 
   useEffect(() => {
     load();
@@ -141,7 +151,7 @@ export default function AdminLibrariesPage() {
   }
 
   async function remove(lib) {
-    if (!confirm(`Supprimer « ${lib.name} » ? Les documents et comptes associés doivent être migrés au préalable.`)) return;
+    if (!(await confirm({ title: `Supprimer « ${lib.name} » ?`, message: `Les documents et comptes associés doivent être migrés au préalable.`, danger: true }))) return;
     try {
       await api.deleteLibrary(lib.id);
       load();
@@ -150,7 +160,7 @@ export default function AdminLibrariesPage() {
     }
   }
 
-  const filtered = sortRows((libraries || []).filter((lib) => matchesSearch(`${lib.name} ${lib.address || ''} ${lib.location || ''}`, query)), sort, getLibraryVal);
+  const filtered = sortRows((libraries || []).filter((lib) => matchesCover(lib) && matchesSearch(`${lib.name} ${lib.address || ''} ${lib.location || ''}`, query)), sort, getLibraryVal);
 
   const canManage = canAdd || canEdit;
 
@@ -164,8 +174,20 @@ export default function AdminLibrariesPage() {
           </h2>
         </div>
 
-        {/* Une bibliothèque n'a pas d'état (actif / inactif) : seul le total existe. */}
-        <CounterBar total={libraries ? libraries.length : null} />
+        {/* Cartes de compteurs : un clic filtre la liste (photo de couverture présente ou à ajouter). */}
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3" role="status" aria-live="polite">
+          {libraries
+            ? [
+                ['total', 'Total', libraries.length, Building2],
+                ['avec_photo', 'Avec photo de couverture', libraries.filter((lib) => lib.cover_url).length, ImageIcon, 'success'],
+                ['sans_photo', 'Sans photo de couverture', libraries.filter((lib) => !lib.cover_url).length, ImageOff, 'warning'],
+              ].map(([key, label, value, icon, tone]) => (
+                <StatCard key={key} label={label} value={value} icon={icon} tone={tone} active={coverFilter === key} onClick={() => selectCoverFilter(key)} />
+              ))
+            : Array.from({ length: 3 }, (_, i) => <StatCardSkeleton key={i} />)}
+        </div>
+
+        <div ref={listRef} className="scroll-mt-24" />
 
         {error && <p className="mb-4 text-red-700">{error}</p>}
 

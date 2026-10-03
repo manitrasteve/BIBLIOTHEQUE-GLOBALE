@@ -49,6 +49,26 @@ async function request(
     return data;
 }
 
+// Téléchargement d'un fichier protégé (export Excel…) : nom proposé par le serveur s'il en donne un.
+async function downloadFile(path, params, fallbackName) {
+    const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== "")).toString();
+    const response = await fetch(`${API_URL}${path}${query ? `?${query}` : ""}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) {
+        const error = new Error("Téléchargement impossible.");
+        error.status = response.status;
+        throw error;
+    }
+    const name = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") || "")?.[1] || fallbackName;
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000); // révoqué après le démarrage du téléchargement
+}
+
 export const api = {
     // ---------------------------------------------------------
     // Public
@@ -407,6 +427,10 @@ export const api = {
         setTimeout(() => URL.revokeObjectURL(url), 1000); // révoqué après le démarrage du téléchargement
     },
 
+    // Exports Excel des listes (mêmes filtres que la liste affichée : carte sélectionnée, recherche).
+    exportUsers: (params = {}) => downloadFile("/users/export", params, "utilisateurs.xlsx"),
+    exportAccountRequests: (params = {}) => downloadFile("/account-requests/export", params, "demandes-de-compte.xlsx"),
+
     analyzeDocumentImport: (formData) =>
         request("/document-imports/analyze", {
             method: "POST",
@@ -540,24 +564,25 @@ export const api = {
         }),
 
     // Validation de toutes les demandes vérifiées
-    // Validation / rejet groupés : `ids` = demandes sélectionnées (toutes les demandes à traiter si absent).
-    validateAllAccountRequests: (ids) =>
+    // Traitements groupés. `target` : { ids } (demandes cochées) ou { all: true, status, search } (toutes les
+    // pages de la liste affichée). Sans cible : toutes les demandes à traiter.
+    validateAllAccountRequests: (target = {}) =>
         request("/account-requests/validate-all", {
             method: "POST",
-            body: ids ? { ids } : {},
+            body: target,
         }),
 
     // Service Numérique : vérification groupée des demandes non validées sélectionnées.
-    verifyAllAccountRequests: (ids) =>
+    verifyAllAccountRequests: (target) =>
         request("/account-requests/verify-all", {
             method: "POST",
-            body: { ids },
+            body: target,
         }),
 
-    rejectAllAccountRequests: (ids, reason) =>
+    rejectAllAccountRequests: (target, reason) =>
         request("/account-requests/reject-all", {
             method: "POST",
-            body: { ...(ids ? { ids } : {}), reason },
+            body: { ...target, reason },
         }),
 
     // Renvoi du lien de création du mot de passe (ex : lien expiré)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pencil, StickyNote, Trash2, X } from "lucide-react";
 import { api } from "../lib/api";
+import { useConfirm } from "./ConfirmDialog";
 
 // Couleurs d'étiquette d'une note (mêmes clés que DocumentNote::COLORS côté serveur).
 export const NOTE_COLORS = {
@@ -13,6 +14,7 @@ export const NOTE_COLORS = {
 // Notes personnelles du lecteur, rattachées aux pages du document (visibles de lui seul).
 // notes / setNotes viennent du lecteur, qui s'en sert aussi pour signaler les pages annotées.
 export default function ReaderNotesPanel({ slug, pageNum, notes, setNotes, onGoToPage, onClose }) {
+    const confirm = useConfirm();
     const [body, setBody] = useState("");
     const [color, setColor] = useState("jaune");
     const [editing, setEditing] = useState(null); // { id, body }
@@ -54,7 +56,7 @@ export default function ReaderNotesPanel({ slug, pageNum, notes, setNotes, onGoT
     }
 
     async function remove(note) {
-        if (!window.confirm("Supprimer cette note ?")) return;
+        if (!(await confirm({ title: "Supprimer cette note ?", danger: true }))) return;
         try {
             await api.deleteDocumentNote(note.id);
             setNotes((list) => list.filter((n) => n.id !== note.id));

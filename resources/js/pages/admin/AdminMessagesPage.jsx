@@ -4,8 +4,10 @@ import { Mail, MessageCircle, Send, Trash2, Users } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pager from "../../components/Pager";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 export default function AdminMessagesPage() {
+    const confirm = useConfirm();
     const { user } = useAuth();
     const isLibrarian = user?.role === "bibliothecaire";
     const [users, setUsers] = useState([]);
@@ -44,13 +46,13 @@ export default function AdminMessagesPage() {
     }
 
     async function remove(id) {
-        if (!window.confirm("Supprimer ce message de votre historique ?")) return;
+        if (!(await confirm({ title: "Supprimer ce message de votre historique ?", danger: true }))) return;
         try { await api.deleteAdminMessage(id); await load(); }
         catch (e) { setNotice(e?.data?.message || "Suppression impossible."); }
     }
 
     async function clear() {
-        if (!window.confirm("Supprimer tout votre historique de messages envoyés ?")) return;
+        if (!(await confirm({ title: "Supprimer tout votre historique de messages envoyés ?", danger: true }))) return;
         try { await api.clearAdminMessageHistory(); setHistory([]); }
         catch (e) { setNotice(e?.data?.message || "Suppression impossible."); }
     }

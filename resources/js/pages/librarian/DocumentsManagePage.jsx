@@ -10,6 +10,8 @@ import SortTh from '../../components/SortTh';
 import ActionsTh from '../../components/ActionsTh';
 import { SkeletonTable } from '../../components/Skeleton';
 import StatCard, { StatCardSkeleton } from '../../components/StatCard';
+import { useConfirm } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 
 const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
 const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Archivé' };
@@ -28,6 +30,8 @@ function getDocVal(row, key) {
 }
 
 export default function DocumentsManagePage() {
+    const confirm = useConfirm();
+    const toast = useToast();
   const { user } = useAuth();
   const basePath = useLocation().pathname.startsWith('/administrateur') ? '/administrateur/documents' : '/bibliothecaire/documents';
   const can = (permission) => user?.role === 'administrateur' || user?.permissions?.includes(permission);
@@ -99,7 +103,7 @@ export default function DocumentsManagePage() {
     }
   }
 
-  async function reindex(doc) { setBusySlug(doc.slug); try { await api.reindexDocument(doc.id); alert('Indexation RAG relancée.'); } finally { setBusySlug(null); } }
+  async function reindex(doc) { setBusySlug(doc.slug); try { await api.reindexDocument(doc.id); toast('Indexation RAG relancée.'); } finally { setBusySlug(null); } }
 
   async function archive(doc) {
     setBusySlug(doc.slug);
@@ -112,7 +116,7 @@ export default function DocumentsManagePage() {
   }
 
   async function remove(doc) {
-    if (!confirm(`Supprimer « ${doc.title} » ? Cette action est irréversible.`)) return;
+    if (!(await confirm({ title: `Supprimer « ${doc.title} » ?`, message: `Cette action est irréversible.`, danger: true }))) return;
     setBusySlug(doc.slug);
     try {
       await api.deleteDocument(doc.id);
