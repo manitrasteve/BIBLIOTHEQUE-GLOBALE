@@ -38,6 +38,6 @@
     'details' => $details,
     'buttonLabel' => 'Créer mon mot de passe',
     'buttonUrl' => $setupUrl,
-    'note' => ($variant === 'new_link' ? 'Ce nouveau lien' : 'Ce lien') . ' est valable pendant 24 heures et ne peut être utilisé qu’une seule fois.',
+    'note' => ($variant === 'new_link' ? 'Ce nouveau lien' : 'Ce lien') . ' est valable pendant ' . \App\Models\AccountRequest::SETUP_LINK_HOURS . ' heures et ne peut être utilisé qu’une seule fois.',
     'footerNote' => ($accountNumber ? 'Conservez précieusement votre numéro de compte : il pourra vous être demandé en cas de perte de vos informations. ' : '') . 'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement cet e-mail ou contactez l’administration.',
 ])

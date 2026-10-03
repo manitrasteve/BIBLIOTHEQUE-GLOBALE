@@ -91,7 +91,7 @@ test('la validation envoie le numéro de compte réel et un bouton vers le lien 
         ->toContain('Vous pouvez maintenant créer votre mot de passe')
         ->toContain('Numéro de compte')
         ->toContain($user->matricule)
-        ->toContain('24 heures');
+        ->toContain('72 heures');
     expectCleanEmail($html);
 
     $url = buttonUrl($html);

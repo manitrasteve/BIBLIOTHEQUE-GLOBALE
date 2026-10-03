@@ -70,12 +70,19 @@ class AccountRequestController extends Controller
         // Compteurs : même périmètre que la liste, calculés avant d'appliquer le filtre de statut.
         $counts = $this->requestCounts(clone $query);
 
-        if ($request->filled('status')) {
-            // « validee » ne change jamais après la création du mot de passe : seul l'effacement du jeton
-            // d'initialisation distingue « en attente de mot de passe » de « compte activé ».
+        if ($request->filled('status') && str_contains($request->status, ',')) {
+            // Carte « Total » : plusieurs statuts à la fois (« compte_active » est une demande « validee »).
+            $statuses = collect(explode(',', $request->status))
+                ->map(fn ($status) => $status === 'compte_active' ? 'validee' : trim($status))
+                ->unique()
+                ->values()
+                ->all();
+            $query->whereIn('status', $statuses);
+        } elseif ($request->filled('status')) {
+            // Une demande validée donne un compte actif tout de suite (mot de passe créé ou non) :
+            // « compte_active » regroupe toutes les demandes « validee ».
             match ($request->status) {
-                'validee' => $query->where('status', 'validee')->whereNotNull('setup_token_hash'),
-                'compte_active' => $query->where('status', 'validee')->whereNull('setup_token_hash'),
+                'compte_active', 'validee' => $query->where('status', 'validee'),
                 default => $query->where('status', $request->status),
             };
         }
@@ -90,12 +97,12 @@ class AccountRequestController extends Controller
     private function requestCounts($scoped): array
     {
         $rows = $scoped->reorder()->toBase()
-            ->selectRaw("CASE WHEN status = 'validee' AND setup_token_hash IS NULL THEN 'compte_active' ELSE status END AS bucket, COUNT(*) AS total")
+            ->selectRaw("CASE WHEN status = 'validee' THEN 'compte_active' ELSE status END AS bucket, COUNT(*) AS total")
             ->groupBy('bucket')
             ->pluck('total', 'bucket');
 
         $counts = ['total' => (int) $rows->sum()];
-        foreach (['en_attente', 'verifiee', 'validee', 'compte_active', 'rejetee', 'expiree', 'traitee'] as $status) {
+        foreach (['en_attente', 'verifiee', 'compte_active', 'rejetee', 'expiree', 'traitee'] as $status) {
             $counts[$status] = (int) ($rows[$status] ?? 0);
         }
 
@@ -160,7 +167,7 @@ class AccountRequestController extends Controller
         $validated['uuid'] = (string) Str::uuid();
 
         if (!$legacyRequest) {
-            $validated['request_number'] = Rules::newRequestNumber();
+            $validated['request_number'] = Rules::newRequestNumber($validated);
         }
 
         $validated['status'] = 'en_attente';
@@ -286,7 +293,7 @@ class AccountRequestController extends Controller
         $validated = Rules::normalizeLevel($validated);
 
         $validated['uuid'] = (string) Str::uuid();
-        $validated['request_number'] = Rules::newRequestNumber();
+        $validated['request_number'] = Rules::newRequestNumber($validated);
 
         /**
          * Le Service Numérique crée la demande.
@@ -621,7 +628,7 @@ class AccountRequestController extends Controller
 
         if (!in_array($accountRequest->status, ['en_attente', 'verifiee'], true)) {
             return response()->json([
-                'message' => 'Seules les demandes non validées ou vérifiées peuvent être rejetées.',
+                'message' => 'Seules les demandes en cours ou vérifiées peuvent être rejetées.',
             ], 422);
         }
 
@@ -700,7 +707,7 @@ class AccountRequestController extends Controller
         if (!in_array($accountRequest->status, $validatable, true)) {
             return response()->json([
                 'message' => $admin->isAdmin()
-                    ? 'Seules les demandes non validées ou vérifiées peuvent être validées.'
+                    ? 'Seules les demandes en cours ou vérifiées peuvent être validées.'
                     : 'Seules les demandes vérifiées peuvent être validées.',
             ], 422);
         }
@@ -755,7 +762,7 @@ class AccountRequestController extends Controller
                 'matricule' => $user->matricule,
 
                 'setup_token_hash' => $tokenHash,
-                'setup_expires_at' => now()->addHours(24),
+                'setup_expires_at' => now()->addHours(AccountRequest::SETUP_LINK_HOURS),
 
                 /**
                  * Ici, processed_by = administrateur
@@ -825,39 +832,82 @@ class AccountRequestController extends Controller
     }
 
     /**
-     * Validation de toutes les demandes vérifiées.
+     * Validation groupée : les demandes sélectionnées (`ids`), ou toutes les demandes non validées et vérifiées.
      */
     public function validateAll(Request $request)
     {
+        return $this->processMany($request, 'validate');
+    }
+
+    /**
+     * Rejet groupé (motif obligatoire, envoyé à chaque demandeur) : les demandes sélectionnées (`ids`),
+     * ou toutes les demandes non validées et vérifiées.
+     */
+    public function rejectAll(Request $request)
+    {
+        return $this->processMany($request, 'reject');
+    }
+
+    /**
+     * Vérification groupée (Service Numérique ou administrateur) : les demandes non validées sélectionnées (`ids`),
+     * limitées à la bibliothèque du bibliothécaire.
+     */
+    public function verifyAll(Request $request)
+    {
+        return $this->processMany($request, 'verify');
+    }
+
+    /** Applique la vérification, la validation ou le rejet unitaire à chaque demande, et en fait le bilan. */
+    private function processMany(Request $request, string $action)
+    {
         $admin = $request->user();
 
-        if (!$admin || !$admin->isAdmin()) {
+        $allowed = $action === 'verify'
+            ? $admin && in_array($admin->role, ['administrateur', 'bibliothecaire'], true)
+            : $admin && $admin->isAdmin();
+        if (!$allowed) {
             return response()->json([
                 'message' => 'Accès non autorisé.',
             ], 403);
         }
 
-        // Comme la validation unitaire de l'administrateur : demandes vérifiées ET non validées.
-        $requests = AccountRequest::whereIn('status', ['en_attente', 'verifiee'])->get();
+        $data = $request->validate([
+            'ids' => ['sometimes', 'array'],
+            'ids.*' => ['integer'],
+            'reason' => [$action === 'reject' ? 'required' : 'nullable', 'string', 'max:1000'],
+        ]);
 
-        $validatedCount = 0;
+        // Comme le traitement unitaire : vérification des demandes non validées ; validation / rejet (administrateur)
+        // des demandes non validées ET vérifiées.
+        $query = AccountRequest::whereIn('status', $action === 'verify' ? ['en_attente'] : ['en_attente', 'verifiee'])
+            ->when(isset($data['ids']), fn ($query) => $query->whereIn('id', $data['ids']));
+        $admin->restrictToManagedLibrary($query); // bibliothécaire : demandes de sa bibliothèque uniquement
+        $requests = $query->get();
+
+        $doneCount = 0;
         $errors = [];
 
         foreach ($requests as $accountRequest) {
             try {
-                $fakeRequest = Request::create('/', 'POST');
+                $fakeRequest = Request::create('/', 'POST', $action === 'reject' ? ['reason' => $data['reason']] : []);
 
                 $fakeRequest->setUserResolver(
                     fn () => $admin
                 );
 
-                $response = $this->validateRequest(
-                    $fakeRequest,
-                    $accountRequest
-                );
+                $response = match ($action) {
+                    'reject' => $this->adminReject($fakeRequest, $accountRequest),
+                    'verify' => $this->verify($fakeRequest, $accountRequest),
+                    default => $this->validateRequest($fakeRequest, $accountRequest),
+                };
 
                 if ($response->getStatusCode() === 200) {
-                    $validatedCount++;
+                    $doneCount++;
+                } else {
+                    $errors[] = [
+                        'request_id' => $accountRequest->id,
+                        'message' => $response->getData(true)['message'] ?? 'Traitement impossible.',
+                    ];
                 }
             } catch (\Throwable $e) {
                 $errors[] = [
@@ -867,9 +917,18 @@ class AccountRequestController extends Controller
             }
         }
 
+        $message = match ($action) {
+            'reject' => "{$doneCount} demande(s) rejetée(s).",
+            'verify' => "{$doneCount} demande(s) vérifiée(s)".($admin->isLibrarian() ? ' et transmise(s) à l’administrateur.' : '.'),
+            default => "{$doneCount} demande(s) validée(s).",
+        };
+        if ($errors) {
+            $message .= ' '.count($errors).' demande(s) non traitée(s) (délai dépassé, adresse indisponible…).';
+        }
+
         return response()->json([
-            'message' => "{$validatedCount} demande(s) validée(s).",
-            'validated_count' => $validatedCount,
+            'message' => $message,
+            ['reject' => 'rejected_count', 'verify' => 'verified_count'][$action] ?? 'validated_count' => $doneCount,
             'errors' => $errors,
         ]);
     }
@@ -1013,7 +1072,10 @@ class AccountRequestController extends Controller
 
         $accountRequest = AccountRequest::create([
             'uuid' => (string) Str::uuid(),
-            'request_number' => Rules::newRequestNumber(),
+            'request_number' => Rules::newRequestNumber([
+                'school' => User::whereKey($member->user_id)->value('school'),
+                'role' => $member->role ?: 'etudiant',
+            ]),
             'last_name' => $member->last_name,
             'first_name' => $member->first_name,
             'email' => $validated['email'],
@@ -1076,7 +1138,7 @@ class AccountRequestController extends Controller
 
     /**
      * Renvoi manuel du lien de création du mot de passe (notamment lorsque le lien précédent a expiré).
-     * Génère un nouveau jeton, prolonge le délai de 24h et renvoie l'e-mail.
+     * Génère un nouveau jeton, prolonge le délai de validité et renvoie l'e-mail.
      */
     public function sendSetupMail(Request $request, AccountRequest $accountRequest)
     {
@@ -1117,7 +1179,7 @@ class AccountRequestController extends Controller
 
         $accountRequest->update([
             'setup_token_hash' => $tokenHash,
-            'setup_expires_at' => now()->addHours(24),
+            'setup_expires_at' => now()->addHours(AccountRequest::SETUP_LINK_HOURS),
         ]);
 
         // Envoi immédiat (et non en file) : un seul e-mail, demandé explicitement ; l'administrateur
@@ -1214,8 +1276,8 @@ class AccountRequestController extends Controller
         }
         $validated = Rules::normalizeLevel($validated);
 
-        // Compte inactif jusqu'à la création du mot de passe (mot de passe temporaire inutilisable).
-        $validated['is_active'] = false;
+        // Compte actif dès la création ; la connexion attend le mot de passe (temporaire inutilisable).
+        $validated['is_active'] = true;
         $validated['first_name'] = $validated['first_name'] ?? null; // facultatif : absent s'il n'est pas envoyé
         $validated['name'] = trim($validated['first_name'].' '.$validated['last_name']);
         $validated['password'] = $this->provisioner->unusablePassword();
@@ -1249,7 +1311,7 @@ class AccountRequestController extends Controller
             // Lien de création du mot de passe : jeton en clair dans l'e-mail, empreinte en base.
             [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
-            $requestNumber = Rules::newRequestNumber();
+            $requestNumber = Rules::newRequestNumber($validated);
 
             /**
              * Création d'une demande déjà validée.
@@ -1326,7 +1388,7 @@ class AccountRequestController extends Controller
                  * Lien de création du mot de passe.
                  */
                 'setup_token_hash' => $tokenHash,
-                'setup_expires_at' => now()->addHours(24),
+                'setup_expires_at' => now()->addHours(AccountRequest::SETUP_LINK_HOURS),
 
                 'validation_deadline_at' => now()->addHours(24),
             ]);

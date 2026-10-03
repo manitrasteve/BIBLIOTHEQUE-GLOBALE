@@ -154,6 +154,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
+        Route::post('/account-requests/verify-all', [AccountRequestController::class, 'verifyAll']);
         Route::post('/categories', [CategoryController::class, 'store']);
         Route::put('/categories/{category}', [CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
@@ -202,6 +203,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/libraries/{library}', [LibraryController::class, 'destroy']);
 
         Route::post('/account-requests/validate-all', [AccountRequestController::class, 'validateAll']);
+        Route::post('/account-requests/reject-all', [AccountRequestController::class, 'rejectAll']);
         Route::post('/account-requests/users/{user}/activate', [AccountRequestController::class, 'activate']);
         Route::get('/consultations', [EngagementController::class, 'adminConsultations']);
         Route::get('/ai-queries', [EngagementController::class, 'adminAiQueries']);
@@ -216,6 +218,7 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::get('/users', [UserController::class, 'index']);
        Route::post('/users/creer', [AccountRequestController::class, 'adminCreate']);
        Route::post('/users/{user}/reactivate', [UserController::class, 'reactivate']);
+       Route::post('/users/{user}/resend-setup-link', [UserController::class, 'resendSetupLink']);
        Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate']);
        Route::delete('/users/{user}', [UserController::class, 'destroy']);
        // Assistant IA de gestion : administrateur uniquement, limité pour maîtriser les appels Gemini.

@@ -24,7 +24,7 @@ class AccountProvisioner
         'library_id',
     ];
 
-    /** Compte inactif créé à partir d'une demande validée (le mot de passe sera défini via le lien). */
+    /** Compte actif créé à partir d'une demande validée (le mot de passe sera défini via le lien). */
     public function createUserFromRequest(AccountRequest $request, string $matricule): User
     {
         return User::create([
@@ -37,7 +37,7 @@ class AccountProvisioner
             'role' => $request->role,
             // Le numéro de compte est créé uniquement au moment de la validation finale.
             'matricule' => $matricule,
-            'is_active' => false,
+            'is_active' => true, // demande validée = compte actif ; la connexion attend le mot de passe
         ]);
     }
 

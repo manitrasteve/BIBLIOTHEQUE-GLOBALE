@@ -29,21 +29,17 @@ const ITEM = {
     report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
 };
 
-const COMMON_END = ["favorites", "notifications", "messages", "feedback", "report"];
+// Ordre logique : accueil → découvrir → ma bibliothèque (lectures, favoris, activités) → communication →
+// aide (avis, signalement) en dernier.
+const LIBRARY = ["readings", "favorites", "activities"];
+const COMMON_END = ["notifications", "messages", "feedback", "report"];
 
 // Ordre des modules par rôle. Les autres rôles gardent la navigation de base.
 const NAV_BY_ROLE = {
-    etudiant: ["dashboard", "catalogue", "readings", "activities", ...COMMON_END],
-    enseignant: ["dashboard", "catalogue", "readings", "activities", ...COMMON_END],
-    chercheur: [
-        "dashboard",
-        "catalogue",
-        "researchSpace",
-        "readings",
-        "activities",
-        "watch",
-        ...COMMON_END,
-    ],
+    etudiant: ["dashboard", "catalogue", ...LIBRARY, ...COMMON_END],
+    enseignant: ["dashboard", "catalogue", ...LIBRARY, ...COMMON_END],
+    // Chercheur : ses outils de recherche juste après le catalogue.
+    chercheur: ["dashboard", "catalogue", "researchSpace", "watch", ...LIBRARY, ...COMMON_END],
     // Administrateur / Service Numérique consultant « Mon profil » (espace membre) :
     // même module « Mes lectures » que sur le compte Enseignant, sans
     // « Avis & Suggestions » ni « Signaler un problème » (ce sont eux qui les traitent).
@@ -51,7 +47,7 @@ const NAV_BY_ROLE = {
     bibliothecaire: ["dashboard", "catalogue", "readings", "favorites", "notifications", "messages"],
 };
 
-const DEFAULT_NAV = ["dashboard", "catalogue", ...COMMON_END];
+const DEFAULT_NAV = ["dashboard", "catalogue", "favorites", ...COMMON_END];
 
 export default function UserLayout() {
     const { user } = useAuth();

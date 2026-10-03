@@ -1,22 +1,30 @@
 import { Activity, FileText, BarChart3, Building2, UserCheck, History, ShieldCheck, Heart, MessageSquare, LifeBuoy, Mail, Users, Trash2, KeyRound, Sparkles } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
 
+// Ordre logique (même logique que l'espace Service Numérique) : pilotage → contenu → comptes → suivi des
+// usagers → communication → traçabilité, la Corbeille en dernier.
 const NAV = [
+    // Pilotage
     { to: "/administrateur/statistiques", label: "Statistiques", icon: BarChart3 },
     { to: "/administrateur/assistant", label: "Assistant IA", icon: Sparkles },
+    // Contenu
     { to: "/administrateur/documents", label: "Documents", icon: FileText },
     { to: "/administrateur/bibliotheques", label: "Bibliothèques", icon: Building2 },
+    // Comptes
+    { to: "/administrateur/comptes", label: "Comptes à valider", icon: UserCheck },
+    { to: "/administrateur/utilisateurs", label: "Utilisateurs", icon: Users },
     { to: "/administrateur/bibliothecaires", label: "Bibliothécaires", icon: Users },
     { to: "/administrateur/permissions", label: "Gestion des permissions", icon: KeyRound },
-    { to: "/administrateur/utilisateurs", label: "Utilisateurs", icon: Users },
-    { to: "/administrateur/corbeille", label: "Corbeille", icon: Trash2 },
-    { to: "/administrateur/comptes", label: "Comptes à valider", icon: UserCheck },
+    // Suivi des usagers
     { to: "/administrateur/popularite", label: "Popularité", icon: Heart },
     { to: "/administrateur/avis", label: "Avis des utilisateurs", icon: MessageSquare },
     { to: "/administrateur/signalements", label: "Signalements", icon: LifeBuoy },
+    // Communication
     { to: "/administrateur/messages", label: "Messages", icon: Mail },
+    // Traçabilité
     { to: "/administrateur/activites", label: "Mes activités", icon: Activity },
     { to: "/administrateur/historique", label: "Historique global", icon: History },
+    { to: "/administrateur/corbeille", label: "Corbeille", icon: Trash2 },
 ];
 
 export default function AdminLayout() {

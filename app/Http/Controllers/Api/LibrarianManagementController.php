@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountRequest;
 use App\Models\MemberRegistry;
 use App\Models\User;
 use App\Rules\AvailableEmail;
@@ -131,7 +132,7 @@ class LibrarianManagementController extends Controller
             ],
             'buttonLabel' => 'Créer mon mot de passe',
             'buttonUrl' => $url,
-            'note' => 'Ce lien est valable pendant 60 minutes et ne peut être utilisé qu’une seule fois.',
+            'note' => 'Ce lien est valable pendant ' . AccountRequest::SETUP_LINK_HOURS . ' heures et ne peut être utilisé qu’une seule fois.',
             'footerNote' => 'Conservez précieusement votre numéro de compte.',
         ];
 

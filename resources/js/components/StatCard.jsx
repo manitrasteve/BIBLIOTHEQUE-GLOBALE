@@ -27,15 +27,18 @@ export default function StatCard({
     icon: Icon,
     tone = "default",
     to,
+    onClick, // carte bouton (ex. filtre d'une liste) ; `active` la met en évidence
+    active = false,
 }) {
     const styles = TONE_STYLES[tone] || TONE_STYLES.default;
-    const Wrapper = to ? Link : "div";
-    const wrapperProps = to ? { to } : {};
+    const Wrapper = to ? Link : onClick ? "button" : "div";
+    const wrapperProps = to ? { to } : onClick ? { type: "button", onClick, "aria-pressed": active } : {};
+    const clickable = to || onClick;
 
     return (
         <Wrapper
             {...wrapperProps}
-            className={`group flex h-full items-start justify-between gap-4 rounded-xl border border-slate-200 bg-surface p-4 ${to ? "cursor-pointer transition hover:border-indigo-300" : ""}`}
+            className={`group flex h-full w-full items-start justify-between gap-4 rounded-xl border bg-surface p-4 text-left ${active ? "border-brass ring-2 ring-brass/30" : "border-slate-200"} ${clickable ? "cursor-pointer transition hover:border-indigo-300" : ""}`}
         >
             <div className="min-w-0">
                 <p

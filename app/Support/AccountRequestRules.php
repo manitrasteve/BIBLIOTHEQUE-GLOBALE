@@ -82,8 +82,60 @@ final class AccountRequestRules
         return $validated;
     }
 
-    public static function newRequestNumber(): string
+    // Code du rôle dans le numéro de demande quand aucun établissement n'est renseigné (enseignant, chercheur…).
+    private const ROLE_CODES = ['etudiant' => 'ETU', 'enseignant' => 'ENS', 'chercheur' => 'CHR'];
+
+    /**
+     * Numéro de demande : REQ-<compteur sur 4 chiffres>-<établissement abrégé>-<année>, ex. REQ-0007-FSTE-2026.
+     * Le compteur repart de 1 chaque année. `$data` : champs de la demande (school, faculty, role).
+     */
+    public static function newRequestNumber(array $data = []): string
     {
-        return 'REQ-'.now()->format('YmdHis').'-'.strtoupper(Str::random(5));
+        $year = now()->year;
+        $code = self::establishmentCode($data['school'] ?? null)
+            ?? self::establishmentCode($data['faculty'] ?? null)
+            ?? (self::ROLE_CODES[$data['role'] ?? ''] ?? 'GEN');
+
+        // Plus grand compteur de l'année (numéros au nouveau format), même après suppression de demandes.
+        $counter = \App\Models\AccountRequest::where('request_number', 'like', "REQ-%-{$year}")
+            ->pluck('request_number')
+            ->map(fn (string $number) => (int) (explode('-', $number)[1] ?? 0))
+            ->max() ?? 0;
+
+        do {
+            $counter++;
+            $number = sprintf('REQ-%04d-%s-%d', $counter, $code, $year);
+        } while (\App\Models\AccountRequest::where('request_number', $number)->exists());
+
+        return $number;
+    }
+
+    /**
+     * Abréviation d'un établissement : sigle entre parenthèses s'il y en a un (« … (FSTE) » → FSTE), nom court
+     * tel quel (« IOSTM »), sinon initiales des mots importants (« Faculté de Médecine » → FM).
+     */
+    public static function establishmentCode(?string $name): ?string
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+
+        if (preg_match('/\(([^)]+)\)/', $name, $match)) {
+            return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($match[1])));
+        }
+
+        $ascii = Str::ascii($name);
+        if (!str_contains($ascii, ' ') && strlen($ascii) <= 8) {
+            return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $ascii));
+        }
+
+        $minor = ['de', 'des', 'du', 'et', 'la', 'le', 'les', 'l', 'd', 'en', 'a', 'au', 'aux'];
+        $initials = collect(preg_split("/[\s'’\-]+/", $ascii))
+            ->filter(fn ($word) => $word !== '' && !in_array(strtolower($word), $minor, true))
+            ->map(fn ($word) => strtoupper($word[0]))
+            ->join('');
+
+        return $initials !== '' ? substr($initials, 0, 8) : null;
     }
 }

@@ -10,6 +10,9 @@ class AccountRequest extends Model
 {
     use HasFactory;
 
+    /** Durée de validité (en heures) du lien de création du mot de passe envoyé par e-mail. */
+    public const SETUP_LINK_HOURS = 72;
+
     protected $fillable = [
         'uuid',
         'request_number',
@@ -91,19 +94,9 @@ class AccountRequest extends Model
 
             $req->expires_at ??= now()->addDays(5);
 
+            // Filet de sécurité : même format que les demandes créées par les contrôleurs.
             if (!$req->request_number) {
-                $year = now()->year;
-
-                $count = static::whereYear(
-                    'created_at',
-                    $year
-                )->count() + 1;
-
-                $req->request_number = sprintf(
-                    'BM-%d-%04d',
-                    $year,
-                    $count
-                );
+                $req->request_number = \App\Support\AccountRequestRules::newRequestNumber($req->getAttributes());
             }
         });
     }

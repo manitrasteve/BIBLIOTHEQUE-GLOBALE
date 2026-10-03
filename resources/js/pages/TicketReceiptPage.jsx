@@ -84,18 +84,20 @@ export default function TicketReceiptPage() {
         administrateur: "Administrateur",
     };
 
-    const statusLabels = {
-        pending: "En attente",
-        approved: "Validée",
-        validated: "Validée",
-        rejected: "Rejetée",
-        active: "Active",
-        inactive: "Inactive",
+    // Statuts réels d'une demande (account_requests.status) : libellé et couleur affichés sur le reçu.
+    const statusStyles = {
+        en_attente: { label: "En cours", cls: "text-emerald-700" },
+        verifiee: { label: "Vérifiée", cls: "text-emerald-700" },
+        validee: { label: "Validée", cls: "text-emerald-700" },
+        traitee: { label: "Traitée", cls: "text-emerald-700" },
+        rejetee: { label: "Rejetée", cls: "text-rose-700" },
+        expiree: { label: "Expirée", cls: "text-slate-700" },
     };
 
     const roleLabel = roleLabels[ticket.role] ?? ticket.role ?? "—";
 
-    const statusLabel = statusLabels[ticket.status] ?? ticket.status ?? "—";
+    const statusLabel = statusStyles[ticket.status]?.label ?? ticket.status ?? "—";
+    const statusClass = statusStyles[ticket.status]?.cls ?? "text-amber-700";
 
     /*
      * Prénom facultatif :
@@ -172,7 +174,7 @@ export default function TicketReceiptPage() {
                                 Statut
                             </p>
 
-                            <p className="mt-2 text-sm font-bold text-amber-700">
+                            <p className={`mt-2 text-sm font-bold ${statusClass}`}>
                                 {statusLabel}
                             </p>
                         </div>

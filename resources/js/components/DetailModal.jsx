@@ -21,7 +21,8 @@ const isEmpty = (value) => value === null || value === undefined || value === ""
 
 // Fenêtre de consultation en lecture seule. `sections` = [{ title, fields: [[libellé, valeur], …] }].
 // Les champs sans valeur sont masqués : seules les données réellement enregistrées sont affichées.
-export default function DetailModal({ title, subtitle, media, sections, onClose }) {
+// `actions` (facultatif) : boutons affichés à côté de « Fermer ».
+export default function DetailModal({ title, subtitle, media, sections, actions, onClose }) {
     useEffect(() => {
         const onKey = (event) => event.key === "Escape" && onClose();
         window.addEventListener("keydown", onKey);
@@ -74,7 +75,8 @@ export default function DetailModal({ title, subtitle, media, sections, onClose 
                     {visible.length === 0 && <p className="text-sm text-slate-500">Aucune information enregistrée.</p>}
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-wrap justify-end gap-2">
+                    {actions}
                     <button type="button" onClick={onClose} className="btn-secondary">Fermer</button>
                 </div>
             </div>

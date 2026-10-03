@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 // cohérentes, pour que le même statut ait toujours la même signature
 // visuelle partout(tickets, documents, comptes).
 const REGISTRY = {
-  en_attente: { label: 'En attente', icon: Clock3, cls: 'bg-indigo-100 text-brass-deep' },
+  en_attente: { label: 'En cours', icon: Clock3, cls: 'bg-green-100 text-green-700' },
   traitee: { label: 'Traitée', icon: CheckCircle2, cls: 'bg-blue-100 text-blue-700' },
   expiree: { label: 'Expirée', icon: XCircle, cls: 'bg-slate-100 text-ink-soft' },
   rejetee: { label: 'Rejetée', icon: XCircle, cls: 'bg-red-100 text-red-700' },

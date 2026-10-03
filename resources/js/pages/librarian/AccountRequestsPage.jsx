@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
     CheckCircle2,
@@ -7,27 +7,53 @@ import {
     Ticket,
     Clock3,
     RefreshCw,
+    UserCheck,
+    Hourglass,
 } from "lucide-react";
 
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import { sortRows } from "../../lib/sort";
 import StatusBadge from "../../components/StatusBadge";
-import DetailModal, { ViewButton } from "../../components/DetailModal";
+import { ViewButton } from "../../components/DetailModal";
+import ProfileDetailModal from "../../components/ProfileDetailModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import SortTh from "../../components/SortTh";
-import { requestSections } from "../../lib/detailSections";
+import { ROLES, formatDateTime, requestSections } from "../../lib/detailSections";
 import { useAuth } from "../../context/AuthContext";
-import CounterBar from "../../components/CounterBar";
+import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 
 const FILTERS = [
     "en_attente",
     "verifiee",
-    "validee",
     "compte_active",
     "rejetee",
     "expiree",
 ];
+
+// Une demande validée donne un compte actif tout de suite : plus d'onglet « En attente », toutes les demandes
+// validées sont dans « Compte activé ». L'administrateur les suit dans « Utilisateurs » (statut, renvoi du lien).
+const ADMIN_HIDDEN_FILTERS = ["compte_active"];
+
+// Couleur du badge de statut dans la fiche « Voir ».
+const STATUS_TONES = {
+    en_attente: "success",
+    verifiee: "brand",
+    validee: "success",
+    rejetee: "danger",
+    expiree: "neutral",
+};
+
+// Icône et couleur de chaque carte de compteur.
+const CARD_STYLES = {
+    total: { icon: Ticket },
+    en_attente: { icon: Clock3, tone: "success" },
+    verifiee: { icon: CheckCircle2 },
+    compte_active: { icon: UserCheck, tone: "success" },
+    rejetee: { icon: XCircle, tone: "danger" },
+    expiree: { icon: Hourglass },
+};
 
 function getRequestVal(row, key) {
     if (key === "name") return `${row.first_name || ""} ${row.last_name || ""}`;
@@ -40,9 +66,9 @@ function isSetupLinkExpired(r) {
 }
 
 const LABELS = {
-    en_attente: "Non validé",
+    en_attente: "En cours",
     verifiee: "Vérifiée",
-    validee: "En attente",
+    validee: "Compte activé",
     compte_active: "Compte activé",
     rejetee: "Rejetée",
     expiree: "Expirée",
@@ -51,6 +77,9 @@ const LABELS = {
 export default function AccountRequestsPage() {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
+    const filters = user?.role === "administrateur"
+        ? FILTERS.filter((key) => !ADMIN_HIDDEN_FILTERS.includes(key))
+        : FILTERS;
 
     const [rows, setRows] = useState(null);
     // Compteurs du périmètre autorisé (mêmes demandes que la liste, tous statuts confondus).
@@ -71,7 +100,7 @@ export default function AccountRequestsPage() {
     const [filter, setFilter] = useState(() => {
         const fromUrl = searchParams.get("status");
 
-        if (fromUrl && FILTERS.includes(fromUrl)) {
+        if (fromUrl && (fromUrl === "total" || filters.includes(fromUrl))) {
             return fromUrl;
         }
 
@@ -87,7 +116,8 @@ export default function AccountRequestsPage() {
             setRows(null);
 
             const response = await api.getAccountRequests({
-                status: filter,
+                // « Total » : toutes les catégories affichées en cartes.
+                status: filter === "total" ? filters.join(",") : filter,
                 page,
             });
 
@@ -108,6 +138,13 @@ export default function AccountRequestsPage() {
     useEffect(() => {
         load(1); // changement de filtre : première page
     }, [filter]);
+
+    // Clic sur une carte : la liste n'affiche que cette catégorie, puis on y descend.
+    const listRef = useRef(null);
+    function selectFilter(key) {
+        setFilter((current) => (key === "total" || current === key ? "total" : key));
+        listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
     async function verify(id) {
         if (busyId) return;
@@ -141,19 +178,55 @@ export default function AccountRequestsPage() {
         }
     }
 
-    async function validateAll() {
-        if (!confirm("Valider toutes les demandes non validées et vérifiées ?")) {
-            return;
-        }
+    // Sélection multiple (administrateur) : seules les demandes encore à traiter (non validées / vérifiées)
+    // peuvent être cochées. La sélection est vidée à chaque rechargement de la liste.
+    const isAdmin = user?.role === "administrateur";
+    const [selected, setSelected] = useState(() => new Set());
+    const [bulk, setBulk] = useState(null); // { action: 'validate' | 'reject', all: bool } : confirmation ouverte
+    const [bulkBusy, setBulkBusy] = useState(false);
+    // Administrateur : validation / rejet des demandes non validées ou vérifiées ; bibliothécaire : vérification
+    // des demandes non validées.
+    const isSelectable = (r) => (isAdmin ? ["en_attente", "verifiee"] : ["en_attente"]).includes(r.status);
+    const selectableRows = visibleRows.filter(isSelectable);
+    const selectedRows = selectableRows.filter((r) => selected.has(r.id));
+    const allSelected = selectableRows.length > 0 && selectedRows.length === selectableRows.length;
 
+    useEffect(() => {
+        setSelected(new Set());
+    }, [rows]);
+
+    function toggleOne(id) {
+        setSelected((current) => {
+            const next = new Set(current);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+
+    function toggleAll() {
+        setSelected(allSelected ? new Set() : new Set(selectableRows.map((r) => r.id)));
+    }
+
+    // « Oui » dans la confirmation : traitement groupé des demandes sélectionnées.
+    async function runBulk(reason) {
+        const ids = selectedRows.map((r) => r.id);
+        setBulkBusy(true);
         try {
             setError(null);
-
-            await api.validateAllAccountRequests();
-
+            setNotice(null);
+            const response = bulk.action === "reject"
+                ? await api.rejectAllAccountRequests(ids, reason)
+                : bulk.action === "verify"
+                    ? await api.verifyAllAccountRequests(ids)
+                    : await api.validateAllAccountRequests(ids);
+            setNotice(response.message);
+            setBulk(null);
             await load();
         } catch (e) {
-            setError(e.data?.message || "Validation impossible.");
+            setError(e.data?.message || ({ reject: "Rejet impossible.", verify: "Vérification impossible." }[bulk.action] ?? "Validation impossible."));
+            setBulk(null);
+        } finally {
+            setBulkBusy(false);
         }
     }
 
@@ -177,16 +250,10 @@ export default function AccountRequestsPage() {
         }
     }
 
-    async function reject(id) {
-        // Le motif est obligatoire (il est envoyé au demandeur) ; « Annuler » n'envoie rien.
-        const answer = prompt("Motif du rejet (obligatoire, envoyé au demandeur) :");
-        if (answer === null) return;
-        const reason = answer.trim();
-        if (!reason) {
-            setError("Le motif du rejet est obligatoire.");
-            return;
-        }
-
+    // Motif obligatoire (envoyé au demandeur), saisi dans la fenêtre de confirmation.
+    async function reject(id, reason) {
+        if (busyId) return;
+        setBusyId(id);
         try {
             setError(null);
 
@@ -199,7 +266,19 @@ export default function AccountRequestsPage() {
             await load();
         } catch (e) {
             setError(e.data?.message || "Rejet impossible.");
+        } finally {
+            setBusyId(null);
         }
+    }
+
+    // Boutons d'une ligne (Vérifier / Valider / Rejeter) : confirmation « Oui / Non » avant toute opération.
+    const [rowAction, setRowAction] = useState(null); // { action: 'verify' | 'validate' | 'reject', row }
+    async function runRowAction(reason) {
+        const { action, row } = rowAction;
+        if (action === "verify") await verify(row.id);
+        else if (action === "validate") await validate(row.id);
+        else await reject(row.id, reason);
+        setRowAction(null);
     }
 
     function renderActions(r) {
@@ -210,7 +289,7 @@ export default function AccountRequestsPage() {
                 {user?.role !== "administrateur" && r.status === "en_attente" && (
                     <>
                         <button
-                            onClick={() => verify(r.id)}
+                            onClick={() => setRowAction({ action: "verify", row: r })}
                             disabled={busyId !== null}
                             className="btn-secondary disabled:opacity-50"
                         >
@@ -218,7 +297,7 @@ export default function AccountRequestsPage() {
                             {busyId === r.id ? "Vérification…" : "Vérifier"}
                         </button>
                         <button
-                            onClick={() => reject(r.id)}
+                            onClick={() => setRowAction({ action: "reject", row: r })}
                             className="text-sm font-bold text-rose-700"
                         >
                             <XCircle className="mr-1 inline h-4 w-4" />
@@ -230,7 +309,7 @@ export default function AccountRequestsPage() {
                 {user?.role === "administrateur" && ["en_attente", "verifiee"].includes(r.status) && (
                     <>
                         <button
-                            onClick={() => validate(r.id)}
+                            onClick={() => setRowAction({ action: "validate", row: r })}
                             disabled={busyId !== null}
                             className="btn-primary disabled:opacity-50"
                         >
@@ -238,7 +317,7 @@ export default function AccountRequestsPage() {
                             {busyId === r.id ? "Validation…" : "Valider"}
                         </button>
                         <button
-                            onClick={() => reject(r.id)}
+                            onClick={() => setRowAction({ action: "reject", row: r })}
                             className="text-sm font-bold text-rose-700"
                         >
                             <XCircle className="mr-1 inline h-4 w-4" />
@@ -246,7 +325,7 @@ export default function AccountRequestsPage() {
                         </button>
                     </>
                 )}
-                {r.status === "validee" && filter === "compte_active" ? (
+                {r.status === "validee" && !r.setup_expires_at ? (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" />
                         Compte activé
@@ -295,13 +374,6 @@ export default function AccountRequestsPage() {
                     <Ticket className="h-5 w-5 text-brass" />
                     Demandes de création de compte
                 </h2>
-
-                {user?.role === "administrateur" && (
-                    <button onClick={validateAll} className="btn-primary">
-                        <ShieldCheck className="h-4 w-4" />
-                        Valider toutes les demandes
-                    </button>
-                )}
             </div>
 
             <form
@@ -319,28 +391,30 @@ export default function AccountRequestsPage() {
                 </button>
             </form>
 
-            <CounterBar
-                total={counts?.total}
-                items={counts?.traitee > 0 ? [{ label: "Traitées", value: counts.traitee }] : []}
-            />
-
-            {/* Filtres */}
-            <div className="mb-6 flex flex-wrap gap-2">
-                {FILTERS.map((key) => (
-                    <button
-                        key={key}
-                        onClick={() => setFilter(key)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                            filter === key
-                                ? "border-ink bg-ink text-paper"
-                                : "border-slate-200 bg-surface text-slate-600 hover:border-indigo-300 hover:text-brass-deep"
-                        }`}
-                    >
-                        {LABELS[key]}
-                        {counts && <span className="ml-1.5 font-semibold">({counts[key] ?? 0})</span>}
-                    </button>
-                ))}
+            {/* Cartes de compteurs : un clic filtre la liste (« Total » ou la carte active : toutes les catégories). */}
+            <div
+                className={`mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 ${filters.length > 4 ? "lg:grid-cols-4 xl:grid-cols-7" : "lg:grid-cols-5"}`}
+                role="status"
+                aria-live="polite"
+            >
+                {counts ? (
+                    ["total", ...filters].map((key) => (
+                        <StatCard
+                            key={key}
+                            label={key === "total" ? "Total" : LABELS[key]}
+                            value={key === "total" ? filters.reduce((sum, k) => sum + (counts[k] ?? 0), 0) : counts[key] ?? 0}
+                            icon={CARD_STYLES[key].icon}
+                            tone={CARD_STYLES[key].tone}
+                            active={filter === key}
+                            onClick={() => selectFilter(key)}
+                        />
+                    ))
+                ) : (
+                    Array.from({ length: filters.length + 1 }, (_, i) => <StatCardSkeleton key={i} />)
+                )}
             </div>
+
+            <div ref={listRef} className="scroll-mt-24" />
 
             {notice && (
                 <div role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
@@ -364,10 +438,62 @@ export default function AccountRequestsPage() {
                 </div>
             ) : (
                 <>
+                {/* Sélection multiple (administrateur) : « tout sélectionner » et actions groupées. */}
+                {selectableRows.length > 0 && (
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3">
+                        <label className="flex cursor-pointer items-center gap-2.5 text-sm font-semibold">
+                            <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={(el) => el && (el.indeterminate = selectedRows.length > 0 && !allSelected)}
+                                onChange={toggleAll}
+                                className="h-4 w-4 accent-brass"
+                            />
+                            {selectedRows.length === 0
+                                ? "Tout sélectionner"
+                                : `${selectedRows.length} demande(s) sélectionnée(s) sur ${selectableRows.length}`}
+                        </label>
+                        {selectedRows.length > 0 && !isAdmin && (
+                            <button type="button" onClick={() => setBulk({ action: "verify", all: allSelected })} className="btn-primary">
+                                <CheckCircle2 className="h-4 w-4" />
+                                {allSelected ? "Vérifier toutes les demandes" : "Vérifier"}
+                            </button>
+                        )}
+                        {selectedRows.length > 0 && isAdmin && (
+                            <div className="flex flex-wrap gap-2">
+                                <button type="button" onClick={() => setBulk({ action: "validate", all: allSelected })} className="btn-primary">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    {allSelected ? "Valider toutes les demandes" : "Valider"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setBulk({ action: "reject", all: allSelected })}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:brightness-95"
+                                >
+                                    <XCircle className="h-4 w-4" />
+                                    {allSelected ? "Toutes rejetées" : "Rejeter"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50">
                             <tr>
+                                {selectableRows.length > 0 && (
+                                    <th className="w-10 px-4 py-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            ref={(el) => el && (el.indeterminate = selectedRows.length > 0 && !allSelected)}
+                                            onChange={toggleAll}
+                                            aria-label="Sélectionner toutes les demandes"
+                                            className="h-4 w-4 accent-brass"
+                                        />
+                                    </th>
+                                )}
                                 <SortTh label="Demandeur" sortKey="name" sort={sort} setSort={setSort} />
                                 <SortTh label="Référence" sortKey="reference" sort={sort} setSort={setSort} />
                                 <SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort} />
@@ -381,7 +507,7 @@ export default function AccountRequestsPage() {
                             {visibleRows.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan="5"
+                                        colSpan={selectableRows.length > 0 ? 6 : 5}
                                         className="p-5 text-center text-slate-500"
                                     >
                                         Aucun résultat.
@@ -392,8 +518,21 @@ export default function AccountRequestsPage() {
                                 .map((r) => (
                                     <tr
                                         key={r.id}
-                                        className="border-t border-slate-100"
+                                        className={`border-t border-slate-100 ${selected.has(r.id) ? "bg-indigo-50" : ""}`}
                                     >
+                                        {selectableRows.length > 0 && (
+                                            <td className="px-4 py-3">
+                                                {isSelectable(r) && (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selected.has(r.id)}
+                                                        onChange={() => toggleOne(r.id)}
+                                                        aria-label={`Sélectionner la demande de ${r.first_name || ""} ${r.last_name || ""}`}
+                                                        className="h-4 w-4 accent-brass"
+                                                    />
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="px-4 py-3">
                                             <p className="font-semibold">
                                                 {r.first_name} {r.last_name}
@@ -441,9 +580,18 @@ export default function AccountRequestsPage() {
                         </div>
                     )}
                     {visibleRows.map((r) => (
-                        <div key={r.id} className="rounded-2xl border border-slate-200 bg-surface p-4">
+                        <div key={r.id} className={`rounded-2xl border p-4 ${selected.has(r.id) ? "border-brass bg-indigo-50" : "border-slate-200 bg-surface"}`}>
                             <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
+                                {isSelectable(r) && (
+                                    <input
+                                        type="checkbox"
+                                        checked={selected.has(r.id)}
+                                        onChange={() => toggleOne(r.id)}
+                                        aria-label={`Sélectionner la demande de ${r.first_name || ""} ${r.last_name || ""}`}
+                                        className="mt-1 h-4 w-4 shrink-0 accent-brass"
+                                    />
+                                )}
+                                <div className="min-w-0 flex-1">
                                     <p className="font-semibold break-words">{r.first_name} {r.last_name}</p>
                                     <p className="text-xs text-slate-500 break-words">{r.email} · {r.phone}</p>
                                 </div>
@@ -468,10 +616,76 @@ export default function AccountRequestsPage() {
 
             <Pager meta={meta} onChange={(p) => load(p)} />
 
+            {rowAction && (() => {
+                const name = `${rowAction.row.first_name || ""} ${rowAction.row.last_name || ""}`.trim();
+                const texts = {
+                    verify: {
+                        title: "Vérifier cette demande ?",
+                        message: `La demande de ${name} sera marquée « Vérifiée » et transmise à l'administrateur.`,
+                        confirm: "Oui, vérifier",
+                    },
+                    validate: {
+                        title: "Valider cette demande ?",
+                        message: `Le compte de ${name} sera créé (actif) et recevra le lien de création du mot de passe.`,
+                        confirm: "Oui, valider",
+                    },
+                    reject: {
+                        title: "Rejeter cette demande ?",
+                        message: `La demande de ${name} sera rejetée. Le demandeur recevra le motif par e-mail.`,
+                        confirm: "Oui, rejeter",
+                    },
+                }[rowAction.action];
+                return (
+                    <ConfirmDialog
+                        danger={rowAction.action === "reject"}
+                        title={texts.title}
+                        message={texts.message}
+                        confirmLabel={texts.confirm}
+                        reasonLabel={rowAction.action === "reject" ? "Motif du rejet (obligatoire, envoyé au demandeur)" : undefined}
+                        busy={busyId === rowAction.row.id}
+                        onConfirm={runRowAction}
+                        onCancel={() => setRowAction(null)}
+                    />
+                );
+            })()}
+
+            {bulk && (
+                <ConfirmDialog
+                    danger={bulk.action === "reject"}
+                    title={{
+                        reject: bulk.all ? "Rejeter toutes les demandes ?" : "Rejeter les demandes sélectionnées ?",
+                        verify: bulk.all ? "Vérifier toutes les demandes ?" : "Vérifier les demandes sélectionnées ?",
+                        validate: bulk.all ? "Valider toutes les demandes ?" : "Valider les demandes sélectionnées ?",
+                    }[bulk.action]}
+                    message={{
+                        reject: `${selectedRows.length} demande(s) seront rejetées. Chaque demandeur recevra le motif par e-mail.`,
+                        verify: `${selectedRows.length} demande(s) seront marquées « Vérifiée » et transmises à l'administrateur pour validation.`,
+                        validate: `${selectedRows.length} demande(s) seront validées. Chaque compte sera créé (actif) et recevra le lien de création du mot de passe.`,
+                    }[bulk.action]}
+                    confirmLabel={{ reject: "Oui, rejeter", verify: "Oui, vérifier", validate: "Oui, valider" }[bulk.action]}
+                    reasonLabel={bulk.action === "reject" ? "Motif du rejet (obligatoire, envoyé aux demandeurs)" : undefined}
+                    busy={bulkBusy}
+                    onConfirm={runBulk}
+                    onCancel={() => setBulk(null)}
+                />
+            )}
+
             {viewing && (
-                <DetailModal
+                <ProfileDetailModal
                     title={`${viewing.first_name || ""} ${viewing.last_name || ""}`.trim()}
-                    subtitle={`Demande ${viewing.request_number || ""}`.trim()}
+                    subtitle={viewing.email}
+                    photoUrl={(viewing.created_user || viewing.createdUser)?.photo_url}
+                    badges={[
+                        { label: ROLES[viewing.role] || viewing.role },
+                        viewing.status === "validee" && !viewing.setup_expires_at
+                            ? { label: LABELS.compte_active, tone: "success" }
+                            : { label: LABELS[viewing.status] || viewing.status, tone: STATUS_TONES[viewing.status] },
+                    ]}
+                    highlights={[
+                        ["Numéro de demande", viewing.request_number],
+                        ["Rôle demandé", ROLES[viewing.role] || viewing.role],
+                        ["Date de demande", formatDateTime(viewing.created_at)],
+                    ]}
                     sections={requestSections(viewing, LABELS)}
                     onClose={() => setViewing(null)}
                 />

@@ -48,7 +48,7 @@ test('le bibliothécaire obtient désormais le total, les noms et la date de cr�
         ->and($result['comptes_actifs'])->toBe(3)->and($result['comptes_inactifs'])->toBe(1)
         ->and(collect($result['bibliothecaires'])->pluck('nom')->all())->toBe(['Jean Dupont', 'Paul Nord', 'Marie Rasoa', 'Zo Andria'])
         ->and(collect($result['bibliothecaires'])->pluck('compte_cree_le')->all())->toBe(['2026-01-10', '2026-02-02', '2026-03-05', '2026-06-20'])
-        ->and($result['bibliothecaires'][3]['compte'])->toContain('inactif')
+        ->and($result['bibliothecaires'][3]['compte'])->toBe('désactivé')
         ->and($result['perimetre'])->toBe('Toutes les bibliothèques');
 
     // Données minimales : ni e-mail, ni téléphone, ni identifiant technique.

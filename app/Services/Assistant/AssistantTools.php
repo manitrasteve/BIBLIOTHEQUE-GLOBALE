@@ -359,7 +359,7 @@ class AssistantTools
             'bibliothecaires' => $people->map(fn (User $u) => [
                 'nom' => $u->name,
                 'compte_cree_le' => $this->local($u->created_at, 'Y-m-d'),
-                'compte' => $u->is_active ? 'actif' : 'inactif (désactivé ou en attente d\'activation)',
+                'compte' => $u->is_active ? 'actif' : 'désactivé',
                 'bibliotheque' => $u->library?->name,
             ])->all(),
             'perimetre' => $this->perimeter($ids),

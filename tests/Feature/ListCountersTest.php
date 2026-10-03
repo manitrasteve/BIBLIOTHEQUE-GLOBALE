@@ -50,7 +50,8 @@ test('l\'administrateur reçoit le total et chaque statut, toutes bibliothèques
     $counts = $this->getJson('/api/account-requests')->assertOk()->json('counts');
 
     expect($counts)->toBe([
-        'total' => 13, 'en_attente' => 5, 'verifiee' => 2, 'validee' => 1, 'compte_active' => 1, 'rejetee' => 2, 'expiree' => 1, 'traitee' => 1,
+        // Une demande validée donne un compte actif : « validee » est compté dans « compte_active ».
+        'total' => 13, 'en_attente' => 5, 'verifiee' => 2, 'compte_active' => 2, 'rejetee' => 2, 'expiree' => 1, 'traitee' => 1,
     ]);
 });
 
@@ -60,21 +61,23 @@ test('les compteurs ne changent pas avec le filtre de statut et la liste corresp
     Sanctum::actingAs(counterAdmin());
 
     $all = $this->getJson('/api/account-requests')->json('counts');
-    foreach (['en_attente', 'verifiee', 'validee', 'compte_active'] as $status) {
+    foreach (['en_attente', 'verifiee', 'compte_active'] as $status) {
         $response = $this->getJson("/api/account-requests?status={$status}")->assertOk();
         expect($response->json('counts'))->toBe($all)                    // le filtre ne modifie pas les compteurs
             ->and($response->json('total'))->toBe($all[$status]);         // et chaque compteur = nombre de lignes de la liste
     }
 });
 
-test('« validee » et « compte activé » se distinguent par l\'effacement du jeton, sans nouveau statut', function () {
+test('toute demande validée est un « compte activé », mot de passe créé ou non', function () {
     $library = Library::factory()->create();
     $pending = AccountRequest::factory()->create(['status' => 'validee', 'setup_token_hash' => 'hash', 'library_id' => $library->id]);
     $activated = AccountRequest::factory()->create(['status' => 'validee', 'setup_token_hash' => null, 'library_id' => $library->id]);
     Sanctum::actingAs(counterAdmin());
 
-    expect(collect($this->getJson('/api/account-requests?status=validee')->json('data'))->pluck('id')->all())->toBe([$pending->id])
-        ->and(collect($this->getJson('/api/account-requests?status=compte_active')->json('data'))->pluck('id')->all())->toBe([$activated->id]);
+    $ids = collect([$pending->id, $activated->id])->sort()->values()->all();
+    expect(collect($this->getJson('/api/account-requests?status=compte_active')->json('data'))->pluck('id')->sort()->values()->all())->toBe($ids)
+        ->and(collect($this->getJson('/api/account-requests?status=validee')->json('data'))->pluck('id')->sort()->values()->all())->toBe($ids)
+        ->and($this->getJson('/api/account-requests')->json('counts.compte_active'))->toBe(2);
 });
 
 test('le bibliothécaire voit et compte désormais les demandes de toutes les bibliothèques (Bibliothèque Numérique Globale)', function () {
@@ -120,25 +123,25 @@ test('les compteurs suivent une vérification, un rejet et une expiration', func
     expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'en_attente' => 0, 'verifiee' => 1, 'rejetee' => 1, 'expiree' => 1]);
 });
 
-test('la validation par l\'administrateur déplace la demande de « Vérifiée » vers « En attente de création du mot de passe »', function () {
+test('la validation par l\'administrateur déplace la demande de « Vérifiée » vers « Compte activé »', function () {
     $library = Library::factory()->create();
     $toValidate = AccountRequest::factory()->create(['status' => 'verifiee', 'library_id' => $library->id, 'validation_deadline_at' => now()->addDay()]);
     AccountRequest::factory()->create(['status' => 'verifiee', 'library_id' => $library->id, 'validation_deadline_at' => now()->addDay()]);
     AccountRequest::factory()->create(['status' => 'en_attente', 'library_id' => $library->id]);
     Sanctum::actingAs(counterAdmin());
 
-    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'en_attente' => 1, 'verifiee' => 2, 'validee' => 0]);
+    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'en_attente' => 1, 'verifiee' => 2, 'compte_active' => 0]);
 
     $this->postJson("/api/account-requests/{$toValidate->id}/validate")->assertOk();
 
-    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'en_attente' => 1, 'verifiee' => 1, 'validee' => 1, 'compte_active' => 0]);
+    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'en_attente' => 1, 'verifiee' => 1, 'compte_active' => 1]);
 
-    // Le mot de passe est ensuite créé : la même demande passe en « compte activé » (total inchangé).
+    // Le mot de passe est ensuite créé : la demande reste « compte activé » (total inchangé).
     $token = 'jeton-de-test-' . Str::random(20);
     $toValidate->fresh()->update(['setup_token_hash' => \Illuminate\Support\Facades\Hash::make($token), 'setup_expires_at' => now()->addHour()]);
     $this->postJson("/api/account-requests/setup/{$token}", ['password' => 'MotDePasse123', 'password_confirmation' => 'MotDePasse123'])->assertOk();
 
-    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'validee' => 0, 'compte_active' => 1]);
+    expect($this->getJson('/api/account-requests')->json('counts'))->toMatchArray(['total' => 3, 'compte_active' => 1]);
 
     // Le compte créé est actif, et le registre des membres le reflète.
     $user = $toValidate->fresh()->createdUser;
@@ -151,7 +154,7 @@ test('aucune demande : Total 0 et tous les compteurs à zéro, sans erreur', fun
     Sanctum::actingAs(counterAdmin());
 
     expect($this->getJson('/api/account-requests')->assertOk()->json('counts'))->toBe([
-        'total' => 0, 'en_attente' => 0, 'verifiee' => 0, 'validee' => 0, 'compte_active' => 0, 'rejetee' => 0, 'expiree' => 0, 'traitee' => 0,
+        'total' => 0, 'en_attente' => 0, 'verifiee' => 0, 'compte_active' => 0, 'rejetee' => 0, 'expiree' => 0, 'traitee' => 0,
     ]);
 });
 

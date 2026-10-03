@@ -52,7 +52,7 @@ function personSections(row) {
         {
             title: "Profil étudiant",
             fields: [
-                ["Centre", row.school],
+                ["Établissement", row.school],
                 ["Parcours", row.filiere],
                 ["Niveau", level(row)],
                 ["N° de carte d'étudiant", row.student_card_number],
@@ -101,7 +101,7 @@ export function userSections(user) {
                 ["Numéro de compte", user.numero_compte || user.matricule],
                 ["Rôle", ROLES[user.role] || user.role],
                 ["Bibliothèque", GLOBAL_LIBRARY],
-                ["Statut", user.is_active ? "Actif" : "En attente / désactivé"],
+                ["Statut", user.is_active ? (user.awaiting_password ? "Actif — mot de passe pas encore créé" : "Actif") : "Désactivé"],
                 ["Créé le", formatDateTime(user.created_at)],
             ],
         },

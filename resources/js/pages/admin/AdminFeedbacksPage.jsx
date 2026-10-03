@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { MessageSquare, LifeBuoy, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageSquare, LifeBuoy, Trash2, Inbox as InboxIcon, Sparkles, Eye, Clock3, CheckCircle2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
-import CounterBar from "../../components/CounterBar";
+import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 
 function Inbox({ kind }) {
@@ -14,9 +14,18 @@ function Inbox({ kind }) {
     const [meta, setMeta] = useState(null);
     const isFeedback = kind === "feedback";
 
+    // Carte de compteur sélectionnée (statut) et zone de la liste vers laquelle on descend après un clic.
+    const [filter, setFilter] = useState("total");
+    const listRef = useRef(null);
+    function selectFilter(key) {
+        setFilter((current) => (key === "total" || current === key ? "total" : key));
+        listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
-        (isFeedback ? api.getFeedbacks({ page }) : api.getProblemReports({ page }))
+        const params = { page, ...(filter === "total" ? {} : { status: filter }) };
+        (isFeedback ? api.getFeedbacks(params) : api.getProblemReports(params))
             .then((r) => {
                 // Dernier élément d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1);
@@ -27,11 +36,10 @@ function Inbox({ kind }) {
             .catch(() => {});
     }
 
+    // Avis et signalements sont deux pages distinctes (composant remonté) : seul le filtre change ici.
     useEffect(() => {
-        setCounts(null);
-        setMeta(null);
-        load(1);
-    }, [kind]);
+        load(1); // nouveau filtre : première page
+    }, [filter]);
 
     async function reply(row) {
         const text = prompt("Votre réponse :");
@@ -114,24 +122,29 @@ function Inbox({ kind }) {
                 )}
             </div>
 
-            <CounterBar
-                total={counts?.total}
-                items={
-                    counts
-                        ? isFeedback
-                            ? [
-                                  { label: "Nouveaux", value: counts.nouveau },
-                                  { label: "Lus", value: counts.lu },
-                                  { label: "Traités", value: counts.traite },
-                              ]
-                            : [
-                                  { label: "Nouveaux", value: counts.nouveau },
-                                  { label: "En cours", value: counts.en_cours },
-                                  { label: "Traités", value: counts.traite },
-                              ]
-                        : []
-                }
-            />
+            {/* Cartes de compteurs : un clic filtre la liste (« Total » ou la carte active : tout). */}
+            <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-live="polite">
+                {counts
+                    ? [
+                          ["total", "Total", InboxIcon, undefined],
+                          ["nouveau", "Nouveaux", Sparkles, "warning"],
+                          isFeedback ? ["lu", "Lus", Eye, undefined] : ["en_cours", "En cours", Clock3, undefined],
+                          ["traite", "Traités", CheckCircle2, "success"],
+                      ].map(([key, label, icon, tone]) => (
+                          <StatCard
+                              key={key}
+                              label={label}
+                              value={counts[key] ?? 0}
+                              icon={icon}
+                              tone={tone}
+                              active={filter === key}
+                              onClick={() => selectFilter(key)}
+                          />
+                      ))
+                    : Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
+            </div>
+
+            <div ref={listRef} className="scroll-mt-24" />
 
             {rows?.length ? (
                 rows.map((r) => (
@@ -180,7 +193,7 @@ function Inbox({ kind }) {
                 ))
             ) : rows ? (
                 <div className="modern-card p-10 text-center text-slate-500">
-                    Aucun élément.
+                    {filter === "total" ? "Aucun élément." : "Aucun élément dans cette catégorie."}
                 </div>
             ) : (
                 <p>Chargement…</p>

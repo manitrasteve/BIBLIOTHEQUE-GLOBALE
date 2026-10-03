@@ -15,6 +15,7 @@ import {
     LayoutTemplate,
     Palette,
     LibraryBig,
+    Home,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -253,11 +254,9 @@ export default function Header() {
 
     const centeredHeader = !isWorkspacePath(location.pathname);
 
-    // Pages publiques qui utilisent le Header public
-    const isPublicPage =
-        location.pathname === "/" ||
-        location.pathname === "/creer-un-compte" ||
-        location.pathname === "/connexion";
+    // Visiteur (non connecté) : la barre affiche toujours ses liens (Catalogue / Accueil, S'inscrire, Connexion),
+    // sur toutes les pages, sans menu ☰. Sur le catalogue, le premier lien ramène à l'accueil.
+    const visitorOnCatalogue = location.pathname.startsWith("/recherche");
 
     const [isConfirmingLogout, setIsConfirmingLogout] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -339,7 +338,7 @@ export default function Header() {
 
                         <span className="min-w-0 leading-tight">
                             {/* Visiteur sur téléphone : le logo seul, la barre (Catalogue, S'inscrire, Connexion) prend la place. */}
-                            <span className={`${isPublicPage && !user ? "hidden sm:block" : "block"} truncate font-display text-[15px] sm:text-[17px] font-bold tracking-tight text-ink`}>
+                            <span className={`${!user ? "hidden sm:block" : "block"} truncate font-display text-[15px] sm:text-[17px] font-bold tracking-tight text-ink`}>
                                 Bibliothèque Globale
                             </span>
 
@@ -353,27 +352,27 @@ export default function Header() {
                     <nav aria-label="Compte et outils" className="flex shrink-0 items-center gap-1.5 sm:gap-3 text-sm">
 
                         {/* =====================================================
-                            PAGES PUBLIQUES + DÉCONNECTÉ
-
-                            /
-                            /creer-un-compte
-                            /connexion
+                            DÉCONNECTÉ (toutes les pages : accueil, catalogue, inscription, connexion…)
 
                             Afficher :
-                            Catalogue + S'inscrire + 🌙 + Connexion
+                            Catalogue (ou Accueil sur le catalogue) + S'inscrire + 🌙 + Connexion
 
                             AUCUN ☰
                         ====================================================== */}
-                        {isPublicPage && !user ? (
+                        {!user ? (
                             <>
-                                {/* Catalogue (icône seule sur téléphone, pour que la barre tienne en largeur) */}
+                                {/* Catalogue, ou Accueil sur le catalogue (icône seule sur téléphone, pour que la barre tienne en largeur) */}
                                 <Link
-                                    to="/recherche"
-                                    title="Catalogue"
+                                    to={visitorOnCatalogue ? "/" : "/recherche"}
+                                    title={visitorOnCatalogue ? "Accueil" : "Catalogue"}
                                     className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                                 >
-                                    <LibraryBig className="h-4 w-4 sm:hidden" aria-hidden="true" />
-                                    <span className="sr-only sm:not-sr-only">Catalogue</span>
+                                    {visitorOnCatalogue ? (
+                                        <Home className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                                    ) : (
+                                        <LibraryBig className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                                    )}
+                                    <span className="sr-only sm:not-sr-only">{visitorOnCatalogue ? "Accueil" : "Catalogue"}</span>
                                 </Link>
 
                                 {/* S'inscrire */}
@@ -504,10 +503,7 @@ export default function Header() {
                             </>
                         ) : (
                             /* =====================================================
-                               PAGES INTERNES
-
-                               Connecté   → 🌙 + 🔔 + ☰
-                               Déconnecté → 🌙 + ☰
+                               PAGES INTERNES (connecté) → 🌙 + 🔔 + ☰
                             ====================================================== */
 
                             <>
@@ -571,20 +567,6 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* S'inscrire */}
-                                            {!user && (
-                                                <Link
-                                                    to="/creer-un-compte"
-                                                    onClick={() =>
-                                                        setMenuOpen(false)
-                                                    }
-                                                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
-                                                >
-                                                    <UserPlus className="h-4 w-4" />
-                                                    S’inscrire
-                                                </Link>
-                                            )}
-
                                             {/* Gestion (bibliothécaire uniquement) */}
                                             {user?.role === "bibliothecaire" && (
                                                     <Link
@@ -614,22 +596,6 @@ export default function Header() {
                                                 </Link>
                                             )}
 
-                                            {/* Connexion */}
-                                            {!user && (
-                                                <>
-                                                    <div className="my-1 border-t border-slate-100" />
-                                                    <Link
-                                                        to="/connexion"
-                                                        onClick={() =>
-                                                            setMenuOpen(false)
-                                                        }
-                                                        className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-semibold text-brass hover:bg-indigo-50"
-                                                    >
-                                                        <LogIn className="h-4 w-4" />
-                                                        Connexion
-                                                    </Link>
-                                                </>
-                                            )}
                                         </div>
                                     )}
                                 </div>

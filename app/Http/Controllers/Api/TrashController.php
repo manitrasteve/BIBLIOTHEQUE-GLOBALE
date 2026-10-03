@@ -82,7 +82,7 @@ class TrashController extends Controller
             $accountRequest->update([
                 'status' => 'validee',
                 'setup_token_hash' => Hash::make($token),
-                'setup_expires_at' => now()->addDay(),
+                'setup_expires_at' => now()->addHours(AccountRequest::SETUP_LINK_HOURS),
             ]);
 
             /*
@@ -233,7 +233,7 @@ class TrashController extends Controller
             ],
             'buttonLabel' => 'Créer mon mot de passe',
             'buttonUrl' => $url,
-            'note' => 'Ce lien est valable pendant 24 heures et ne peut être utilisé qu’une seule fois.',
+            'note' => 'Ce lien est valable pendant ' . AccountRequest::SETUP_LINK_HOURS . ' heures et ne peut être utilisé qu’une seule fois.',
             'footerNote' => 'Conservez précieusement votre numéro de compte : il pourra vous être demandé en cas de perte de vos informations.',
         ];
 

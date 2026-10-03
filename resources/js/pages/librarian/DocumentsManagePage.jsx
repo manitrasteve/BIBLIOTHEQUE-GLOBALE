@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search } from 'lucide-react';
+import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
@@ -9,9 +9,17 @@ import StatusBadge from '../../components/StatusBadge';
 import SortTh from '../../components/SortTh';
 import ActionsTh from '../../components/ActionsTh';
 import { SkeletonTable } from '../../components/Skeleton';
+import StatCard, { StatCardSkeleton } from '../../components/StatCard';
 
 const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
 const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Archivé' };
+// Icône et couleur de chaque carte de compteur ('' = Tous).
+const STATUS_CARD_STYLES = {
+  '': { icon: FileText },
+  brouillon: { icon: FilePen, tone: 'warning' },
+  publie: { icon: UploadCloud, tone: 'success' },
+  archive: { icon: Archive },
+};
 
 function getDocVal(row, key) {
   if (key === 'category') return row.category?.name;
@@ -35,9 +43,14 @@ export default function DocumentsManagePage() {
   const [meta, setMeta] = useState(null); // pagination du serveur
   const [counts, setCounts] = useState(null); // totaux réels (statuts + types), calculés par le serveur
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
-  const [showActions, setShowActions] = useState(false);
   const sortedDocuments = documents ? sortRows(documents, sort, getDocVal) : documents;
+
+  // Clic sur une carte : la liste n'affiche que ce statut (« Tous » ou la carte active : tous), puis on y descend.
+  const listRef = useRef(null);
+  function selectStatus(key) {
+    setStatusFilter((current) => (key === '' || current === key ? '' : key));
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   // Changer de filtre ou de recherche repart de la première page.
   useEffect(() => {
@@ -154,7 +167,34 @@ export default function DocumentsManagePage() {
 
   return (
     <div>
-      <div className="relative mb-5 w-full sm:max-w-[600px]">
+      <div className="flex justify-end mb-4">
+        <Link
+          to={`${basePath}/nouveau`}
+          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2} />
+          Ajouter un document
+        </Link>
+      </div>
+
+      {/* Cartes de compteurs : un clic filtre la liste (« Tous » ou la carte active : tous les documents). */}
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-live="polite">
+        {counts
+          ? ['', ...STATUS_FILTERS].map((key) => (
+              <StatCard
+                key={key || 'tous'}
+                label={key ? STATUS_LABELS[key] : 'Tous'}
+                value={(key ? counts[key] : counts.all) ?? 0}
+                icon={STATUS_CARD_STYLES[key].icon}
+                tone={STATUS_CARD_STYLES[key].tone}
+                active={statusFilter === key}
+                onClick={() => selectStatus(key)}
+              />
+            ))
+          : Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
+      </div>
+
+      <div className="relative mb-6 w-full sm:max-w-[600px]">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           type="search"
@@ -164,38 +204,6 @@ export default function DocumentsManagePage() {
           aria-label="Rechercher un document"
           className="w-full rounded-xl border border-slate-200 bg-surface py-3 pl-9 pr-4 text-sm"
         />
-      </div>
-
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setStatusFilter('')}
-            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-              statusFilter === '' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-soft hover:border-brass'
-            }`}
-          >
-            Tous{counts ? ` (${counts.all})` : ''}
-          </button>
-          {STATUS_FILTERS.map((key) => (
-            <button
-              key={key}
-              onClick={() => setStatusFilter(key)}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                statusFilter === key ? 'bg-ink text-paper border-ink' : 'border-line text-ink-soft hover:border-brass'
-              }`}
-            >
-              {STATUS_LABELS[key]}{counts ? ` (${counts[key]})` : ''}
-            </button>
-          ))}
-        </div>
-
-        <Link
-          to={`${basePath}/nouveau`}
-          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm text-paper hover:bg-brass-deep transition-colors flex-shrink-0"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2} />
-          Ajouter un document
-        </Link>
       </div>
 
       {/* « Tous » : total général + répartition par type (valeurs calculées par le serveur) */}
@@ -215,6 +223,8 @@ export default function DocumentsManagePage() {
       )}
 
       {error && <p className="text-red-700 mb-4">{error}</p>}
+
+      <div ref={listRef} className="scroll-mt-24" />
 
       {documents === null ? (
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
@@ -236,7 +246,7 @@ export default function DocumentsManagePage() {
                 <SortTh label="Année" sortKey="year" sort={sort} setSort={setSort} />
                 <SortTh label="Bibliothèque" sortKey="library" sort={sort} setSort={setSort} />
                 <SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort} />
-                <ActionsTh open={showActions} onToggle={() => setShowActions((v) => !v)} align="left" />
+                <ActionsTh align="left" />
               </tr>
             </thead>
             <tbody>
@@ -255,11 +265,9 @@ export default function DocumentsManagePage() {
                     <StatusBadge status={doc.status} />
                   </td>
                   <td className="px-4 py-3">
-                    {showActions && (
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         {renderDocActions(doc)}
                       </div>
-                    )}
                   </td>
                 </tr>
               ))}

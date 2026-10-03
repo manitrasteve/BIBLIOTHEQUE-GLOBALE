@@ -24,29 +24,29 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
+// Ordre logique (même logique que l'espace administrateur) : pilotage → contenu → comptes → suivi des usagers
+// → communication → traçabilité, la Corbeille en dernier.
 const NAV = [
+    // Pilotage
     {
         to: "/bibliothecaire/tableau-de-bord",
         label: "Tableau de bord",
         icon: LayoutDashboard,
     },
     {
+        to: "/bibliothecaire/statistiques",
+        label: "Statistiques",
+        icon: BarChart3,
+        permission: "voir_statistiques",
+        hideForAdmin: true,
+    },
+    // Limité à la bibliothèque du compte ; l'administrateur a sa propre page.
+    { to: "/bibliothecaire/assistant", label: "Assistant IA", icon: Sparkles, hideForAdmin: true },
+    // Contenu
+    {
         to: "/bibliothecaire/catalogue",
         label: "Catalogue",
         icon: LibraryBig,
-    },
-    {
-        to: "/bibliothecaire/tickets-comptes",
-        label: "Demandes de compte",
-        icon: Ticket,
-    },
-    {
-        to: "/bibliothecaire/creer-demande-compte",
-        label: "Ajouter un utilisateur",
-        icon: UserPlus,
-        permission: "ajouter_utilisateur",
-        // L'administrateur ajoute les utilisateurs depuis Administration → Utilisateurs.
-        hideForAdmin: true,
     },
     {
         to: "/bibliothecaire/documents",
@@ -62,22 +62,21 @@ const NAV = [
         // L'administrateur gère les bibliothèques depuis Administration → Bibliothèques.
         hideForAdmin: true,
     },
+    // Comptes
     {
-        to: "/bibliothecaire/corbeille",
-        label: "Corbeille",
-        icon: Trash2,
-        permission: "voir_corbeille",
-        // L'administrateur utilise Administration → Corbeille (même page, même API).
+        to: "/bibliothecaire/tickets-comptes",
+        label: "Demandes de compte",
+        icon: Ticket,
+    },
+    {
+        to: "/bibliothecaire/creer-demande-compte",
+        label: "Ajouter un utilisateur",
+        icon: UserPlus,
+        permission: "ajouter_utilisateur",
+        // L'administrateur ajoute les utilisateurs depuis Administration → Utilisateurs.
         hideForAdmin: true,
     },
-    // Consultation en lecture seule : l'administrateur les trouve dans Administration.
-    {
-        to: "/bibliothecaire/statistiques",
-        label: "Statistiques",
-        icon: BarChart3,
-        permission: "voir_statistiques",
-        hideForAdmin: true,
-    },
+    // Suivi des usagers (lecture seule : l'administrateur les trouve dans Administration)
     {
         to: "/bibliothecaire/popularite",
         label: "Popularité",
@@ -99,14 +98,22 @@ const NAV = [
         permission: "voir_signalements",
         hideForAdmin: true,
     },
-    // Le périmètre est limité à la bibliothèque du compte ; l'administrateur a sa propre page.
-    { to: "/bibliothecaire/assistant", label: "Assistant IA", icon: Sparkles, hideForAdmin: true },
-    { to: "/bibliothecaire/activites", label: "Mes activités", icon: Activity },
+    // Communication
     { to: "/bibliothecaire/messages", label: "Messages", icon: Mail },
     {
         to: "/bibliothecaire/discussions",
         label: "Discussion avec l’administrateur",
         icon: MessageCircle,
+    },
+    // Traçabilité, la Corbeille en dernier
+    { to: "/bibliothecaire/activites", label: "Mes activités", icon: Activity },
+    {
+        to: "/bibliothecaire/corbeille",
+        label: "Corbeille",
+        icon: Trash2,
+        permission: "voir_corbeille",
+        // L'administrateur utilise Administration → Corbeille (même page, même API).
+        hideForAdmin: true,
     },
 ];
 

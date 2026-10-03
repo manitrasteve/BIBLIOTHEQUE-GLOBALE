@@ -494,6 +494,9 @@ export const api = {
             method: "POST",
         }),
 
+    // Renvoi du lien de création du mot de passe depuis la fiche d'un utilisateur
+    resendUserSetupLink: (id) => request(`/users/${id}/resend-setup-link`, { method: "POST" }),
+
     reactivateUser: (id) =>
         request(`/users/${id}/reactivate`, {
             method: "POST",
@@ -537,9 +540,24 @@ export const api = {
         }),
 
     // Validation de toutes les demandes vérifiées
-    validateAllAccountRequests: () =>
+    // Validation / rejet groupés : `ids` = demandes sélectionnées (toutes les demandes à traiter si absent).
+    validateAllAccountRequests: (ids) =>
         request("/account-requests/validate-all", {
             method: "POST",
+            body: ids ? { ids } : {},
+        }),
+
+    // Service Numérique : vérification groupée des demandes non validées sélectionnées.
+    verifyAllAccountRequests: (ids) =>
+        request("/account-requests/verify-all", {
+            method: "POST",
+            body: { ids },
+        }),
+
+    rejectAllAccountRequests: (ids, reason) =>
+        request("/account-requests/reject-all", {
+            method: "POST",
+            body: { ...(ids ? { ids } : {}), reason },
         }),
 
     // Renvoi du lien de création du mot de passe (ex : lien expiré)

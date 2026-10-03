@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountRequest;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Models\MemberRegistry;
@@ -206,20 +207,20 @@ class AuthController extends Controller
             ? \Illuminate\Support\Carbon::parse($row->created_at)
             : null;
 
-        $valid =
-            $createdAt &&
-            $createdAt->gt(now()->subMinutes(60)) &&
-            Hash::check($data['token'], $row->token);
-
-        if (!$valid) {
-            throw ValidationException::withMessages([
-                'token' => ['Lien invalide ou expiré.'],
-            ]);
-        }
-
         $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if (!$user) {
+        // Lien de création (compte sans mot de passe : bibliothécaire invité, compte réactivé) : 72 h ;
+        // lien « mot de passe oublié » : 60 minutes.
+        $validFrom = $user && $user->password_set_at === null
+            ? now()->subHours(AccountRequest::SETUP_LINK_HOURS)
+            : now()->subMinutes(60);
+
+        $valid =
+            $createdAt &&
+            $createdAt->gt($validFrom) &&
+            Hash::check($data['token'], $row->token);
+
+        if (!$valid || !$user) {
             throw ValidationException::withMessages([
                 'token' => ['Lien invalide ou expiré.'],
             ]);

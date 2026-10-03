@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Users,
     Trash2,
@@ -7,17 +7,31 @@ import {
     UserPlus,
     X,
     Check,
+    RefreshCw,
+    GraduationCap,
+    Presentation,
+    FlaskConical,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
 import { sortRows } from "../../lib/sort";
 import CreateUserForm from "../../components/CreateUserForm";
-import CounterBar from "../../components/CounterBar";
+import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
-import DetailModal, { ViewButton } from "../../components/DetailModal";
+import { ViewButton } from "../../components/DetailModal";
+import ProfileDetailModal from "../../components/ProfileDetailModal";
 import SortTh from "../../components/SortTh";
 import ActionsTh from "../../components/ActionsTh";
-import { GLOBAL_LIBRARY, ROLES, userSections } from "../../lib/detailSections";
+import { GLOBAL_LIBRARY, ROLES, formatDateTime, userSections } from "../../lib/detailSections";
+
+// Filtre envoyé au serveur pour chaque carte de compteur (mêmes critères que les compteurs).
+const FILTER_PARAMS = {
+    total: {},
+    etudiant: { role: "etudiant" },
+    enseignant: { role: "enseignant" },
+    chercheur: { role: "chercheur" },
+    actifs: { is_active: true },
+};
 
 function getUserVal(row, key) {
     if (key === "status") return row.is_active ? 1 : 0;
@@ -109,16 +123,17 @@ export default function AdminUsersPage() {
 
     const [meta, setMeta] = useState(null);
     const [sort, setSort] = useState({ key: null, dir: "asc" });
-    // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
-    const [showActions, setShowActions] = useState(false);
     const [error, setError] = useState(null);
     // Résultat de la dernière création : e-mail du lien envoyé ou non.
     const [notice, setNotice] = useState(null);
+    // Carte de compteur sélectionnée (clé de FILTER_PARAMS) et zone de la liste vers laquelle on descend.
+    const [filter, setFilter] = useState("total");
+    const listRef = useRef(null);
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     function load(page = meta?.current_page || 1) {
         setError(null);
-        api.getUsers({ page })
+        api.getUsers({ page, ...FILTER_PARAMS[filter] })
             .then((r) => {
                 // Dernier utilisateur d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1);
@@ -130,8 +145,14 @@ export default function AdminUsersPage() {
     }
 
     useEffect(() => {
-        load();
-    }, []);
+        load(1); // nouveau filtre : première page
+    }, [filter]);
+
+    // Clic sur une carte : la liste n'affiche que ces utilisateurs (« Total » ou la carte active : tout), puis on y descend.
+    function selectFilter(key) {
+        setFilter((current) => (key === "total" || current === key ? "total" : key));
+        listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
     async function handleDelete(reason) {
         try {
@@ -177,6 +198,23 @@ export default function AdminUsersPage() {
         }
     }
 
+    // Fiche « Voir » : renvoi du lien de création du mot de passe (compte qui ne l'a pas encore créé).
+    const [resending, setResending] = useState(false);
+    async function handleResendLink(user) {
+        setResending(true);
+        try {
+            const res = await api.resendUserSetupLink(user.id);
+            setNotice({ text: res.message, warning: false });
+            setViewing(null);
+        } catch (err) {
+            setNotice({ text: err?.data?.message || "Envoi impossible.", warning: true });
+            setViewing(null);
+            if (err?.status === 422) load(); // mot de passe déjà créé entre-temps : le bouton disparaît
+        } finally {
+            setResending(false);
+        }
+    }
+
     const filteredUsers = sortRows(
         (users || []).filter((u) =>
             matchesSearch(`${u.name} ${u.email} ${u.role} ${GLOBAL_LIBRARY}`, query),
@@ -213,16 +251,31 @@ export default function AdminUsersPage() {
                 </button>
             </div>
 
-            <CounterBar
-                total={counts?.total}
-                items={counts ? [
-                    { label: "Étudiants", value: counts.etudiant },
-                    { label: "Enseignants", value: counts.enseignant },
-                    { label: "Chercheurs", value: counts.chercheur },
-                    { label: "Actifs", value: counts.actifs },
-                    { label: "En attente / désactivés", value: counts.inactifs },
-                ] : []}
-            />
+            <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" role="status" aria-live="polite">
+                {counts ? (
+                    <>
+                        {[
+                            ["total", "Total", Users],
+                            ["etudiant", "Étudiants", GraduationCap],
+                            ["enseignant", "Enseignants", Presentation],
+                            ["chercheur", "Chercheurs", FlaskConical],
+                            ["actifs", "Actifs", UserCheck, "success"],
+                        ].map(([key, label, icon, tone]) => (
+                            <StatCard
+                                key={key}
+                                label={label}
+                                value={counts[key] ?? 0}
+                                icon={icon}
+                                tone={tone}
+                                active={filter === key}
+                                onClick={() => selectFilter(key)}
+                            />
+                        ))}
+                    </>
+                ) : (
+                    !error && Array.from({ length: 5 }, (_, i) => <StatCardSkeleton key={i} />)
+                )}
+            </div>
 
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un utilisateur…" className="min-w-0 w-full sm:max-w-[600px] sm:flex-1 rounded-xl border border-slate-200 bg-surface px-4 py-3 text-sm"/><button className="btn-primary w-full sm:w-auto sm:shrink-0"><Users className="h-4 w-4"/> Rechercher</button></form>
 
@@ -247,23 +300,26 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
+            {/* Cible du défilement après un clic sur une carte (marge pour la barre du haut). */}
+            <div ref={listRef} className="scroll-mt-24" />
+
             {users === null ? (
                 error ? null : <p>Chargement…</p>
             ) : users.length === 0 ? (
                 <div className="modern-card p-10 text-center text-slate-500">
-                    Aucun utilisateur.
+                    {filter === "total" ? "Aucun utilisateur." : "Aucun utilisateur dans cette catégorie."}
                 </div>
             ) : (
                 <>
                 <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-left">Bibliothèque</th><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><ActionsTh open={showActions} onToggle={() => setShowActions((v) => !v)} /></tr></thead>
+                        <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-left">Bibliothèque</th><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><ActionsTh /></tr></thead>
                         <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
                                 <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
                                 <td className="px-4 py-3">{ROLES[u.role] || u.role}</td><td className="px-4 py-3">{GLOBAL_LIBRARY}</td>
-                                <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span></td>
-                                <td className="px-4 py-3">{showActions && <div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div>}</td>
+                                <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "Désactivé"}</span></td>
+                                <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div></td>
                             </tr>
                         ))}</tbody>
                     </table>
@@ -274,7 +330,7 @@ export default function AdminUsersPage() {
                         <div key={u.id} className="rounded-2xl border border-slate-200 bg-surface p-4">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0"><p className="font-semibold break-words">{u.name}</p><p className="text-xs text-slate-500 break-words">{u.email}</p></div>
-                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "En attente / désactivé"}</span>
+                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "Désactivé"}</span>
                             </div>
                             <p className="mt-2 text-xs text-slate-500">Rôle : {ROLES[u.role] || u.role}</p>
                             <p className="mt-1 text-xs text-slate-500">Bibliothèque : {GLOBAL_LIBRARY}</p>
@@ -292,10 +348,35 @@ export default function AdminUsersPage() {
             <Pager meta={meta} onChange={(p) => load(p)} />
 
             {viewing && (
-                <DetailModal
+                <ProfileDetailModal
                     title={viewing.name}
                     subtitle={viewing.email}
+                    photoUrl={viewing.photo_url}
+                    badges={[
+                        { label: ROLES[viewing.role] || viewing.role },
+                        viewing.is_active
+                            ? viewing.awaiting_password
+                                ? { label: "Actif — mot de passe pas encore créé", tone: "warning" }
+                                : { label: "Actif", tone: "success" }
+                            : { label: "Désactivé", tone: "neutral" },
+                    ]}
+                    highlights={[
+                        ["Numéro de compte", viewing.numero_compte || viewing.matricule],
+                        ["Rôle", ROLES[viewing.role] || viewing.role],
+                        ["Créé le", formatDateTime(viewing.created_at)],
+                    ]}
                     sections={userSections(viewing)}
+                    actions={viewing.awaiting_password && (
+                        <button
+                            type="button"
+                            onClick={() => handleResendLink(viewing)}
+                            disabled={resending}
+                            className="btn-primary disabled:opacity-50"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${resending ? "animate-spin" : ""}`} />
+                            {resending ? "Envoi…" : "Renvoyer le lien"}
+                        </button>
+                    )}
                     onClose={() => setViewing(null)}
                 />
             )}

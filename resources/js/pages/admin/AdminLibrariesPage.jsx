@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Building2, Pencil, Trash2 } from 'lucide-react';
+import { Building2, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { matchesSearch } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
 import { SkeletonList } from '../../components/Skeleton';
 import { useAuth } from '../../context/AuthContext';
-import DetailModal, { ViewButton } from '../../components/DetailModal';
+import { ViewButton } from '../../components/DetailModal';
+import ProfileDetailModal from '../../components/ProfileDetailModal';
 import LibraryCover from '../../components/LibraryCover';
 import SortTh from '../../components/SortTh';
 import ActionsTh from '../../components/ActionsTh';
@@ -54,8 +55,6 @@ export default function AdminLibrariesPage() {
   const [query, setQuery] = useState('');
   const [viewing, setViewing] = useState(null);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  // Colonne « Actions » du tableau : boutons cachés au départ, affichés / cachés par un clic sur l'en-tête.
-  const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
     load();
@@ -185,7 +184,7 @@ export default function AdminLibrariesPage() {
                     <SortTh label="Nom" sortKey="name" sort={sort} setSort={setSort} />
                     <SortTh label="Adresse" sortKey="address" sort={sort} setSort={setSort} />
                     <SortTh label="Horaires" sortKey="hours" sort={sort} setSort={setSort} />
-                    {showActions && <ActionsTh open={actionsOpen} onToggle={() => setActionsOpen((v) => !v)} />}
+                    {showActions && <ActionsTh />}
                   </tr>
                 </thead>
                 <tbody>
@@ -196,13 +195,11 @@ export default function AdminLibrariesPage() {
                       <td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td>
                       {showActions && (
                         <td className="px-4 py-3">
-                          {actionsOpen && (
-                            <div className="flex items-center justify-end gap-3">
+                          <div className="flex items-center justify-end gap-3">
                               {canView && <ViewButton onClick={() => setViewing(lib)} />}
                               {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
                               {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
                             </div>
-                          )}
                         </td>
                       )}
                     </tr>
@@ -334,10 +331,19 @@ export default function AdminLibrariesPage() {
       )}
 
       {viewing && (
-        <DetailModal
+        <ProfileDetailModal
           title={viewing.name}
-          subtitle="Informations de la bibliothèque"
-          media={<LibraryCover library={viewing} className="mb-6" />}
+          subtitle={viewing.address || viewing.location}
+          subtitleIcon={MapPin}
+          coverUrl={viewing.cover_url}
+          photoUrl={viewing.cover_url}
+          avatarIcon={Building2}
+          badges={[{ label: 'Bibliothèque' }]}
+          highlights={[
+            ['Horaires', viewing.opening_hours],
+            ["Jours d'ouverture", viewing.opening_days],
+            ['Localisation', viewing.location],
+          ]}
           sections={librarySections(viewing)}
           onClose={() => setViewing(null)}
         />

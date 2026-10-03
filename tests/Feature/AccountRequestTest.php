@@ -21,7 +21,7 @@ test('un visiteur peut créer un ticket de demande de compte', function () {
 
     $response->assertCreated();
     $response->assertJsonPath('status', 'en_attente');
-    expect($response->json('request_number'))->toMatch('/^BM-\d{4}-\d{4}$/');
+    expect($response->json('request_number'))->toMatch('/^REQ-\d{4}-[A-Z0-9]+-\d{4}$/');
 });
 
 test('le numéro de ticket s\'incrémente correctement sur une même année', function () {

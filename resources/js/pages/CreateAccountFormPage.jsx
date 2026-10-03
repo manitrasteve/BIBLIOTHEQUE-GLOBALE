@@ -251,7 +251,7 @@ export default function CreateAccountFormPage() {
                             ) : (
                                 <div className="space-y-6">
                                     <fieldset>
-                                        <legend className="mb-2 text-sm font-bold text-slate-700">Quel est votre centre ?</legend>
+                                        <legend className="mb-2 text-sm font-bold text-slate-700">Quel est votre établissement ?</legend>
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             {CENTERS.map((center) => (
                                                 <Choice key={center} name="school" value={center} checked={form.school === center} onChange={() => update("school", center)}>
