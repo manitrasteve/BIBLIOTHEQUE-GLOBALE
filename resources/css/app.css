@@ -51,6 +51,12 @@
     --color-indigo-400: #6565c9;
     --color-indigo-500: var(--site-light-primary, #1a1a8c);
     --color-indigo-600: var(--site-light-primary, #1a1a8c);
+
+    /* Graphiques (page Statistiques, rapport) : série principale + 3 catégories (palette validée daltonisme). */
+    --color-chart-main: #1a1a8c;
+    --color-chart-1: #2a78d6;
+    --color-chart-2: #eb6834;
+    --color-chart-3: #1baf7a;
     --color-indigo-700: var(--site-light-primary-deep, #11116f);
     --color-indigo-800: var(--site-light-primary-deep, #11116f);
     --color-indigo-900: #0d0d57;
@@ -136,6 +142,12 @@ html.dark {
     --color-indigo-300: var(--site-dark-accent-4, #3b41a0);
     --color-indigo-500: var(--site-dark-primary, #2525a5);
     --color-indigo-600: var(--site-dark-primary, #2525a5);
+
+    /* Graphiques en mode sombre : mêmes teintes, éclaircies pour le fond sombre (≥ 3:1). */
+    --color-chart-main: #7d7df0;
+    --color-chart-1: #3987e5;
+    --color-chart-2: #d95926;
+    --color-chart-3: #199e70;
     --color-indigo-700: var(--site-dark-primary-deep, #1a1a8c);
     --color-indigo-800: var(--site-dark-primary-deep, #23246b);
 
@@ -710,5 +722,42 @@ summary:focus-visible,
 @layer base {
     ::placeholder {
         color: var(--color-slate-400);
+    }
+}
+
+/* Rapport mensuel (page A4 imprimable) : toujours sur papier blanc, même en mode sombre. */
+.report-page article {
+    --color-ink: #15212b;
+    --color-ink-soft: #575e75;
+    --color-line: #e8eaf3;
+    --color-surface: #ffffff;
+    --color-slate-300: #c9cddd;
+    --color-chart-main: #1a1a8c;
+    color-scheme: light;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 14mm 12mm;
+    }
+
+    /* Impression toujours sur fond blanc, même en mode sombre (marges de page comprises). */
+    html, html.dark {
+        color-scheme: light;
+        --color-canvas: #ffffff;
+        --color-paper: #ffffff;
+    }
+
+    html, body, .dashboard-bg {
+        background: #ffffff !important;
+    }
+
+    .dashboard-bg {
+        min-height: 0 !important;
+    }
+
+    .report-page .break-inside-avoid {
+        break-inside: avoid;
     }
 }

@@ -60,6 +60,7 @@ const DocumentImportPage = lazy(() => import("./pages/librarian/DocumentImportPa
 const ServiceCreateAccountRequestPage = lazy(() => import("./pages/librarian/ServiceCreateAccountRequestPage"));
 
 const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
+const MonthlyReportPage = lazy(() => import("./pages/admin/MonthlyReportPage"));
 const AdminLibrariesPage = lazy(() => import("./pages/admin/AdminLibrariesPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTrashPage = lazy(() => import("./pages/admin/AdminTrashPage"));
@@ -86,7 +87,7 @@ export default function App() {
                 <ToastProvider>
                 <ConfirmProvider>
                 <div className="min-h-screen bg-paper text-ink font-sans flex flex-col dashboard-bg">
-                    <a href="#contenu" className="skip-link">Aller au contenu</a>
+                    <a href="#contenu" className="skip-link print:hidden">Aller au contenu</a>
                     <Header />
                     <main id="contenu" tabIndex={-1} className="flex-1 outline-none">
                         {/* Pages chargées à la demande : le visiteur ne télécharge pas les espaces admin / bibliothécaire. */}
@@ -139,6 +140,12 @@ export default function App() {
                             <Route
                                 path="/nouveautes"
                                 element={<SiteUpdatesPage />}
+                            />
+
+                            {/* Rapport mensuel A4 (imprimable en PDF) : hors des espaces à barre latérale. Membre : refus sur place. */}
+                            <Route
+                                path="/rapport-mensuel"
+                                element={<RoleRoute roles={["administrateur", "bibliothecaire"]}><PermissionRoute permission="voir_statistiques"><MonthlyReportPage /></PermissionRoute></RoleRoute>}
                             />
 
                             <Route

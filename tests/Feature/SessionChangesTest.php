@@ -330,3 +330,65 @@ test('les exports affichent les dates à l\'heure de Madagascar (les dates reste
     $rows = \App\Support\SimpleXlsx::readFirstSheet(tap(tempnam(sys_get_temp_dir(), 'x'), fn ($p) => file_put_contents($p, $response->getContent())));
     expect(collect($rows)->flatten()->implode(' '))->toContain('04/10/2026 01:30');
 });
+
+// ---------- Statistiques avec graphiques et rapport mensuel ----------
+
+test('les statistiques regroupent par mois à l\'heure de Madagascar et comparent au mois précédent', function () {
+    config(['app.display_timezone' => 'Indian/Antananarivo']);
+    $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-20 10:00:00', 'UTC'));
+    $library = Library::factory()->create();
+
+    // 30/09 22:30 UTC = 01/10 01:30 à Madagascar : compté en octobre.
+    AccountRequest::factory()->create(['library_id' => $library->id, 'created_at' => '2026-09-30 22:30:00']);
+    AccountRequest::factory()->count(2)->create(['library_id' => $library->id, 'created_at' => '2026-10-05 09:00:00']);
+    AccountRequest::factory()->create(['library_id' => $library->id, 'created_at' => '2026-09-10 09:00:00']);
+    // Validée en octobre, 48 h après la demande.
+    AccountRequest::factory()->create(['library_id' => $library->id, 'status' => 'validee', 'created_at' => '2026-10-01 08:00:00', 'processed_at' => '2026-10-03 08:00:00']);
+
+    $member = User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'school' => 'Faculté de Médecine']);
+    $doc = \App\Models\Document::factory()->create(['title' => 'Anatomie générale']);
+    foreach (['2026-10-02', '2026-10-03', '2026-08-15'] as $day) {
+        \App\Models\Consultation::create(['user_id' => $member->id, 'document_id' => $doc->id, 'consulted_at' => "$day 10:00:00"]);
+    }
+    Sanctum::actingAs(sessionAdmin());
+
+    $r = $this->getJson('/api/dashboard/statistics?months=3')->assertOk();
+
+    expect($r->json('month'))->toBe('2026-10')
+        ->and($r->json('month_label'))->toBe('octobre 2026')
+        ->and($r->json('series.keys'))->toBe(['2026-08', '2026-09', '2026-10'])
+        ->and($r->json('series.requests'))->toBe([0, 1, 4])
+        ->and($r->json('series.consultations'))->toBe([1, 0, 2])
+        ->and($r->json('kpis.requests'))->toBe(['current' => 4, 'previous' => 1])
+        ->and($r->json('kpis.validation_hours.current'))->toEqual(48)
+        ->and($r->json('top_documents.0'))->toMatchArray(['title' => 'Anatomie générale', 'views' => 3])
+        ->and($r->json('roles.etudiant'))->toBe(1)
+        ->and(collect($r->json('establishments'))->firstWhere('code', 'FM')['members'])->toBe(1);
+});
+
+test('le filtre par établissement ne garde que ses membres, demandes et activités', function () {
+    $library = Library::factory()->create();
+    User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'school' => 'Faculté de Médecine']);
+    User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'school' => 'IOSTM']);
+    AccountRequest::factory()->create(['library_id' => $library->id, 'school' => 'IOSTM']);
+    Sanctum::actingAs(sessionAdmin());
+
+    $r = $this->getJson('/api/dashboard/statistics?establishment=FM')->assertOk();
+    expect($r->json('kpis.active_members'))->toBe(1)
+        ->and($r->json('kpis.requests.current'))->toBe(0);
+
+    $this->getJson('/api/dashboard/statistics?establishment=INCONNU')->assertStatus(422);
+    $this->getJson('/api/dashboard/statistics?months=7')->assertStatus(422);
+});
+
+test('les statistiques demandent la permission « voir_statistiques »', function () {
+    Sanctum::actingAs(User::factory()->create(['role' => 'etudiant', 'is_active' => true]));
+    $this->getJson('/api/dashboard/statistics')->assertForbidden();
+
+    $librarian = sessionLibrarian();
+    Sanctum::actingAs($librarian);
+    $this->getJson('/api/dashboard/statistics')->assertForbidden();
+
+    $librarian->permissions()->attach(\App\Models\Permission::where('name', 'voir_statistiques')->firstOrFail()->id);
+    $this->getJson('/api/dashboard/statistics?month=2026-09')->assertOk()->assertJsonPath('month', '2026-09');
+});

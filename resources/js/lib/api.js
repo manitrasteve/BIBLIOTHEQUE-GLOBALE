@@ -468,6 +468,8 @@ export const api = {
     // ---------------------------------------------------------
 
     getAdminDashboard: () => request("/dashboard/admin"),
+    // Graphiques de la page Statistiques et rapport mensuel : { months, establishment, month }
+    getStatistics: (params = {}) => request(`/dashboard/statistics?${new URLSearchParams(params)}`),
 
     createLibrary: (data) =>
         request("/libraries", {

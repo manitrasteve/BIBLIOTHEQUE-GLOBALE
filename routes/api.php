@@ -283,6 +283,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware(['role:administrateur,bibliothecaire', 'permission:voir_statistiques'])->group(function () {
         Route::get('/dashboard/admin', [DashboardController::class, 'admin']);
+        Route::get('/dashboard/statistics', [DashboardController::class, 'statistics']);
     });
 
     /* Corbeille : admin ou bibliothécaire ayant la permission individuelle. */

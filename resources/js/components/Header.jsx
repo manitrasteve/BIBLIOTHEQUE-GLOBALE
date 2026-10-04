@@ -319,7 +319,7 @@ export default function Header() {
         <>
             {/* ================= HEADER ================= */}
             <header
-                className={`sticky top-0 z-40 border-b border-line bg-surface  ${
+                className={`sticky top-0 z-40 border-b border-line bg-surface print:hidden ${
                     isLoggingOut ? "pointer-events-none" : ""
                 }`}
             >

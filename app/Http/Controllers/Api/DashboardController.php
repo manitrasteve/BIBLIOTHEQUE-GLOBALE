@@ -39,6 +39,30 @@ class DashboardController extends Controller
     /**
      * Dashboard de l'administrateur.
      */
+    /**
+     * Graphiques de la page Statistiques et rapport mensuel : indicateurs du mois (vs mois précédent),
+     * séries mensuelles, répartitions. Filtres : mois de référence, nombre de mois, établissement.
+     */
+    public function statistics(Request $request)
+    {
+        abort_unless($request->user()->hasPermission('voir_statistiques'), 403);
+
+        $codes = collect(\App\Services\PlatformStatistics::establishmentOptions())->pluck('code')->all();
+        $data = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+            'months' => ['nullable', 'integer', 'in:3,6,12'],
+            'establishment' => ['nullable', 'string', \Illuminate\Validation\Rule::in($codes)],
+        ]);
+
+        $month = $data['month'] ?? now(config('app.display_timezone'))->format('Y-m');
+        $stats = new \App\Services\PlatformStatistics($month, (int) ($data['months'] ?? 12), $data['establishment'] ?? null);
+
+        return response()->json([
+            ...$stats->toArray(),
+            'establishment_options' => \App\Services\PlatformStatistics::establishmentOptions(),
+        ]);
+    }
+
     public function admin(Request $request)
     {
         abort_unless($request->user()->hasPermission('voir_statistiques'), 403);
