@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\IngestDocumentJob;
-use App\Jobs\NotifyDocumentPublishedJob;
 use App\Models\Category;
 use App\Models\Consultation;
 use App\Models\Document;
 use App\Services\ActivityLogService;
+use App\Services\DocumentPublisher;
 use App\Services\StaffNotifier;
 use App\Support\QueueKicker;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -349,6 +350,7 @@ class DocumentController extends Controller
         return [
             'all' => (int) $byStatus->sum(),
             'brouillon' => (int) ($byStatus['brouillon'] ?? 0),
+            'programme' => (int) ($byStatus['programme'] ?? 0),
             'publie' => (int) ($byStatus['publie'] ?? 0),
             'archive' => (int) ($byStatus['archive'] ?? 0),
             'by_type' => $byType,
@@ -542,20 +544,76 @@ class DocumentController extends Controller
             return response()->json($document);
         }
 
+        DocumentPublisher::publish($document, $request->user()->id);
+
+        return response()->json($document);
+    }
+
+    // Publication programmée : le document passe en « programme » et sera publié à la date choisie
+    // (DocumentPublisher::publishDue, lancé chaque minute). Reprogrammer change simplement la date.
+    public function schedule(Request $request, Document $document)
+    {
+        $this->authorizeLibrary($request, $document->library_id);
+
+        if ($document->status === 'publie') {
+            return response()->json(['message' => 'Ce document est déjà publié.'], 422);
+        }
+
+        $data = $request->validate([
+            // La minute en cours est acceptée (publication dans la minute qui suit).
+            'scheduled_at' => ['required', 'date', 'after_or_equal:' . now()->startOfMinute()->toIso8601String(), 'before:' . now()->addYear()->toIso8601String()],
+        ], [
+            'scheduled_at.after_or_equal' => 'Cette date est déjà passée : choisissez une date et une heure à venir.',
+            'scheduled_at.before' => 'La date de publication doit être dans moins d’un an.',
+        ]);
+
         $previousStatus = $document->status;
-        $document->update(['status' => 'publie', 'published_at' => now()]);
+        $previousDate = $document->scheduled_at;
+        $document->update([
+            'status' => 'programme',
+            'scheduled_at' => Carbon::parse($data['scheduled_at']),
+            'scheduled_by' => $request->user()->id,
+        ]);
 
         ActivityLogService::log(
             $request->user()->id,
-            'publication_document',
+            'programmation_document',
             $document->title,
             $document,
-            ['status' => ['before' => $previousStatus, 'after' => 'publie']],
+            [
+                'status' => ['before' => $previousStatus, 'after' => 'programme'],
+                'publication_prevue' => [
+                    'before' => $previousDate?->toIso8601String(),
+                    'after' => $document->scheduled_at->toIso8601String(),
+                ],
+            ],
         );
 
-        // Notifie tous les utilisateurs actifs en tâche de fond : une base
-        // d'utilisateurs nombreuse rendrait sinon le bouton "Publier" très lent.
-        QueueKicker::dispatch(new NotifyDocumentPublishedJob($document, $request->user()->id));
+        return response()->json($document);
+    }
+
+    // Annule la programmation : le document redevient un brouillon.
+    public function unschedule(Request $request, Document $document)
+    {
+        $this->authorizeLibrary($request, $document->library_id);
+
+        if ($document->status !== 'programme') {
+            return response()->json($document);
+        }
+
+        $previousDate = $document->scheduled_at;
+        $document->update(['status' => 'brouillon', 'scheduled_at' => null, 'scheduled_by' => null]);
+
+        ActivityLogService::log(
+            $request->user()->id,
+            'annulation_programmation_document',
+            $document->title,
+            $document,
+            [
+                'status' => ['before' => 'programme', 'after' => 'brouillon'],
+                'publication_prevue' => ['before' => $previousDate?->toIso8601String(), 'after' => null],
+            ],
+        );
 
         return response()->json($document);
     }
@@ -573,7 +631,7 @@ class DocumentController extends Controller
         $this->authorizeLibrary($request, $document->library_id);
 
         $previousStatus = $document->status;
-        $document->update(['status' => 'archive']);
+        $document->update(['status' => 'archive', 'scheduled_at' => null, 'scheduled_by' => null]);
 
         ActivityLogService::log(
             $request->user()->id,

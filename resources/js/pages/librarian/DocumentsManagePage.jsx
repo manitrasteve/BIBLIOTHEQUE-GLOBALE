@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search } from 'lucide-react';
+import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search, CalendarClock, CalendarX } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
@@ -13,13 +13,15 @@ import StatCard, { StatCardSkeleton } from '../../components/StatCard';
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
+import ScheduleModal, { formatScheduledAt } from "../../components/ScheduleModal";
 
-const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
-const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Archivé' };
+const STATUS_FILTERS = ['brouillon', 'programme', 'publie', 'archive'];
+const STATUS_LABELS = { brouillon: 'Brouillon', programme: 'Programmé', publie: 'Publié', archive: 'Archivé' };
 // Icône et couleur de chaque carte de compteur ('' = Tous).
 const STATUS_CARD_STYLES = {
   '': { icon: FileText },
   brouillon: { icon: FilePen, tone: 'warning' },
+  programme: { icon: CalendarClock },
   publie: { icon: UploadCloud, tone: 'success' },
   archive: { icon: Archive },
 };
@@ -48,6 +50,7 @@ export default function DocumentsManagePage() {
   const [meta, setMeta] = useState(null); // pagination du serveur
   const [counts, setCounts] = useState(null); // totaux réels (statuts + types), calculés par le serveur
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  const [scheduling, setScheduling] = useState(null); // document dont on choisit la date de publication
   const sortedDocuments = documents ? sortRows(documents, sort, getDocVal) : documents;
 
   // Clic sur une carte : la liste n'affiche que ce statut (« Tous » ou la carte active : tous), puis on y descend.
@@ -108,6 +111,24 @@ export default function DocumentsManagePage() {
     }
   }
 
+  async function schedule(isoDate) {
+    await api.scheduleDocument(scheduling.id, isoDate);
+    toast(`Publication programmée le ${formatScheduledAt(isoDate)}.`);
+    setScheduling(null);
+    load();
+  }
+
+  async function unschedule(doc) {
+    if (!(await confirm({ title: `Annuler la publication programmée de « ${doc.title} » ?`, message: 'Le document redeviendra un brouillon.' }))) return;
+    setBusySlug(doc.slug);
+    try {
+      await api.unscheduleDocument(doc.id);
+      load();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   async function reindex(doc) { setBusySlug(doc.slug); try { await api.reindexDocument(doc.id); toast('Indexation RAG relancée.'); } finally { setBusySlug(null); } }
 
   async function archive(doc) {
@@ -136,10 +157,11 @@ export default function DocumentsManagePage() {
       <>
         <Link
           to={`${basePath}/${doc.id}/modifier`}
-          className="flex items-center gap-1 text-brass hover:text-brass-deep"
+          title="Modifier"
+          aria-label={`Modifier « ${doc.title} »`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-brass hover:bg-slate-100 hover:text-brass-deep"
         >
-          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Modifier
+          <Pencil className="h-4 w-4" strokeWidth={1.75} />
         </Link>
         {doc.status !== 'publie' && can('publier_document') && (
           <button
@@ -149,6 +171,26 @@ export default function DocumentsManagePage() {
           >
             <UploadCloud className="h-3.5 w-3.5" strokeWidth={1.75} />
             Publier
+          </button>
+        )}
+        {doc.status !== 'publie' && can('publier_document') && (
+          <button
+            onClick={() => setScheduling(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-brass hover:text-brass-deep disabled:opacity-50"
+          >
+            <CalendarClock className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {doc.status === 'programme' ? 'Changer la date' : 'Programmer'}
+          </button>
+        )}
+        {doc.status === 'programme' && can('publier_document') && (
+          <button
+            onClick={() => unschedule(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-ink-soft hover:text-ink disabled:opacity-50"
+          >
+            <CalendarX className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Annuler la programmation
           </button>
         )}
         <button onClick={() => reindex(doc)} disabled={busySlug === doc.slug} className="flex items-center gap-1 text-brass hover:text-brass-deep disabled:opacity-50"><Sparkles className="h-3.5 w-3.5"/> Réindexer IA</button>
@@ -165,10 +207,11 @@ export default function DocumentsManagePage() {
         {user?.role === 'administrateur' && <button
           onClick={() => remove(doc)}
           disabled={busySlug === doc.slug}
-          className="flex items-center gap-1 text-red-700 hover:text-red-800 disabled:opacity-50"
+          title="Supprimer"
+          aria-label={`Supprimer « ${doc.title} »`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-red-700 hover:bg-red-50 hover:text-red-800 disabled:opacity-50"
         >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Supprimer
+          <Trash2 className="h-4 w-4" strokeWidth={1.75} />
         </button>}
       </>
     );
@@ -187,7 +230,7 @@ export default function DocumentsManagePage() {
       </div>
 
       {/* Cartes de compteurs : un clic filtre la liste (« Tous » ou la carte active : tous les documents). */}
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-live="polite">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" role="status" aria-live="polite">
         {counts
           ? ['', ...STATUS_FILTERS].map((key) => (
               <StatCard
@@ -200,7 +243,7 @@ export default function DocumentsManagePage() {
                 onClick={() => selectStatus(key)}
               />
             ))
-          : Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
+          : Array.from({ length: 5 }, (_, i) => <StatCardSkeleton key={i} />)}
       </div>
 
       <div className="relative mb-6 w-full sm:max-w-[600px]">
@@ -266,6 +309,9 @@ export default function DocumentsManagePage() {
                       <FileText className="h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.5} />
                       {doc.title}
                     </span>
+                    {doc.status === 'programme' && doc.scheduled_at && (
+                      <span className="mt-1 block pl-6 text-xs font-normal text-amber-700">Publication le {formatScheduledAt(doc.scheduled_at)}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{doc.category?.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{doc.year}</td>
@@ -295,6 +341,9 @@ export default function DocumentsManagePage() {
               </div>
               <p className="mt-1 text-xs text-ink-soft">{doc.category?.name} · {doc.year}</p>
               <p className="mt-1 text-xs text-ink-soft">{doc.library?.name}</p>
+              {doc.status === 'programme' && doc.scheduled_at && (
+                <p className="mt-1 text-xs font-medium text-amber-700">Publication le {formatScheduledAt(doc.scheduled_at)}</p>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {renderDocActions(doc)}
               </div>
@@ -303,6 +352,8 @@ export default function DocumentsManagePage() {
         </div>
         </>
       )}
+
+      {scheduling && <ScheduleModal document={scheduling} onCancel={() => setScheduling(null)} onConfirm={schedule} />}
 
       {meta?.last_page > 1 && (
         <nav aria-label="Pagination" className="mt-5 flex flex-wrap items-center justify-between gap-3">

@@ -78,7 +78,7 @@ export default function ProfileDetailModal({
     // Rendue dans <body> : aucune barre de la page (en-tête collant, menu) ne peut passer par-dessus.
     return createPortal(
         <div
-            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-overlay p-4"
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
         >
             <div

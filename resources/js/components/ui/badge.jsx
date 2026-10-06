@@ -5,6 +5,9 @@ const variants = {
  secondary: "border-transparent bg-slate-100 text-slate-700",
  outline: "border-slate-200 text-slate-700",
  destructive: "border-transparent bg-red-100 text-red-700",
+ // Sans couleur : celle-ci est fournie par className (cn() concatène sans fusionner, une couleur
+ // de variante entrerait en conflit avec celle de className).
+ plain: "border-transparent",
 };
 
 export function Badge({ className, variant = "default", ...props }) {

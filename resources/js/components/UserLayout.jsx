@@ -23,8 +23,8 @@ const ITEM = {
     activities: { to: "/mes-activites", label: "Mes activités", icon: Activity },
     watch: { to: "/veille-scientifique", label: "Veille scientifique", icon: Radar },
     favorites: { to: "/mes-favoris", label: "Mes favoris", icon: Heart },
-    notifications: { to: "/notifications", label: "Notifications", icon: Bell },
-    messages: { to: "/messages", label: "Messages", icon: Mail },
+    notifications: { to: "/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
+    messages: { to: "/messages", label: "Messages", icon: Mail, badge: "messages" },
     feedback: { to: "/avis-suggestions", label: "Avis & Suggestions", icon: MessageSquare },
     report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
 };

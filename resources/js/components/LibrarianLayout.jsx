@@ -2,6 +2,7 @@ import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import PageLoader from "./PageLoader";
 import RefreshButton from "./RefreshButton";
+import NavBadge, { useNavBadges } from "./NavBadge";
 import { RefreshProvider } from "../context/RefreshContext";
 import {
     Ticket,
@@ -54,6 +55,7 @@ const NAV = [
         to: "/bibliothecaire/documents",
         label: "Documents",
         icon: FileText,
+        badge: "drafts",
     },
     {
         to: "/bibliothecaire/bibliotheques",
@@ -69,6 +71,7 @@ const NAV = [
         to: "/bibliothecaire/tickets-comptes",
         label: "Demandes de compte",
         icon: Ticket,
+        badge: "account_requests",
     },
     {
         to: "/bibliothecaire/creer-demande-compte",
@@ -90,6 +93,7 @@ const NAV = [
         to: "/bibliothecaire/avis",
         label: "Avis des utilisateurs",
         icon: MessageSquare,
+        badge: "feedbacks",
         permission: "voir_avis_utilisateurs",
         hideForAdmin: true,
     },
@@ -97,6 +101,7 @@ const NAV = [
         to: "/bibliothecaire/signalements",
         label: "Signalements",
         icon: LifeBuoy,
+        badge: "reports",
         permission: "voir_signalements",
         hideForAdmin: true,
     },
@@ -106,6 +111,7 @@ const NAV = [
         to: "/bibliothecaire/discussions",
         label: "Discussion avec l’administrateur",
         icon: MessageCircle,
+        badge: "staff_messages",
     },
     // Traçabilité, la Corbeille en dernier
     { to: "/bibliothecaire/activites", label: "Mes activités", icon: Activity },
@@ -113,13 +119,24 @@ const NAV = [
         to: "/bibliothecaire/corbeille",
         label: "Corbeille",
         icon: Trash2,
+        badge: "trash",
         permission: "voir_corbeille",
         // L'administrateur utilise Administration → Corbeille (même page, même API).
         hideForAdmin: true,
     },
 ];
 
+// Le contexte d'actualisation englobe aussi le menu : ses badges se rechargent après « Actualiser ».
 export default function LibrarianLayout() {
+    return (
+        <RefreshProvider>
+            <LibrarianLayoutContent />
+        </RefreshProvider>
+    );
+}
+
+function LibrarianLayoutContent() {
+    const badges = useNavBadges();
     const [open, setOpen] = useState(false);
     const location = useLocation();
     const navigationId = useId();
@@ -188,13 +205,17 @@ export default function LibrarianLayout() {
                             }`
                         }
                     >
-                        <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
-                        {item.label}
+                        {({ isActive }) => (
+                            <>
+                                <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
+                                {item.label}
+                                <NavBadge name={item.badge} count={badges[item.badge]} active={isActive} />
+                            </>
+                        )}
                     </NavLink>
                 ))}
             </nav>
 
-            <RefreshProvider>
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
@@ -234,7 +255,6 @@ export default function LibrarianLayout() {
                     </Suspense>
                 </div>
             </section>
-            </RefreshProvider>
         </div>
     );
 }

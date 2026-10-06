@@ -9,6 +9,8 @@ export function RefreshProvider({ children }) {
     const [registered, setRegistered] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [updatedAt, setUpdatedAt] = useState(null);
+    // Nombre d'actualisations réussies : permet à d'autres éléments (badges du menu) de se recharger aussi.
+    const [refreshCount, setRefreshCount] = useState(0);
 
     const register = useCallback((loader) => {
         loaderRef.current = loader;
@@ -30,14 +32,15 @@ export function RefreshProvider({ children }) {
         try {
             await loaderRef.current();
             setUpdatedAt(Date.now());
+            setRefreshCount((n) => n + 1);
         } finally {
             setRefreshing(false);
         }
     }, []);
 
     const value = useMemo(
-        () => ({ register, refresh, registered, refreshing, updatedAt }),
-        [register, refresh, registered, refreshing, updatedAt],
+        () => ({ register, refresh, registered, refreshing, updatedAt, refreshCount }),
+        [register, refresh, registered, refreshing, updatedAt, refreshCount],
     );
 
     return <RefreshContext.Provider value={value}>{children}</RefreshContext.Provider>;

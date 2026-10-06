@@ -125,7 +125,7 @@ class TrashController extends Controller
         $previousStatus = $doc->status;
         $doc->restore();
         // Une restauration depuis la corbeille ne republie jamais le document.
-        $doc->update(['status' => 'brouillon', 'published_at' => null]);
+        $doc->update(['status' => 'brouillon', 'published_at' => null, 'scheduled_at' => null, 'scheduled_by' => null]);
 
         ActivityLogService::log(
             $request->user()->id,

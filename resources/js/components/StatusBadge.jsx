@@ -1,4 +1,4 @@
-import { Clock3, CheckCircle2, XCircle, AlertTriangle, FileEdit, Archive, Send } from 'lucide-react';
+import { Clock3, CheckCircle2, XCircle, AlertTriangle, FileEdit, Archive, Send, CalendarClock } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 // Registre central des statuts utilisés dans l'app, avec icône + couleur
@@ -13,6 +13,7 @@ const REGISTRY = {
   en_retard: { label: 'En retard', icon: AlertTriangle, cls: 'bg-red-100 text-red-700' },
   retourne: { label: 'Retourné', icon: CheckCircle2, cls: 'bg-blue-100 text-blue-700' },
   brouillon: { label: 'Brouillon', icon: FileEdit, cls: 'bg-slate-100 text-ink-soft' },
+  programme: { label: 'Programmé', icon: CalendarClock, cls: 'bg-amber-100 text-amber-700' },
   publie: { label: 'Publié', icon: CheckCircle2, cls: 'bg-green-100 text-green-700' },
   archive: { label: 'Archivé', icon: Archive, cls: 'bg-slate-100 text-ink-soft' },
   actif: { label: 'Actif', icon: CheckCircle2, cls: 'bg-green-100 text-green-700' },
@@ -23,7 +24,7 @@ export default function StatusBadge({ status, label, icon: IconOverride }) {
   const Icon = IconOverride || cfg.icon;
 
   return (
-    <Badge variant="secondary" className={`gap-1 border-0 ${cfg.cls}`}>
+    <Badge variant="plain" className={`gap-1 border-0 ${cfg.cls}`}>
       <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       {label || cfg.label}
     </Badge>

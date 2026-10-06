@@ -75,6 +75,7 @@ const FIELD_LABELS = {
     access_level: "Niveau d'accès",
     authors: "Auteur(s)",
     status: "Statut",
+    publication_prevue: "Publication prévue",
     fichier: "Fichier PDF",
     couverture: "Couverture",
     name: "Nom",
@@ -88,12 +89,14 @@ const FIELD_LABELS = {
     utilisateurs: "Comptes",
     documents: "Documents",
 };
-const VALUE_LABELS = { brouillon: "Brouillon", publie: "Publié", archive: "Archivé" };
+const VALUE_LABELS = { brouillon: "Brouillon", programme: "Programmé", publie: "Publié", archive: "Archivé" };
 
 function formatChange(value) {
     if (value === null || value === undefined || value === "") return "—";
     if (Array.isArray(value)) return value.join(", ");
     const text = String(value);
+    // Date ISO (ex. publication prévue) : affichée en heure locale.
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) return new Date(text).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
     return VALUE_LABELS[text] || (text.length > 80 ? `${text.slice(0, 80)}…` : text);
 }
 
@@ -156,6 +159,14 @@ const ACTION_CONFIG = {
 
     publication_document: {
         label: "Publication de document",
+        icon: Upload,
+    },
+    programmation_document: {
+        label: "Publication programmée",
+        icon: Upload,
+    },
+    annulation_programmation_document: {
+        label: "Programmation annulée",
         icon: Upload,
     },
     permissions_modifiees: {

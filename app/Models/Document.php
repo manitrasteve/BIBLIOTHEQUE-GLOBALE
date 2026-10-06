@@ -17,11 +17,12 @@ class Document extends Model
         'uuid', 'slug', 'title', 'subtitle', 'abstract', 'type','niveau',
         'category_id', 'library_id', 'year', 'publisher', 'isbn',
         'language', 'edition', 'keywords', 'cover_path', 'file_path',
-        'access_level', 'status', 'created_by', 'published_at',
+        'access_level', 'status', 'created_by', 'published_at', 'scheduled_at', 'scheduled_by',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
+        'scheduled_at' => 'datetime',
     ];
 
     protected static function booted(): void

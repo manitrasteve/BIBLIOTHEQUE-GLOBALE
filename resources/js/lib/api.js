@@ -329,6 +329,9 @@ export const api = {
 
     getUnreadNotificationCount: () => request("/notifications/unread-count"),
 
+    // Compteurs du menu latéral (voir NavBadge).
+    getNavBadges: () => request("/nav-badges"),
+
     markNotificationRead: (id) =>
         request(`/notifications/${id}/read`, {
             method: "POST",
@@ -446,6 +449,18 @@ export const api = {
     publishDocument: (id) =>
         request(`/documents/${id}/publish`, {
             method: "POST",
+        }),
+
+    // Publication programmée : `scheduled_at` en ISO 8601 (heure UTC).
+    scheduleDocument: (id, scheduledAt) =>
+        request(`/documents/${id}/schedule`, {
+            method: "POST",
+            body: { scheduled_at: scheduledAt },
+        }),
+
+    unscheduleDocument: (id) =>
+        request(`/documents/${id}/schedule`, {
+            method: "DELETE",
         }),
 
     archiveDocument: (id) =>

@@ -27,15 +27,15 @@ class AssistantTools
 {
     private const LIMIT = 15;
     private const LOG_LIMIT = 20;
-    private const STATUSES = ['brouillon', 'publie', 'archive'];
+    private const STATUSES = ['brouillon', 'programme', 'publie', 'archive'];
 
-    private const DOCUMENT_ACTIONS = ['creation_document', 'modification_document', 'publication_document', 'archivage_document', 'suppression_document', 'restauration_document', 'suppression_definitive_document'];
+    private const DOCUMENT_ACTIONS = ['creation_document', 'modification_document', 'publication_document', 'programmation_document', 'annulation_programmation_document', 'archivage_document', 'suppression_document', 'restauration_document', 'suppression_definitive_document'];
     private const LIBRARY_ACTIONS = ['creation_bibliotheque', 'modification_bibliotheque', 'suppression_bibliotheque'];
     private const USER_ACTIONS = ['creation_compte', 'validation_compte', 'desactivation_compte', 'reactivation_compte', 'suppression_utilisateur', 'restauration_utilisateur', 'suppression_definitive_utilisateur', 'creation_bibliothecaire'];
     private const ADMIN_ONLY_ACTIONS = ['permissions_modifiees', 'vidage_corbeille'];
 
     private const ACTION_LABELS = [
-        'creation_document' => 'Document ajouté', 'modification_document' => 'Document modifié', 'publication_document' => 'Document publié',
+        'creation_document' => 'Document ajouté', 'modification_document' => 'Document modifié', 'publication_document' => 'Document publié', 'programmation_document' => 'Publication programmée', 'annulation_programmation_document' => 'Programmation annulée',
         'archivage_document' => 'Document archivé', 'suppression_document' => 'Document supprimé', 'restauration_document' => 'Document restauré',
         'suppression_definitive_document' => 'Document supprimé définitivement',
         'creation_bibliotheque' => 'Bibliothèque créée', 'modification_bibliotheque' => 'Bibliothèque modifiée', 'suppression_bibliotheque' => 'Bibliothèque supprimée',
@@ -83,7 +83,7 @@ class AssistantTools
         return [
             [
                 'name' => 'compter_documents',
-                'description' => 'Compte les documents (hors corbeille) selon des critères et donne aussi le détail par statut (brouillon, publie, archive).',
+                'description' => 'Compte les documents (hors corbeille) selon des critères et donne aussi le détail par statut (brouillon, programme, publie, archive).',
                 'parameters' => ['type' => 'OBJECT', 'properties' => $documentFilters + ['statut' => $enum('Statut à compter.', self::STATUSES)]],
             ],
             [

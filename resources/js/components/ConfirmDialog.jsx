@@ -70,7 +70,7 @@ export default function ConfirmDialog({
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-overlay p-4"
             onMouseDown={(event) => event.target === event.currentTarget && !busy && onCancel()}
         >
             <div

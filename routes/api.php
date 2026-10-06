@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DocumentImportController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\NavBadgeController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EngagementController;
 use App\Http\Controllers\Api\FeedbackController;
@@ -126,6 +127,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/notifications', [AppNotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [AppNotificationController::class, 'unreadCount']);
+    // Badges du menu latéral (éléments à traiter / non lus).
+    Route::get('/nav-badges', NavBadgeController::class);
     Route::post('/notifications/{appNotification}/read', [AppNotificationController::class, 'markRead']);
     Route::post('/notifications/read-all', [AppNotificationController::class, 'markAllRead']);
 
@@ -176,6 +179,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');
+        Route::post('/documents/{document}/schedule', [DocumentController::class, 'schedule'])->middleware('permission:publier_document');
+        Route::delete('/documents/{document}/schedule', [DocumentController::class, 'unschedule'])->middleware('permission:publier_document');
         Route::post('/documents/{document}/archive', [DocumentController::class, 'archive']);
         Route::post('/documents/{document}/reindex', [DocumentController::class, 'reindex']);
 

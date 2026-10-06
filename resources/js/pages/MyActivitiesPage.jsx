@@ -26,6 +26,8 @@ const ACTION_CONFIG = {
     recherche: { label: "Recherche", icon: Search },
     // Actions du personnel (administrateur / bibliothécaire) déjà enregistrées par le système.
     publication_document: { label: "Document publié", icon: Upload },
+    programmation_document: { label: "Publication programmée", icon: Upload },
+    annulation_programmation_document: { label: "Programmation annulée", icon: Upload },
     creation_compte: { label: "Compte créé", icon: UserPlus },
     validation_compte: { label: "Compte validé", icon: UserCheck },
     renvoi_lien_creation_mot_de_passe: { label: "Lien de création du mot de passe renvoyé", icon: UserCheck },

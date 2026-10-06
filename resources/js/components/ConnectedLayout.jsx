@@ -3,10 +3,21 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import PageLoader from "./PageLoader";
 import RefreshButton from "./RefreshButton";
+import NavBadge, { useNavBadges } from "./NavBadge";
 import { RefreshProvider } from "../context/RefreshContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
-export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav }) {
+// Le contexte d'actualisation englobe aussi le menu : ses badges se rechargent après « Actualiser ».
+export default function ConnectedLayout(props) {
+    return (
+        <RefreshProvider>
+            <ConnectedLayoutContent {...props} />
+        </RefreshProvider>
+    );
+}
+
+function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
+    const badges = useNavBadges();
     const [open, setOpen] = useState(false);
     const location = useLocation();
     const navigationId = useId();
@@ -66,13 +77,17 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                             }`
                         }
                     >
-                        <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
-                        {item.label}
+                        {({ isActive }) => (
+                            <>
+                                <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
+                                {item.label}
+                                <NavBadge name={item.badge} count={badges[item.badge]} active={isActive} />
+                            </>
+                        )}
                     </NavLink>
                 ))}
             </nav>
 
-            <RefreshProvider>
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
@@ -108,7 +123,6 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                     </Suspense>
                 </div>
             </section>
-            </RefreshProvider>
         </div>
     );
 }

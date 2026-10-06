@@ -40,10 +40,12 @@
 
     /*
      * Couleurs pleines (le site n'utilise ni dégradé, ni rgba / transparence, ni ombre ou lueur) :
-     * texte secondaire posé sur la couleur principale, et fond derrière les fenêtres modales.
+     * texte secondaire posé sur la couleur principale.
+     * Seule exception : le voile des fenêtres modales (bg-overlay), légèrement transparent et flouté
+     * (voir la règle .bg-overlay) pour que la page reste visible derrière le formulaire.
      */
     --color-on-primary-soft: #d6d6f5;
-    --color-overlay: #303650;
+    --color-overlay: rgb(15 18 40 / 0.18);
     --color-indigo-50: var(--site-light-accent, #f4f5fb);
     --color-indigo-100: var(--site-light-accent-2, #ececfb);
     --color-indigo-200: var(--site-light-accent-3, #dde0ee);
@@ -113,7 +115,7 @@
  *  - texte de marque : text-brass / text-brass-deep (pas text-indigo-*) ;
  *  - texte coloré d'état : nuance 700 (text-red-700…) ; les nuances
  *    500-600 sont réservées aux fonds pleins (boutons) et ne changent pas ;
- *  - voile de modale : bg-overlay (couleur pleine, sans transparence) ;
+ *  - voile de modale : bg-overlay (transparent et flou, la page reste visible derrière) ;
  *  - bg-white / text-white restent blancs dans les deux thèmes
  *    (texte sur bouton, pastille du logo) ;
  *  - bg-indigo-500…950 (marine) restent inchangés : boutons, menu actif.
@@ -122,7 +124,7 @@
 html.dark {
     color-scheme: dark;
 
-    --color-overlay: #03031a;
+    --color-overlay: rgb(0 0 0 / 0.45);
 
     /* Couleurs personnalisables : var(--site-dark-{rôle}, couleur d'origine du mode sombre). */
     --color-canvas: var(--site-dark-background, #0a0b1c);
@@ -567,6 +569,12 @@ button:active {
 }
 .dashboard-bg {
     background: var(--color-canvas);
+}
+
+/* Voile des fenêtres modales et du menu mobile : la page reste visible, floutée, derrière. */
+.bg-overlay {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
 }
 
 table {

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\PublicationKicker;
 use App\Support\ReminderKicker;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
         // Rappels « créez votre mot de passe » sans planificateur : déclenchés après une requête web (1 fois / heure).
         if (!$this->app->runningInConsole()) {
             $this->app->terminating(fn () => ReminderKicker::maybeRun());
+            // Publication programmée des documents, sans planificateur (au plus 1 fois / minute).
+            $this->app->terminating(fn () => PublicationKicker::maybeRun());
         }
 
         // Connexion : limite par couple e-mail + IP (anti force brute) sans bloquer tout un réseau
