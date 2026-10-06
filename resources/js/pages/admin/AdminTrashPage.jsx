@@ -9,6 +9,7 @@ import SortTh from "../../components/SortTh";
 import ActionsTh from "../../components/ActionsTh";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 function getVal(row, key) { return key === "library" ? row.library?.name : row[key]; }
 
@@ -29,6 +30,8 @@ export default function AdminTrashPage() {
     api.getTrash().then(setData).catch(e => setError(e?.data?.message || "Impossible de charger la corbeille.")).finally(() => setLoading(false));
   };
   useEffect(load, []);
+  // Actualisation : le tableau reste affiché pendant le rechargement.
+  usePageRefresh(() => api.getTrash().then((d) => { setData(d); setError(""); }));
   const users = useMemo(() => sortRows(data.users.filter(u => matchesSearch(`${u.name} ${u.email} ${u.matricule} ${u.role} ${u.library?.name}`, q)), usersSort, getVal), [data.users, q, usersSort]);
   const documents = useMemo(() => sortRows(data.documents.filter(d => matchesSearch(`${d.title} ${d.author} ${d.type} ${d.niveau} ${d.library?.name}`, q)), docsSort, getVal), [data.documents, q, docsSort]);
   async function action(fn, msg) { if (!(await confirm({ title: msg, danger: /supprim|définitiv|vider/i.test(msg) }))) return; try { await fn(); load(); } catch (e) { toast(e?.data?.message || e?.message || "Action impossible."); } }

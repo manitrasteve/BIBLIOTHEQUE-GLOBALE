@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookMarked, Search, PlayCircle } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 import { sessionMemory } from "../lib/sessionMemory";
 import { matchesSearch } from "../lib/search";
 
@@ -41,6 +42,7 @@ export default function MyReadingsPage() {
             active = false;
         };
     }, [page]);
+    usePageRefresh(() => api.getMyReadings({ page }).then((res) => { setResult(res); setError(null); }));
 
     const rows = useMemo(() => {
         return (result?.data || []).filter((row) =>

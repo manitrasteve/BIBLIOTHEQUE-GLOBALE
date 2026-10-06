@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { usePageRefresh } from "../../context/RefreshContext";
 import {
     History,
     LogIn,
@@ -205,27 +206,22 @@ export default function AdminActivityPage() {
      * Chargement selon le type demandé par les cartes
      * du dashboard administrateur.
      */
+    function fetchLogs() {
+        if (type === "consultations") return api.getAdminConsultations({ page });
+        if (type === "ai") return api.getAdminAiQueries({ page });
+        if (type === "favoris") return api.getAdminFavorites({ page });
+        return api.getActivityLogs({
+            page,
+            ...(actionFilter ? { action: actionFilter } : {}),
+        });
+    }
+
     useEffect(() => {
         let active = true; // ignore les réponses arrivées en retard (changement rapide de filtre / page)
         setLogs(null);
         setError(null);
 
-        let promise;
-
-        if (type === "consultations") {
-            promise = api.getAdminConsultations({ page });
-        } else if (type === "ai") {
-            promise = api.getAdminAiQueries({ page });
-        } else if (type === "favoris") {
-            promise = api.getAdminFavorites({ page });
-        } else {
-            promise = api.getActivityLogs({
-                page,
-                ...(actionFilter ? { action: actionFilter } : {}),
-            });
-        }
-
-        promise
+        fetchLogs()
             .then((res) => {
                 if (!active) return;
                 setLogs(res.data || []);
@@ -242,6 +238,12 @@ export default function AdminActivityPage() {
             active = false;
         };
     }, [type, actionFilter, page]);
+
+    usePageRefresh(() => fetchLogs().then((res) => {
+        setLogs(res.data || []);
+        setMeta(res);
+        setError(null);
+    }));
 
     /*
      * Affichage spécifique : consultations

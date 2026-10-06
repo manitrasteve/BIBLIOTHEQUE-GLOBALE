@@ -9,6 +9,7 @@ import {
     LayoutDashboard,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 import { useAuth } from "../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../components/StatCard";
 
@@ -35,6 +36,7 @@ export default function DashboardPage() {
                 ),
             );
     }, []);
+    usePageRefresh(() => api.getMyDashboard().then((d) => { setData(d); setError(null); }));
 
     return (
         <div className="w-full px-0 py-0">

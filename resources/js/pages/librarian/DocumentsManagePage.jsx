@@ -12,6 +12,7 @@ import { SkeletonTable } from '../../components/Skeleton';
 import StatCard, { StatCardSkeleton } from '../../components/StatCard';
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 const STATUS_FILTERS = ['brouillon', 'publie', 'archive'];
 const STATUS_LABELS = { brouillon: 'Brouillon', publie: 'Publié', archive: 'Archivé' };
@@ -65,7 +66,10 @@ export default function DocumentsManagePage() {
     load();
   }, [statusFilter, searchTerm, page]);
 
-  function load() {
+  usePageRefresh(() => load({ rethrow: true }));
+
+  // `rethrow` : l'échec remonte aussi au bouton « Actualiser ».
+  function load({ rethrow = false } = {}) {
     // Seule la réponse à la dernière requête est affichée (frappes rapides).
     const requestId = ++latestRequest.current;
     const params = {
@@ -74,7 +78,7 @@ export default function DocumentsManagePage() {
       ...(page > 1 ? { page } : {}),
     };
 
-    api
+    return api
       .getManagedDocuments(params)
       .then((res) => {
         if (requestId !== latestRequest.current) return;
@@ -88,8 +92,9 @@ export default function DocumentsManagePage() {
         setMeta({ current_page: res.current_page, last_page: res.last_page, total: res.total });
         setCounts(res.counts || null);
       })
-      .catch(() => {
+      .catch((e) => {
         if (requestId === latestRequest.current) setError('Impossible de charger les documents.');
+        if (rethrow) throw e;
       });
   }
 

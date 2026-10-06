@@ -5,6 +5,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pager from "../../components/Pager";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 export default function AdminMessagesPage() {
     const confirm = useConfirm();
@@ -19,18 +20,23 @@ export default function AdminMessagesPage() {
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState(null);
 
+    async function fetchData() {
+        const [recipients, messages] = await Promise.all([api.getMessageRecipients(), api.getAdminMessages(page)]);
+        setUsers(recipients || []);
+        setHistory(messages.data || []);
+        setMeta(messages);
+    }
+
     async function load() {
         try {
-            const [recipients, messages] = await Promise.all([api.getMessageRecipients(), api.getAdminMessages(page)]);
-            setUsers(recipients || []);
-            setHistory(messages.data || []);
-            setMeta(messages);
+            await fetchData();
         } catch (e) {
             setNotice(e?.data?.message || "Impossible de charger la messagerie.");
         }
     }
 
     useEffect(() => { load(); }, [page]);
+    usePageRefresh(fetchData);
 
     async function send(e) {
         e.preventDefault();

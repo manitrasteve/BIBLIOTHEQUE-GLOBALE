@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Microscope, Search, SearchX, RotateCcw } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 import { LANGUAGES } from "../lib/languages";
 import { useDebouncedValue } from "../lib/search";
 import DocumentCard from "../components/DocumentCard";
@@ -47,11 +48,7 @@ export default function ResearchSpacePage() {
     const debouncedAuthor = useDebouncedValue(filters.author.trim(), 350);
     const debouncedYear = useDebouncedValue(filters.year.trim(), 350);
 
-    useEffect(() => {
-        let active = true;
-        setResults(null);
-        setError(null);
-
+    function searchParamsFor() {
         const params = { page };
         if (debouncedQ) params.q = debouncedQ;
         if (debouncedAuthor) params.author = debouncedAuthor;
@@ -59,8 +56,17 @@ export default function ResearchSpacePage() {
         ["category_id", "type", "library_id", "language"].forEach((key) => {
             if (filters[key]) params[key] = filters[key];
         });
+        return params;
+    }
 
-        api.searchDocuments(params)
+    usePageRefresh(() => api.searchDocuments(searchParamsFor()).then((res) => { setResults(res); setError(null); }));
+
+    useEffect(() => {
+        let active = true;
+        setResults(null);
+        setError(null);
+
+        api.searchDocuments(searchParamsFor())
             .then((res) => active && setResults(res))
             .catch(() => {
                 if (!active) return;

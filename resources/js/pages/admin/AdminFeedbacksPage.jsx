@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 function Inbox({ kind }) {
     const confirm = useConfirm();
@@ -25,18 +26,21 @@ function Inbox({ kind }) {
     }
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
-    function load(page = meta?.current_page || 1) {
+    // `rethrow` : l'échec remonte au bouton « Actualiser » (sinon il est ignoré).
+    function load(page = meta?.current_page || 1, { rethrow = false } = {}) {
         const params = { page, ...(filter === "total" ? {} : { status: filter }) };
-        (isFeedback ? api.getFeedbacks(params) : api.getProblemReports(params))
+        return (isFeedback ? api.getFeedbacks(params) : api.getProblemReports(params))
             .then((r) => {
                 // Dernier élément d'une page supprimé : retour à la page précédente.
-                if (!(r.data || []).length && page > 1) return load(page - 1);
+                if (!(r.data || []).length && page > 1) return load(page - 1, { rethrow });
                 setRows(r.data || []);
                 setCounts(r.counts || null);
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
-            .catch(() => {});
+            .catch((e) => { if (rethrow) throw e; });
     }
+
+    usePageRefresh(() => load(undefined, { rethrow: true }));
 
     // Avis et signalements sont deux pages distinctes (composant remonté) : seul le filtre change ici.
     useEffect(() => {

@@ -1,6 +1,8 @@
 import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import PageLoader from "./PageLoader";
+import RefreshButton from "./RefreshButton";
+import { RefreshProvider } from "../context/RefreshContext";
 import {
     Ticket,
     FileText,
@@ -192,6 +194,7 @@ export default function LibrarianLayout() {
                 ))}
             </nav>
 
+            <RefreshProvider>
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
@@ -206,6 +209,8 @@ export default function LibrarianLayout() {
                                 Gestion de la Bibliothèque Globale
                             </h1>
                         </div>
+
+                        <RefreshButton />
 
                         {/* Mobile : le bouton du tiroir reste sur la ligne du titre, sans ligne vide dédiée. */}
                         <button
@@ -229,6 +234,7 @@ export default function LibrarianLayout() {
                     </Suspense>
                 </div>
             </section>
+            </RefreshProvider>
         </div>
     );
 }

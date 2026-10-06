@@ -14,6 +14,7 @@ import {
     Trash2,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 import Pager from "../components/Pager";
 import { SkeletonList } from "../components/Skeleton";
 
@@ -48,6 +49,12 @@ export default function NotificationsPage() {
     useEffect(() => {
         load();
     }, [page]);
+
+    usePageRefresh(() => api.getNotifications(page).then((res) => {
+        setNotifications(res.data);
+        setMeta(res);
+        setError(null);
+    }));
 
     function load() {
         api.getNotifications(page)

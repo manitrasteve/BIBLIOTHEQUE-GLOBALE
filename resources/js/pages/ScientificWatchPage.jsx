@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Radar, Plus, Trash2, Tag, Hash } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 import { useConfirm } from "../components/ConfirmDialog";
 
 const inputClass = "w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm";
@@ -58,6 +59,14 @@ export default function ScientificWatchPage() {
             active = false;
         };
     }, [selected?.id, docPage]);
+
+    // Actualisation : compteurs des thèmes et documents du thème ouvert (sans les marquer vus).
+    usePageRefresh(async () => {
+        const res = await api.getWatchTopics();
+        setTopics(res.data || []);
+        if (selected) setDocuments(await api.getWatchTopicDocuments(selected.id, { page: docPage }));
+        setError(null);
+    });
 
     async function add(event) {
         event.preventDefault();

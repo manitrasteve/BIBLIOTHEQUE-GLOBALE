@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useConfirm } from "../components/ConfirmDialog";
+import { usePageRefresh } from "../context/RefreshContext";
 
 export default function StaffDiscussionPage() {
     const confirm = useConfirm();
@@ -38,6 +39,13 @@ export default function StaffDiscussionPage() {
     }, []);
 
     useEffect(() => { if (isAdmin && selectedId) loadConversation(selectedId); }, [selectedId]);
+
+    // Actualisation : nouveaux messages de la discussion ouverte (et liste des bibliothécaires côté administrateur).
+    usePageRefresh(async () => {
+        if (isAdmin) setLibrarians((await api.getStaffLibrarians()).librarians || []);
+        if (conversation) setMessages((await api.getStaffMessages(conversation.id)).messages || []);
+        setError(null);
+    });
 
     async function send(e) {
         e.preventDefault();

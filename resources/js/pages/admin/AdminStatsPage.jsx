@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePageRefresh } from "../../context/RefreshContext";
 import {
     Users,
     UserCheck,
@@ -61,6 +62,17 @@ export default function AdminStatsPage() {
             .then(setStats)
             .catch(() => setStatsError("Impossible de charger les graphiques pour le moment."));
     }, [months, establishment]);
+
+    // Actualisation : chiffres clés et graphiques de la période choisie, sans repasser par le squelette.
+    usePageRefresh(async () => {
+        const [dashboard, statistics] = await Promise.all([
+            api.getAdminDashboard(),
+            api.getStatistics({ months, ...(establishment ? { establishment } : {}) }),
+        ]);
+        setS(dashboard);
+        setStats(statistics);
+        setStatsError(null);
+    });
 
     if (error) {
         return (

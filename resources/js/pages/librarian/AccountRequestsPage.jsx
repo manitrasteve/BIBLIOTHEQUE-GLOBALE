@@ -24,6 +24,7 @@ import { ROLES, formatDateTime, requestSections } from "../../lib/detailSections
 import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 const FILTERS = [
     "en_attente",
@@ -111,10 +112,11 @@ export default function AccountRequestsPage() {
     // « Total » : toutes les catégories affichées en cartes.
     const statusParam = filter === "total" ? filters.join(",") : filter;
 
-    async function load(page = meta?.current_page || 1) {
+    // `refresh` (bouton « Actualiser ») : la liste reste affichée pendant le rechargement et l'échec remonte au bouton.
+    async function load(page = meta?.current_page || 1, { refresh = false } = {}) {
         try {
             setError(null);
-            setRows(null);
+            if (!refresh) setRows(null);
 
             const response = await api.getAccountRequests({
                 // « Total » : toutes les catégories affichées en cartes.
@@ -125,7 +127,7 @@ export default function AccountRequestsPage() {
 
             // Dernier élément d'une page retiré (rejet, validation) : on revient à la page précédente.
             if (!(response.data || []).length && page > 1) {
-                return load(page - 1);
+                return load(page - 1, { refresh });
             }
 
             setRows(response.data || []);
@@ -133,9 +135,12 @@ export default function AccountRequestsPage() {
             setMeta({ current_page: response.current_page, last_page: response.last_page, total: response.total });
         } catch (e) {
             setError(e.data?.message || "Impossible de charger les demandes.");
+            if (refresh) throw e;
             setRows([]);
         }
     }
+
+    usePageRefresh(() => load(undefined, { refresh: true }));
 
     useEffect(() => {
         load(1); // changement de filtre ou de recherche : première page

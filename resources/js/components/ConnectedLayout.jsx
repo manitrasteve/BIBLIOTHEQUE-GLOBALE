@@ -2,6 +2,8 @@ import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import PageLoader from "./PageLoader";
+import RefreshButton from "./RefreshButton";
+import { RefreshProvider } from "../context/RefreshContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
 
 export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav }) {
@@ -70,6 +72,7 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                 ))}
             </nav>
 
+            <RefreshProvider>
             <section className="connected-main">
                 <div className="w-full flex-1 px-4 py-4 sm:px-6 sm:py-5 xl:px-8">
                     <div className="mb-4 flex items-center gap-3">
@@ -84,6 +87,8 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                                 {title}
                             </h1>
                         </div>
+
+                        <RefreshButton />
 
                         {/* Mobile : le bouton du tiroir reste sur la ligne du titre, sans ligne vide dédiée. */}
                         <button
@@ -103,6 +108,7 @@ export default function ConnectedLayout({ badge: BadgeIcon, eyebrow, title, nav 
                     </Suspense>
                 </div>
             </section>
+            </RefreshProvider>
         </div>
     );
 }

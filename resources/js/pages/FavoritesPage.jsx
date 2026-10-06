@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { api } from "../lib/api";
 import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../components/CatalogueCard";
 import Pager from "../components/Pager";
+import { usePageRefresh } from "../context/RefreshContext";
 import { useFavoriteToggle } from "../lib/useFavoriteToggle";
 
 // Copie locale des favoris (métadonnées seulement, jamais le PDF) pour les consulter hors ligne.
@@ -66,6 +67,16 @@ export default function FavoritesPage() {
     useEffect(() => {
         load();
     }, [page]);
+
+    // Actualisation : en cas d'échec, la liste affichée est conservée (pas de bascule vers la copie hors ligne).
+    usePageRefresh(async () => {
+        const response = await api.getFavorites(page);
+        setItems(Array.isArray(response?.data) ? response.data : []);
+        setMeta(response);
+        saveOffline(page, response);
+        setError(null);
+        setOfflineSince(null);
+    });
 
     // Le cœur retire le document de la liste ; il y revient à sa place si le serveur refuse.
     const toggleFavorite = useFavoriteToggle((slug, favorited) =>

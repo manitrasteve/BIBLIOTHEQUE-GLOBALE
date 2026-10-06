@@ -4,6 +4,7 @@ import { Mail, Trash2, UserRound, CheckCheck } from "lucide-react";
 import { api } from "../lib/api";
 import Pager from "../components/Pager";
 import { useConfirm } from "../components/ConfirmDialog";
+import { usePageRefresh } from "../context/RefreshContext";
 
 export default function MessagesPage() {
     const confirm = useConfirm();
@@ -19,6 +20,7 @@ export default function MessagesPage() {
         catch (e) { setError(e?.data?.message || "Impossible de charger vos messages."); setItems([]); }
     }
     useEffect(() => { load(); }, [page]);
+    usePageRefresh(async () => { const response = await api.getMessages(page); setItems(response.data || []); setMeta(response); setError(null); });
 
     useEffect(() => {
         const id = params.get("message");

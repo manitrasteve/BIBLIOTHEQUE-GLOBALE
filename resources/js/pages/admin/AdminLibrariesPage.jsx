@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { usePageRefresh } from '../../context/RefreshContext';
 import { Building2, ImageIcon, ImageOff, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { matchesSearch } from '../../lib/search';
@@ -69,6 +70,7 @@ export default function AdminLibrariesPage() {
   useEffect(() => {
     load();
   }, []);
+  usePageRefresh(() => api.getLibraries().then(setLibraries));
 
   useEffect(() => {
     if (!photo) {

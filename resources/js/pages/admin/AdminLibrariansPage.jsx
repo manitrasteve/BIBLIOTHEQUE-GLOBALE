@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePageRefresh } from "../../context/RefreshContext";
 import { Landmark, Plus, UserX, UserCheck, X, Search, RefreshCw, Users } from "lucide-react";
 import { api } from "../../lib/api";
 import { matchesSearch } from "../../lib/search";
@@ -99,6 +100,7 @@ export default function AdminLibrariansPage() {
     useEffect(() => {
         load();
     }, []);
+    usePageRefresh(() => api.getLibrarians().then((list) => { setRows(list); setLoaded(true); setError(null); }));
 
     async function deactivate(reason) {
         try { const user = await api.deactivateUser(modal.user.id, reason); setRows((current) => current.map((row) => row.id === user.id ? user : row)); setModal(null); }

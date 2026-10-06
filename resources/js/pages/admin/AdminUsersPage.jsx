@@ -26,6 +26,7 @@ import ActionsTh from "../../components/ActionsTh";
 import { GLOBAL_LIBRARY, ROLES, formatDateTime, userSections } from "../../lib/detailSections";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
+import { usePageRefresh } from "../../context/RefreshContext";
 
 // Filtre envoyé au serveur pour chaque carte de compteur (mêmes critères que les compteurs).
 const FILTER_PARAMS = {
@@ -137,18 +138,24 @@ export default function AdminUsersPage() {
     const listRef = useRef(null);
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
-    function load(page = meta?.current_page || 1) {
+    // `rethrow` : l'échec remonte aussi au bouton « Actualiser ».
+    function load(page = meta?.current_page || 1, { rethrow = false } = {}) {
         setError(null);
-        api.getUsers({ page, ...FILTER_PARAMS[filter], ...(searchTerm ? { search: searchTerm } : {}) })
+        return api.getUsers({ page, ...FILTER_PARAMS[filter], ...(searchTerm ? { search: searchTerm } : {}) })
             .then((r) => {
                 // Dernier utilisateur d'une page supprimé : retour à la page précédente.
-                if (!(r.data || []).length && page > 1) return load(page - 1);
+                if (!(r.data || []).length && page > 1) return load(page - 1, { rethrow });
                 setUsers(r.data || []);
                 setCounts(r.counts || null);
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
-            .catch((requestError) => setError(requestError?.data?.message || "Impossible de charger les utilisateurs."));
+            .catch((requestError) => {
+                setError(requestError?.data?.message || "Impossible de charger les utilisateurs.");
+                if (rethrow) throw requestError;
+            });
     }
+
+    usePageRefresh(() => load(undefined, { rethrow: true }));
 
     useEffect(() => {
         load(1); // nouveau filtre ou nouvelle recherche : première page

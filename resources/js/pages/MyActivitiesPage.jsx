@@ -14,6 +14,7 @@ import {
     LayoutTemplate,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { usePageRefresh } from "../context/RefreshContext";
 
 // Seules les actions réellement enregistrées par le système sont affichées.
 const ACTION_CONFIG = {
@@ -75,6 +76,7 @@ export default function MyActivitiesPage() {
             active = false;
         };
     }, [page]);
+    usePageRefresh(() => api.getActivityLogs({ page, mine: 1 }).then((res) => { setResult(res); setError(null); }));
 
     const rows = result?.data || [];
 
