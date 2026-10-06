@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AccountRequest;
 use App\Models\AdminMessageRecipient;
+use App\Models\Consultation;
+use App\Models\CourseList;
+use App\Models\ReadingProgress;
 use App\Models\Document;
 use App\Models\Feedback;
 use App\Models\ProblemReport;
@@ -28,6 +31,18 @@ class NavBadgeController extends Controller
             'notifications' => $user->appNotifications()->unread()->count(),
             'messages' => AdminMessageRecipient::where('user_id', $user->id)->whereNull('read_at')->whereNull('deleted_at')->count(),
         ];
+
+        if ($user->role === 'etudiant') {
+            // Lectures recommandées par ses enseignants qu'il n'a pas encore ouvertes.
+            $documentIds = CourseList::recommendedFor($user)->flatMap(fn ($l) => $l->items->pluck('document_id'))->unique();
+            if ($documentIds->isNotEmpty()) {
+                $opened = ReadingProgress::where('user_id', $user->id)->whereIn('document_id', $documentIds)->pluck('document_id')
+                    ->merge(Consultation::where('user_id', $user->id)->whereIn('document_id', $documentIds)->pluck('document_id'));
+                $badges['recommended'] = $documentIds->diff($opened)->count();
+            } else {
+                $badges['recommended'] = 0;
+            }
+        }
 
         if (!$staff) {
             return response()->json($badges);

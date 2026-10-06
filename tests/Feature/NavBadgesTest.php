@@ -19,7 +19,7 @@ test('un lecteur ne reçoit que ses notifications et messages non lus', function
 
     $this->getJson('/api/nav-badges')
         ->assertOk()
-        ->assertExactJson(['notifications' => 2, 'messages' => 0]);
+        ->assertExactJson(['notifications' => 2, 'messages' => 0, 'recommended' => 0]);
 });
 
 test('l’administrateur voit les éléments à traiter', function () {

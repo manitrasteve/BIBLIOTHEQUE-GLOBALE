@@ -78,6 +78,29 @@ test('une bibliographie n’atteint que les étudiants de la classe visée', fun
     }
 });
 
+test('avec deux enseignants, l’étudiant sait qui envoie chaque lecture', function () {
+    $haja = teacher();
+    $rasoa = User::factory()->create(['role' => 'enseignant', 'is_active' => true, 'name' => 'Pr. Rasoa', 'teaching_specialty' => 'Chimie']);
+    TeacherClass::create(['user_id' => $rasoa->id, 'school' => 'ISSTM', 'level' => 'L1']);
+    $etudiant = student();
+    $analyse = Document::factory()->create(['status' => 'publie', 'title' => 'Analyse I']);
+    $chimie = Document::factory()->create(['status' => 'publie', 'title' => 'Chimie générale']);
+
+    CourseList::create(['teacher_id' => $haja->id, 'title' => 'Analyse', 'school' => 'ISSTM', 'level' => 'L1'])->items()->create(['document_id' => $analyse->id]);
+    CourseList::create(['teacher_id' => $rasoa->id, 'title' => 'Chimie', 'school' => 'ISSTM', 'level' => 'L1'])->items()->create(['document_id' => $chimie->id]);
+    Consultation::create(['user_id' => $etudiant->id, 'document_id' => $analyse->id]);
+    Sanctum::actingAs($etudiant);
+
+    $lists = collect($this->getJson('/api/my-course-lists')->assertOk()->json());
+    expect($lists->mapWithKeys(fn ($l) => [$l['items'][0]['document']['title'] => $l['teacher']['name']])->all())
+        ->toEqual(['Chimie générale' => 'Pr. Rasoa', 'Analyse I' => 'Dr. Haja'])
+        ->and($lists->firstWhere('title', 'Chimie')['teacher']['teaching_specialty'])->toBe('Chimie')
+        ->and($lists->first()['items'][0]['added_at'])->not->toBeNull();
+
+    // Badge du menu : une seule lecture pas encore ouverte (Chimie générale).
+    $this->getJson('/api/nav-badges')->assertJsonPath('recommended', 1);
+});
+
 test('un enseignant ne peut viser qu’une classe qui lui est attribuée', function () {
     Sanctum::actingAs(teacher([['ISSTM', 'L1']]));
 

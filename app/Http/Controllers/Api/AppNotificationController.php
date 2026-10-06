@@ -25,7 +25,7 @@ class AppNotificationController extends Controller
          } elseif (in_array($notification->type, ['classe_acceptee', 'classe_refusee'], true)) {
              $notification->related_url = '/mes-classes';
          } elseif ($notification->type === 'lecture_recommandee') {
-             $notification->related_url = '/tableau-de-bord';
+             $notification->related_url = '/lectures-recommandees';
          } elseif (in_array($notification->type, ['depot_publie', 'depot_refuse'], true)) {
              $notification->related_url = '/mes-depots';
          } elseif (in_array($notification->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)) {

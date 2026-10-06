@@ -32,6 +32,8 @@ const ITEM = {
     feedback: { to: "/avis-suggestions", label: "Avis & Suggestions", icon: MessageSquare },
     report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
     // Enseignant
+    // Étudiant : lectures envoyées par ses enseignants (badge : pas encore ouvertes).
+    recommended: { to: "/lectures-recommandees", label: "Lectures recommandées", icon: BookOpenCheck, badge: "recommended" },
     classes: { to: "/mes-classes", label: "Mes classes", icon: School },
     courses: { to: "/mes-cours", label: "Mes cours", icon: BookOpenCheck },
     submissions: { to: "/mes-depots", label: "Mes dépôts", icon: UploadCloud },
@@ -45,7 +47,7 @@ const COMMON_END = ["notifications", "messages", "feedback", "report"];
 
 // Ordre des modules par rôle. Les autres rôles gardent la navigation de base.
 const NAV_BY_ROLE = {
-    etudiant: ["dashboard", "catalogue", ...LIBRARY, ...COMMON_END],
+    etudiant: ["dashboard", "catalogue", "recommended", ...LIBRARY, ...COMMON_END],
     // Enseignant : ses outils de cours juste après le catalogue.
     enseignant: ["dashboard", "catalogue", "classes", "courses", "submissions", "questions", ...LIBRARY, ...COMMON_END],
     // Chercheur : ses outils de recherche juste après le catalogue.

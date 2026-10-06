@@ -197,16 +197,7 @@ class CourseListController extends Controller
     public function forStudent(Request $request)
     {
         $student = $request->user();
-        if ($student->role !== 'etudiant' || !$student->school || !$student->niveau_detail) {
-            return response()->json([]);
-        }
-
-        $lists = CourseList::forClassOf($student)
-            ->with(['teacher:id,name', 'items.document:id,title,slug,type,cover_path,status'])
-            ->latest()
-            ->get()
-            ->filter(fn (CourseList $l) => $l->targets($student))
-            ->values();
+        $lists = CourseList::recommendedFor($student);
 
         $documentIds = $lists->flatMap(fn ($l) => $l->items->pluck('document_id'))->unique()->all();
         $progress = ReadingProgress::where('user_id', $student->id)->whereIn('document_id', $documentIds)->get()->keyBy('document_id');
@@ -216,16 +207,25 @@ class CourseListController extends Controller
             'id' => $l->id,
             'title' => $l->title,
             'description' => $l->description,
-            'teacher' => $l->teacher?->name,
+            // Enseignant qui envoie les lectures : l'étudiant sait toujours de qui elles viennent.
+            'teacher' => $l->teacher ? [
+                'id' => $l->teacher->id,
+                'name' => $l->teacher->name,
+                'photo_url' => $l->teacher->photo_url,
+                'position' => $l->teacher->position,
+                'teaching_specialty' => $l->teacher->teaching_specialty,
+                'faculty' => $l->teacher->faculty,
+                'department' => $l->teacher->department,
+            ] : null,
             'school' => $l->school,
             'level' => $l->level,
             'filiere' => $l->filiere,
             'items' => $l->items
-                ->filter(fn ($i) => $i->document && $i->document->status === 'publie')
                 ->map(fn (CourseListItem $i) => [
                     'id' => $i->id,
                     'instruction' => $i->instruction,
                     'due_date' => $i->due_date?->format('Y-m-d'),
+                    'added_at' => $i->created_at?->toIso8601String(),
                     'document' => [
                         'title' => $i->document->title,
                         'slug' => $i->document->slug,

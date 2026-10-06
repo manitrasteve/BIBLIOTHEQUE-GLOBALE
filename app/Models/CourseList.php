@@ -58,6 +58,28 @@ class CourseList extends Model
         return $query->where('school', $student->school)->where('level', $student->niveau_detail);
     }
 
+    /**
+     * Bibliographies reçues par un étudiant (classe et parcours de son profil), avec leur enseignant
+     * et uniquement les lectures encore publiées dans le catalogue.
+     */
+    public static function recommendedFor(User $student): \Illuminate\Support\Collection
+    {
+        if ($student->role !== 'etudiant' || !$student->school || !$student->niveau_detail) {
+            return collect();
+        }
+
+        return static::forClassOf($student)
+            ->with([
+                'teacher:id,name,photo_path,position,teaching_specialty,faculty,department',
+                'items.document:id,title,slug,type,cover_path,status',
+            ])
+            ->latest()
+            ->get()
+            ->filter(fn (CourseList $l) => $l->targets($student))
+            ->each(fn (CourseList $l) => $l->setRelation('items', $l->items->filter(fn ($i) => $i->document?->status === 'publie')->values()))
+            ->values();
+    }
+
     public function targets(User $student): bool
     {
         return $student->role === 'etudiant'

@@ -56,10 +56,10 @@ function DocumentPicker({ value, onChange }) {
     const q = useDebouncedValue(query.trim(), 350);
     const [results, setResults] = useState([]);
 
+    // Sans recherche : les documents publiés les plus récents, pour choisir sans rien taper.
     useEffect(() => {
-        if (q.length < 2) return setResults([]);
         let active = true;
-        api.searchDocuments({ q }).then((r) => active && setResults(r.data || [])).catch(() => active && setResults([]));
+        api.searchDocuments(q ? { q } : {}).then((r) => active && setResults(r.data || [])).catch(() => active && setResults([]));
         return () => { active = false; };
     }, [q]);
 

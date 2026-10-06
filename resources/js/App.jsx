@@ -66,6 +66,7 @@ const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTrashPage = lazy(() => import("./pages/admin/AdminTrashPage"));
 const TeacherClassesPage = lazy(() => import("./pages/librarian/TeacherClassesPage"));
 // Espace enseignant
+const RecommendedReadingsPage = lazy(() => import("./pages/RecommendedReadingsPage"));
 const MyClassesPage = lazy(() => import("./pages/teacher/MyClassesPage"));
 const MyCoursesPage = lazy(() => import("./pages/teacher/MyCoursesPage"));
 const CourseListPage = lazy(() => import("./pages/teacher/CourseListPage"));
@@ -193,6 +194,10 @@ export default function App() {
                                 <Route
                                     path="/veille-scientifique"
                                     element={<RoleRoute roles={["chercheur"]}><ScientificWatchPage /></RoleRoute>}
+                                />
+                                <Route
+                                    path="/lectures-recommandees"
+                                    element={<RoleRoute roles={["etudiant"]}><RecommendedReadingsPage /></RoleRoute>}
                                 />
                                 <Route
                                     path="/mes-classes"

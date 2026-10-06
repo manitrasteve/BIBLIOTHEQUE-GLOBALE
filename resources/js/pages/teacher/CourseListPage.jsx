@@ -18,21 +18,35 @@ const TABS = [
 const formatDate = (value) => (value ? new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "");
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Recherche dans le catalogue publié pour ajouter un document à la bibliographie.
+// Catalogue publié, affiché d'emblée (les plus récents) et filtré par la recherche, pour ajouter un document.
 function AddDocument({ list, onAdded }) {
     const toast = useToast();
     const [query, setQuery] = useState("");
     const q = useDebouncedValue(query.trim(), 350);
-    const [results, setResults] = useState([]);
+    const [results, setResults] = useState(null);
+    const [meta, setMeta] = useState(null);
+    const [loadError, setLoadError] = useState(false);
     const [busy, setBusy] = useState(null);
     const inList = new Set(list.items.map((i) => i.document?.slug));
 
+    function fetchPage(page) {
+        return api.searchDocuments({ ...(q ? { q } : {}), page });
+    }
+
     useEffect(() => {
-        if (q.length < 2) return setResults([]);
         let active = true;
-        api.searchDocuments({ q }).then((r) => active && setResults(r.data || [])).catch(() => active && setResults([]));
+        setLoadError(false);
+        fetchPage(1)
+            .then((r) => active && (setResults(r.data || []), setMeta(r)))
+            .catch(() => active && (setResults([]), setLoadError(true)));
         return () => { active = false; };
     }, [q]);
+
+    async function more() {
+        const r = await fetchPage(meta.current_page + 1);
+        setResults((current) => [...current, ...(r.data || [])]);
+        setMeta(r);
+    }
 
     async function add(doc) {
         setBusy(doc.slug);
@@ -56,13 +70,19 @@ function AddDocument({ list, onAdded }) {
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Titre, auteur, mot-clé…"
+                    placeholder="Filtrer par titre, auteur, mot-clé…"
                     className="w-full rounded-xl border border-slate-200 bg-surface py-2.5 pl-9 pr-3 text-sm"
                 />
             </div>
-            {results.length > 0 && (
-                <ul className="mt-2 divide-y divide-line rounded-xl border border-line bg-surface">
-                    {results.slice(0, 8).map((doc) => (
+            {results === null && <p className="mt-2 text-xs text-slate-500">Chargement du catalogue…</p>}
+            {meta && results?.length > 0 && (
+                <p className="mt-2 text-xs text-slate-500">
+                    {q ? `${meta.total} document${meta.total > 1 ? "s" : ""} trouvé${meta.total > 1 ? "s" : ""}` : `${meta.total} document${meta.total > 1 ? "s" : ""} publié${meta.total > 1 ? "s" : ""} dans le catalogue, du plus récent au plus ancien`}
+                </p>
+            )}
+            {results?.length > 0 && (
+                <ul className="mt-2 max-h-96 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-surface">
+                    {results.map((doc) => (
                         <li key={doc.slug} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                             <span className="min-w-0">
                                 <span className="block truncate font-semibold">{doc.title}</span>
@@ -79,7 +99,17 @@ function AddDocument({ list, onAdded }) {
                     ))}
                 </ul>
             )}
-            {q.length >= 2 && results.length === 0 && <p className="mt-2 text-xs text-slate-500">Aucun document publié ne correspond.</p>}
+            {meta && meta.current_page < meta.last_page && (
+                <button type="button" onClick={() => more().catch(() => toast("Chargement impossible."))} className="btn-secondary mt-2 w-full justify-center">
+                    Afficher plus de documents
+                </button>
+            )}
+            {loadError && <p className="mt-2 text-xs text-rose-700">Impossible de charger le catalogue. Réessayez avec le bouton Actualiser.</p>}
+            {!loadError && results?.length === 0 && (
+                <p className="mt-2 text-xs text-slate-500">
+                    {q ? "Aucun document publié ne correspond à cette recherche." : "Aucun document publié dans le catalogue pour le moment."}
+                </p>
+            )}
         </div>
     );
 }
