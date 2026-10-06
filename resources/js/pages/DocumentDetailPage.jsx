@@ -531,6 +531,16 @@ export default function DocumentDetailPage() {
                                 {/* Citation réservée aux utilisateurs connectés (masquée aux visiteurs). */}
                                 {user && <CitationDialog doc={doc} />}
 
+                                {/* Enseignant : questions de révision générées par l'IA à partir de ce document. */}
+                                {user?.role === "enseignant" && canRead && (
+                                    <Link
+                                        to={`/questions-revision?document=${encodeURIComponent(doc.slug)}&titre=${encodeURIComponent(doc.title)}`}
+                                        className="btn-secondary w-full justify-center"
+                                    >
+                                        <Sparkles className="h-4 w-4" /> Questions de révision
+                                    </Link>
+                                )}
+
                                 {user && !canRead && (
                                     <p className="rounded-lg border border-line bg-paper-dim px-3 py-2 text-xs text-ink-soft">
                                         {doc.access_level === "restreint"

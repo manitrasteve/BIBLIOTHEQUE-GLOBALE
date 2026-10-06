@@ -20,7 +20,15 @@ class AppNotificationController extends Controller
 
          $type = ltrim((string) $notification->related_type, '\\');
 
-         if (in_array($notification->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)) {
+         if ($notification->type === 'classe_demandee') {
+             $notification->related_url = $request->user()->isAdmin() ? '/administrateur/enseignants' : '/bibliothecaire/enseignants';
+         } elseif (in_array($notification->type, ['classe_acceptee', 'classe_refusee'], true)) {
+             $notification->related_url = '/mes-classes';
+         } elseif ($notification->type === 'lecture_recommandee') {
+             $notification->related_url = '/tableau-de-bord';
+         } elseif (in_array($notification->type, ['depot_publie', 'depot_refuse'], true)) {
+             $notification->related_url = '/mes-depots';
+         } elseif (in_array($notification->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)) {
              // Personnel : le document peut être brouillon, archivé ou en Corbeille (page publique indisponible).
              $notification->related_url = $this->staffDocumentUrl($request->user(), $notification->related_id);
          } elseif ($type === 'document' || $type === Document::class) {

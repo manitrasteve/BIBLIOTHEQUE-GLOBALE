@@ -228,6 +228,18 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class);
     }
 
+    /** Enseignant : classes (établissement + niveau) attribuées par le Service Numérique. */
+    public function teacherClasses(): HasMany
+    {
+        return $this->hasMany(TeacherClass::class)->orderBy('school')->orderBy('level');
+    }
+
+    public function teachesClass(string $school, string $level): bool
+    {
+        return $this->role === 'enseignant'
+            && $this->teacherClasses()->where('school', $school)->where('level', $level)->exists();
+    }
+
     public function isAdmin(): bool
     {
         return in_array($this->role, ['administrateur', 'admin'], true);

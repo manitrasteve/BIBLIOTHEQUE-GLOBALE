@@ -28,6 +28,13 @@ const TYPE_ICONS = {
     compte_a_valider: UserPlus,
     compte_expire: Clock3,
     permissions_mises_a_jour: CheckCircle2,
+    // Espace enseignant
+    lecture_recommandee: BookOpen,
+    depot_publie: CheckCircle2,
+    depot_refuse: Pencil,
+    classe_demandee: UserPlus,
+    classe_acceptee: CheckCircle2,
+    classe_refusee: Clock3,
 };
 
 function timeAgo(dateStr) {

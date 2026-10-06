@@ -11,6 +11,10 @@ import {
     Activity,
     Microscope,
     Radar,
+    BookOpenCheck,
+    UploadCloud,
+    Sparkles,
+    School,
 } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
 import { useAuth } from "../context/AuthContext";
@@ -27,6 +31,11 @@ const ITEM = {
     messages: { to: "/messages", label: "Messages", icon: Mail, badge: "messages" },
     feedback: { to: "/avis-suggestions", label: "Avis & Suggestions", icon: MessageSquare },
     report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
+    // Enseignant
+    classes: { to: "/mes-classes", label: "Mes classes", icon: School },
+    courses: { to: "/mes-cours", label: "Mes cours", icon: BookOpenCheck },
+    submissions: { to: "/mes-depots", label: "Mes dépôts", icon: UploadCloud },
+    questions: { to: "/questions-revision", label: "Questions de révision", icon: Sparkles },
 };
 
 // Ordre logique : accueil → découvrir → ma bibliothèque (lectures, favoris, activités) → communication →
@@ -37,7 +46,8 @@ const COMMON_END = ["notifications", "messages", "feedback", "report"];
 // Ordre des modules par rôle. Les autres rôles gardent la navigation de base.
 const NAV_BY_ROLE = {
     etudiant: ["dashboard", "catalogue", ...LIBRARY, ...COMMON_END],
-    enseignant: ["dashboard", "catalogue", ...LIBRARY, ...COMMON_END],
+    // Enseignant : ses outils de cours juste après le catalogue.
+    enseignant: ["dashboard", "catalogue", "classes", "courses", "submissions", "questions", ...LIBRARY, ...COMMON_END],
     // Chercheur : ses outils de recherche juste après le catalogue.
     chercheur: ["dashboard", "catalogue", "researchSpace", "watch", ...LIBRARY, ...COMMON_END],
     // Administrateur / Service Numérique consultant « Mon profil » (espace membre) :

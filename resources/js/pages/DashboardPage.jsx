@@ -9,6 +9,7 @@ import {
     LayoutDashboard,
 } from "lucide-react";
 import { api } from "../lib/api";
+import RecommendedReadings from "../components/RecommendedReadings";
 import { usePageRefresh } from "../context/RefreshContext";
 import { useAuth } from "../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../components/StatCard";
@@ -72,6 +73,8 @@ export default function DashboardPage() {
                     {error}
                 </p>
             )}
+
+            {user?.role === "etudiant" && <RecommendedReadings />}
 
             {!data && !error && (
                 <div

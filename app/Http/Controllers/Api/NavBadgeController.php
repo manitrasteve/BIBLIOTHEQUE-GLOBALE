@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\Feedback;
 use App\Models\ProblemReport;
 use App\Models\StaffMessage;
+use App\Models\TeacherClassRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -45,6 +46,10 @@ class NavBadgeController extends Controller
             ->count();
 
         $badges['drafts'] = $user->restrictToManagedLibrary(Document::where('status', 'brouillon'))->count();
+        // Demandes de classe des enseignants à valider.
+        $badges['class_requests'] = TeacherClassRequest::where('status', 'en_attente')->count();
+        // Dépôts d'enseignants à vérifier (publier, programmer ou refuser).
+        $badges['submissions'] = $user->restrictToManagedLibrary(Document::where('status', 'soumis'))->count();
 
         if ($user->hasPermission('voir_avis_utilisateurs')) {
             $badges['feedbacks'] = Feedback::where('status', 'nouveau')->count();

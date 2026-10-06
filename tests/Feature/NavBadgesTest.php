@@ -47,6 +47,8 @@ test('l’administrateur voit les éléments à traiter', function () {
             'feedbacks' => 1,
             'reports' => 1,
             'drafts' => 3,
+            'submissions' => 0,
+            'class_requests' => 0,
             'trash' => 1,
             'staff_messages' => 0,
         ]);

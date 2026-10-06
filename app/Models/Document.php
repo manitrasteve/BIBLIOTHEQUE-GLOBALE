@@ -18,6 +18,7 @@ class Document extends Model
         'category_id', 'library_id', 'year', 'publisher', 'isbn',
         'language', 'edition', 'keywords', 'cover_path', 'file_path',
         'access_level', 'status', 'created_by', 'published_at', 'scheduled_at', 'scheduled_by',
+        'review_note', 'submission_course_list_id',
     ];
 
     protected $casts = [

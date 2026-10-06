@@ -35,6 +35,12 @@ const ACTION_CONFIG = {
     reactivation_compte: { label: "Compte réactivé", icon: UserCheck },
     suppression_utilisateur: { label: "Compte supprimé", icon: UserX },
     permissions_modifiees: { label: "Permissions modifiées", icon: UserCheck },
+    depot_document: { label: "Support de cours déposé", icon: Upload },
+    demande_classe_enseignant: { label: "Classe demandée", icon: UserPlus },
+    refus_demande_classe: { label: "Demande de classe refusée", icon: UserX },
+    questions_revision: { label: "Questions de révision générées", icon: Sparkles },
+    refus_depot_document: { label: "Dépôt d’enseignant refusé", icon: UserX },
+    classes_enseignant_modifiees: { label: "Classes d’un enseignant modifiées", icon: UserCheck },
     creation_bibliothecaire: { label: "Bibliothécaire créé", icon: UserPlus },
     // Actions de gestion (audit)
     creation_document: { label: "Document ajouté", icon: Upload },

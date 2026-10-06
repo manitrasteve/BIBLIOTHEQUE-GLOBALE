@@ -40,14 +40,7 @@ class DocumentController extends Controller
     // Catégorie saisie librement : retrouve la catégorie existante (nom sans casse, ou même slug) ou la crée.
     private function resolveCategoryId(string $name): int
     {
-        $name = trim(preg_replace('/\s+/u', ' ', $name));
-
-        $category = Category::query()
-            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-            ->orWhere('slug', Str::slug($name))
-            ->first();
-
-        return ($category ?? Category::create(['name' => $name]))->id;
+        return Category::resolveId($name);
     }
 
     // Recherche publique : titre, auteur, catégorie, année, bibliothèque, mot-clé.
@@ -350,6 +343,8 @@ class DocumentController extends Controller
         return [
             'all' => (int) $byStatus->sum(),
             'brouillon' => (int) ($byStatus['brouillon'] ?? 0),
+            'soumis' => (int) ($byStatus['soumis'] ?? 0),
+            'refuse' => (int) ($byStatus['refuse'] ?? 0),
             'programme' => (int) ($byStatus['programme'] ?? 0),
             'publie' => (int) ($byStatus['publie'] ?? 0),
             'archive' => (int) ($byStatus['archive'] ?? 0),

@@ -6,6 +6,8 @@ import { useRefresh } from "../context/RefreshContext";
 // Couleur du badge selon la rubrique : rouge = action requise, ambre = nouveauté à lire, gris = simple total.
 const TONES = {
     account_requests: "urgent",
+    submissions: "urgent",
+    class_requests: "urgent",
     reports: "urgent",
     feedbacks: "new",
     messages: "new",
@@ -23,6 +25,8 @@ const TONE_CLASSES = {
 
 const LABELS = {
     account_requests: "à traiter",
+    submissions: "dépôts à vérifier",
+    class_requests: "demandes de classe",
     reports: "nouveaux",
     feedbacks: "nouveaux",
     messages: "non lus",
@@ -65,7 +69,7 @@ export default function NavBadge({ name, count, active }) {
 
     return (
         <span
-            className={`ml-auto inline-flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold tabular-nums ${cls}`}
+            className={`inline-flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold tabular-nums ${cls}`}
             aria-label={`${count} ${LABELS[name] || ""}`.trim()}
         >
             {count > 99 ? "99+" : count}

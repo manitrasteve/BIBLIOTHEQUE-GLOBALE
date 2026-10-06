@@ -29,9 +29,9 @@ class AssistantTools
     private const LOG_LIMIT = 20;
     private const STATUSES = ['brouillon', 'programme', 'publie', 'archive'];
 
-    private const DOCUMENT_ACTIONS = ['creation_document', 'modification_document', 'publication_document', 'programmation_document', 'annulation_programmation_document', 'archivage_document', 'suppression_document', 'restauration_document', 'suppression_definitive_document'];
+    private const DOCUMENT_ACTIONS = ['creation_document', 'modification_document', 'publication_document', 'programmation_document', 'annulation_programmation_document', 'depot_document', 'refus_depot_document', 'archivage_document', 'suppression_document', 'restauration_document', 'suppression_definitive_document'];
     private const LIBRARY_ACTIONS = ['creation_bibliotheque', 'modification_bibliotheque', 'suppression_bibliotheque'];
-    private const USER_ACTIONS = ['creation_compte', 'validation_compte', 'desactivation_compte', 'reactivation_compte', 'suppression_utilisateur', 'restauration_utilisateur', 'suppression_definitive_utilisateur', 'creation_bibliothecaire'];
+    private const USER_ACTIONS = ['creation_compte', 'validation_compte', 'desactivation_compte', 'reactivation_compte', 'suppression_utilisateur', 'restauration_utilisateur', 'suppression_definitive_utilisateur', 'creation_bibliothecaire', 'classes_enseignant_modifiees'];
     private const ADMIN_ONLY_ACTIONS = ['permissions_modifiees', 'vidage_corbeille'];
 
     private const ACTION_LABELS = [
@@ -42,7 +42,7 @@ class AssistantTools
         'creation_compte' => 'Compte créé', 'validation_compte' => 'Compte validé', 'desactivation_compte' => 'Compte désactivé',
         'reactivation_compte' => 'Compte réactivé', 'suppression_utilisateur' => 'Compte supprimé', 'restauration_utilisateur' => 'Compte restauré',
         'suppression_definitive_utilisateur' => 'Compte supprimé définitivement', 'creation_bibliothecaire' => 'Bibliothécaire créé',
-        'permissions_modifiees' => 'Permissions modifiées', 'vidage_corbeille' => 'Corbeille vidée',
+        'permissions_modifiees' => 'Permissions modifiées', 'depot_document' => 'Support de cours déposé par un enseignant', 'refus_depot_document' => 'Dépôt d’enseignant refusé', 'classes_enseignant_modifiees' => 'Classes d’un enseignant modifiées', 'vidage_corbeille' => 'Corbeille vidée',
     ];
 
     // Anciens codes de type (avant la saisie libre) → libellés.

@@ -76,6 +76,7 @@ const FIELD_LABELS = {
     authors: "Auteur(s)",
     status: "Statut",
     publication_prevue: "Publication prévue",
+    classes: "Classes",
     fichier: "Fichier PDF",
     couverture: "Couverture",
     name: "Nom",
@@ -89,7 +90,7 @@ const FIELD_LABELS = {
     utilisateurs: "Comptes",
     documents: "Documents",
 };
-const VALUE_LABELS = { brouillon: "Brouillon", programme: "Programmé", publie: "Publié", archive: "Archivé" };
+const VALUE_LABELS = { brouillon: "Brouillon", soumis: "À vérifier", refuse: "Refusé", programme: "Programmé", publie: "Publié", archive: "Archivé" };
 
 function formatChange(value) {
     if (value === null || value === undefined || value === "") return "—";
@@ -169,6 +170,12 @@ const ACTION_CONFIG = {
         label: "Programmation annulée",
         icon: Upload,
     },
+    depot_document: { label: "Support de cours déposé", icon: Upload },
+    demande_classe_enseignant: { label: "Classe demandée par un enseignant", icon: UserPlus },
+    refus_demande_classe: { label: "Demande de classe refusée", icon: UserCheck },
+    refus_depot_document: { label: "Dépôt d’enseignant refusé", icon: Trash2 },
+    classes_enseignant_modifiees: { label: "Classes d’un enseignant modifiées", icon: UserCheck },
+    questions_revision: { label: "Questions de révision générées", icon: Upload },
     permissions_modifiees: {
         label: "Permissions modifiées",
         icon: UserCheck,

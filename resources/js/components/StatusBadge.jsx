@@ -1,4 +1,4 @@
-import { Clock3, CheckCircle2, XCircle, AlertTriangle, FileEdit, Archive, Send, CalendarClock } from 'lucide-react';
+import { Clock3, CheckCircle2, XCircle, AlertTriangle, FileEdit, Archive, Send, CalendarClock, GraduationCap } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 // Registre central des statuts utilisés dans l'app, avec icône + couleur
@@ -13,6 +13,8 @@ const REGISTRY = {
   en_retard: { label: 'En retard', icon: AlertTriangle, cls: 'bg-red-100 text-red-700' },
   retourne: { label: 'Retourné', icon: CheckCircle2, cls: 'bg-blue-100 text-blue-700' },
   brouillon: { label: 'Brouillon', icon: FileEdit, cls: 'bg-slate-100 text-ink-soft' },
+  soumis: { label: 'À vérifier', icon: GraduationCap, cls: 'bg-amber-100 text-amber-700' },
+  refuse: { label: 'Refusé', icon: XCircle, cls: 'bg-red-100 text-red-700' },
   programme: { label: 'Programmé', icon: CalendarClock, cls: 'bg-amber-100 text-amber-700' },
   publie: { label: 'Publié', icon: CheckCircle2, cls: 'bg-green-100 text-green-700' },
   archive: { label: 'Archivé', icon: Archive, cls: 'bg-slate-100 text-ink-soft' },

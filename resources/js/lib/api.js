@@ -103,6 +103,52 @@ export const api = {
         return request(`/documents?${query}`);
     },
 
+    // ---------------------------------------------------------
+    // Espace enseignant
+    // ---------------------------------------------------------
+
+    // Bibliographies de cours (adressées à une classe attribuée : établissement + niveau, parcours facultatif).
+    getCourseLists: () => request("/course-lists"),
+    getCourseList: (id) => request(`/course-lists/${id}`),
+    createCourseList: (data) => request("/course-lists", { method: "POST", body: data }),
+    updateCourseList: (id, data) => request(`/course-lists/${id}`, { method: "PUT", body: data }),
+    deleteCourseList: (id) => request(`/course-lists/${id}`, { method: "DELETE" }),
+    previewCourseListAudience: (data) => request("/course-lists/audience", { method: "POST", body: data }),
+    addCourseListItem: (id, data) => request(`/course-lists/${id}/items`, { method: "POST", body: data }),
+    updateCourseListItem: (id, itemId, data) => request(`/course-lists/${id}/items/${itemId}`, { method: "PUT", body: data }),
+    removeCourseListItem: (id, itemId) => request(`/course-lists/${id}/items/${itemId}`, { method: "DELETE" }),
+    getCourseListProgress: (id) => request(`/course-lists/${id}/progress`),
+    remindCourseListItem: (id, itemId) => request(`/course-lists/${id}/items/${itemId}/remind`, { method: "POST" }),
+
+    // Étudiant : lectures recommandées par les enseignants de sa classe.
+    getMyCourseLists: () => request("/my-course-lists"),
+
+    // Dépôts de supports de cours (FormData : PDF).
+    getTeacherSubmissions: () => request("/teacher-submissions"),
+    createTeacherSubmission: (formData) => request("/teacher-submissions", { method: "POST", body: formData }),
+    resubmitTeacherSubmission: (id, formData) => request(`/teacher-submissions/${id}/resubmit`, { method: "POST", body: formData }),
+
+    // Questions de révision générées par l'IA à partir des pages d'un document.
+    generateRevisionQuestions: (slug, data) => request(`/documents/${slug}/revision-questions`, { method: "POST", body: data }),
+
+    // Enseignant : mes classes attribuées et mes demandes de classe.
+    getMyClassRequests: () => request("/teacher-class-requests/mine"),
+    createClassRequest: (data) => request("/teacher-class-requests", { method: "POST", body: data }),
+    cancelClassRequest: (id) => request(`/teacher-class-requests/${id}`, { method: "DELETE" }),
+
+    // Service Numérique : demandes de classe en attente, validation ou refus (motif).
+    getPendingClassRequests: () => request("/teacher-class-requests"),
+    approveClassRequest: (id) => request(`/teacher-class-requests/${id}/approve`, { method: "POST" }),
+    rejectClassRequest: (id, reason) => request(`/teacher-class-requests/${id}/reject`, { method: "POST", body: { reason } }),
+
+    // Service Numérique : classes des enseignants et refus d'un dépôt.
+    getTeachers: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return request(`/teachers${query ? `?${query}` : ""}`);
+    },
+    updateTeacherClasses: (id, classes) => request(`/teachers/${id}/classes`, { method: "PUT", body: { classes } }),
+    rejectDocument: (id, reason) => request(`/documents/${id}/reject`, { method: "POST", body: { reason } }),
+
     // Profil lecteur : chiffres de lecture et catégories préférées.
     getReadingStats: () => request("/profile/reading-stats"),
 

@@ -241,6 +241,11 @@ public function batchEmbed(array $texts): array
             ],
         ];
 
+        // Réponse structurée (ex. questions de révision) : JSON valide garanti par l'API.
+        if (!empty($options['json'])) {
+            $payload['generationConfig']['responseMimeType'] = 'application/json';
+        }
+
         if (!empty($options['system'])) {
             $payload['systemInstruction'] = [
                 'parts' => [['text' => $this->sanitizeUtf8($options['system'])]],

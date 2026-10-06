@@ -81,7 +81,12 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
                             <>
                                 <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                 {item.label}
-                                <NavBadge name={item.badge} count={badges[item.badge]} active={isActive} />
+                                {/* `badge` : une rubrique, ou plusieurs (ex. dépôts à vérifier + brouillons). */}
+                                <span className="ml-auto flex shrink-0 gap-1">
+                                    {[].concat(item.badge || []).map((name) => (
+                                        <NavBadge key={name} name={name} count={badges[name]} active={isActive} />
+                                    ))}
+                                </span>
                             </>
                         )}
                     </NavLink>

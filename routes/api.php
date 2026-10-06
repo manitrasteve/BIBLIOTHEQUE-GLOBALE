@@ -8,6 +8,11 @@ use App\Http\Controllers\Api\AppNotificationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuthorController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CourseListController;
+use App\Http\Controllers\Api\RevisionQuestionController;
+use App\Http\Controllers\Api\TeacherClassController;
+use App\Http\Controllers\Api\TeacherClassRequestController;
+use App\Http\Controllers\Api\TeacherSubmissionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DocumentImportController;
@@ -120,6 +125,35 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/watch-topics/{topic}/documents', [ResearchController::class, 'topicDocuments']);
         Route::post('/watch-topics/{topic}/seen', [ResearchController::class, 'markTopicSeen']);
     });
+    // Espace enseignant : bibliographies de cours (adressées à ses classes), suivi de lecture,
+    // dépôt de supports de cours et questions de révision générées par l'IA.
+    Route::middleware('role:enseignant')->group(function () {
+        // Mes classes et demandes de classe (validées par le Service Numérique).
+        Route::get('/teacher-class-requests/mine', [TeacherClassRequestController::class, 'mine']);
+        Route::post('/teacher-class-requests', [TeacherClassRequestController::class, 'store'])->middleware('throttle:10,1');
+        Route::delete('/teacher-class-requests/{classRequest}', [TeacherClassRequestController::class, 'destroy']);
+
+        Route::get('/course-lists', [CourseListController::class, 'index']);
+        Route::post('/course-lists', [CourseListController::class, 'store']);
+        Route::post('/course-lists/audience', [CourseListController::class, 'audiencePreview']);
+        Route::get('/course-lists/{courseList}', [CourseListController::class, 'show']);
+        Route::put('/course-lists/{courseList}', [CourseListController::class, 'update']);
+        Route::delete('/course-lists/{courseList}', [CourseListController::class, 'destroy']);
+        Route::post('/course-lists/{courseList}/items', [CourseListController::class, 'addItem']);
+        Route::put('/course-lists/{courseList}/items/{item}', [CourseListController::class, 'updateItem']);
+        Route::delete('/course-lists/{courseList}/items/{item}', [CourseListController::class, 'removeItem']);
+        Route::get('/course-lists/{courseList}/progress', [CourseListController::class, 'progress']);
+        Route::post('/course-lists/{courseList}/items/{item}/remind', [CourseListController::class, 'remind'])->middleware('throttle:10,1');
+
+        Route::get('/teacher-submissions', [TeacherSubmissionController::class, 'index']);
+        Route::post('/teacher-submissions', [TeacherSubmissionController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('/teacher-submissions/{document}/resubmit', [TeacherSubmissionController::class, 'resubmit'])->middleware('throttle:10,1');
+
+        Route::post('/documents/{slug}/revision-questions', [RevisionQuestionController::class, 'generate'])->middleware('throttle:10,1');
+    });
+    // Étudiant : lectures recommandées par les enseignants de sa classe.
+    Route::get('/my-course-lists', [CourseListController::class, 'forStudent']);
+
     Route::post('/feedbacks', [FeedbackController::class, 'store']);
     Route::post('/problem-reports', [ProblemReportController::class, 'store']);
 
@@ -159,6 +193,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
         Route::post('/account-requests/verify-all', [AccountRequestController::class, 'verifyAll']);
+        // Classes attribuées aux enseignants (public possible de leurs bibliographies de cours).
+        Route::get('/teachers', [TeacherClassController::class, 'index']);
+        Route::put('/teachers/{user}/classes', [TeacherClassController::class, 'update']);
+        Route::get('/teacher-class-requests', [TeacherClassRequestController::class, 'pending']);
+        Route::post('/teacher-class-requests/{classRequest}/approve', [TeacherClassRequestController::class, 'approve']);
+        Route::post('/teacher-class-requests/{classRequest}/reject', [TeacherClassRequestController::class, 'reject']);
+        // Refus d'un dépôt d'enseignant (avec motif) ; l'acceptation passe par Publier / Programmer.
+        Route::post('/documents/{document}/reject', [TeacherSubmissionController::class, 'reject'])->middleware('permission:publier_document');
+
         Route::post('/categories', [CategoryController::class, 'store']);
         Route::put('/categories/{category}', [CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);

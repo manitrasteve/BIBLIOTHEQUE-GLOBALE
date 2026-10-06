@@ -20,6 +20,19 @@ class Category extends Model
         });
     }
 
+    /** Catégorie saisie librement : retrouvée sans tenir compte de la casse (ou par son slug), sinon créée. */
+    public static function resolveId(string $name): int
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $name));
+
+        $category = static::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->orWhere('slug', \Illuminate\Support\Str::slug($name))
+            ->first();
+
+        return ($category ?? static::create(['name' => $name]))->id;
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);

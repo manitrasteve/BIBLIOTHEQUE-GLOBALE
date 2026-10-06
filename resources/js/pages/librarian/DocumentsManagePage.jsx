@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search, CalendarClock, CalendarX } from 'lucide-react';
+import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search, CalendarClock, CalendarX, GraduationCap, Ban } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
@@ -15,12 +15,13 @@ import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
 import ScheduleModal, { formatScheduledAt } from "../../components/ScheduleModal";
 
-const STATUS_FILTERS = ['brouillon', 'programme', 'publie', 'archive'];
-const STATUS_LABELS = { brouillon: 'Brouillon', programme: 'Programmé', publie: 'Publié', archive: 'Archivé' };
+const STATUS_FILTERS = ['soumis', 'brouillon', 'programme', 'publie', 'archive'];
+const STATUS_LABELS = { soumis: 'Dépôts enseignants', brouillon: 'Brouillon', programme: 'Programmé', publie: 'Publié', archive: 'Archivé' };
 // Icône et couleur de chaque carte de compteur ('' = Tous).
 const STATUS_CARD_STYLES = {
   '': { icon: FileText },
-  brouillon: { icon: FilePen, tone: 'warning' },
+  soumis: { icon: GraduationCap, tone: 'warning' },
+  brouillon: { icon: FilePen },
   programme: { icon: CalendarClock },
   publie: { icon: UploadCloud, tone: 'success' },
   archive: { icon: Archive },
@@ -129,6 +130,27 @@ export default function DocumentsManagePage() {
     }
   }
 
+  // Dépôt d'enseignant : refus avec un motif (l'acceptation passe par Publier ou Programmer).
+  async function reject(doc) {
+    const reason = await confirm({
+      title: `Refuser le dépôt « ${doc.title} » ?`,
+      message: "L’enseignant reçoit le motif et peut renvoyer un PDF corrigé.",
+      reasonLabel: "Motif du refus (envoyé à l’enseignant)",
+      danger: true,
+    });
+    if (!reason) return;
+    setBusySlug(doc.slug);
+    try {
+      await api.rejectDocument(doc.id, reason);
+      toast('Dépôt refusé, l’enseignant est prévenu.');
+      load();
+    } catch (e) {
+      toast(e?.data?.message || 'Refus impossible.');
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   async function reindex(doc) { setBusySlug(doc.slug); try { await api.reindexDocument(doc.id); toast('Indexation RAG relancée.'); } finally { setBusySlug(null); } }
 
   async function archive(doc) {
@@ -183,6 +205,16 @@ export default function DocumentsManagePage() {
             {doc.status === 'programme' ? 'Changer la date' : 'Programmer'}
           </button>
         )}
+        {doc.status === 'soumis' && can('publier_document') && (
+          <button
+            onClick={() => reject(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-red-700 hover:text-red-800 disabled:opacity-50"
+          >
+            <Ban className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Refuser
+          </button>
+        )}
         {doc.status === 'programme' && can('publier_document') && (
           <button
             onClick={() => unschedule(doc)}
@@ -230,7 +262,7 @@ export default function DocumentsManagePage() {
       </div>
 
       {/* Cartes de compteurs : un clic filtre la liste (« Tous » ou la carte active : tous les documents). */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" role="status" aria-live="polite">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6" role="status" aria-live="polite">
         {counts
           ? ['', ...STATUS_FILTERS].map((key) => (
               <StatCard
@@ -243,7 +275,7 @@ export default function DocumentsManagePage() {
                 onClick={() => selectStatus(key)}
               />
             ))
-          : Array.from({ length: 5 }, (_, i) => <StatCardSkeleton key={i} />)}
+          : Array.from({ length: 6 }, (_, i) => <StatCardSkeleton key={i} />)}
       </div>
 
       <div className="relative mb-6 w-full sm:max-w-[600px]">
@@ -312,6 +344,9 @@ export default function DocumentsManagePage() {
                     {doc.status === 'programme' && doc.scheduled_at && (
                       <span className="mt-1 block pl-6 text-xs font-normal text-amber-700">Publication le {formatScheduledAt(doc.scheduled_at)}</span>
                     )}
+                    {doc.status === 'refuse' && doc.review_note && (
+                      <span className="mt-1 block pl-6 text-xs font-normal text-red-700">Refusé : {doc.review_note}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{doc.category?.name}</td>
                   <td className="px-4 py-3 text-ink-soft">{doc.year}</td>
@@ -343,6 +378,9 @@ export default function DocumentsManagePage() {
               <p className="mt-1 text-xs text-ink-soft">{doc.library?.name}</p>
               {doc.status === 'programme' && doc.scheduled_at && (
                 <p className="mt-1 text-xs font-medium text-amber-700">Publication le {formatScheduledAt(doc.scheduled_at)}</p>
+              )}
+              {doc.status === 'refuse' && doc.review_note && (
+                <p className="mt-1 text-xs font-medium text-red-700">Refusé : {doc.review_note}</p>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {renderDocActions(doc)}

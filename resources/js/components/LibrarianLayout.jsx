@@ -12,6 +12,7 @@ import {
     LibraryBig,
     Mail,
     MessageCircle,
+    GraduationCap,
     UserPlus,
     Menu,
     X,
@@ -55,7 +56,7 @@ const NAV = [
         to: "/bibliothecaire/documents",
         label: "Documents",
         icon: FileText,
-        badge: "drafts",
+        badge: ["submissions", "drafts"],
     },
     {
         to: "/bibliothecaire/bibliotheques",
@@ -79,6 +80,14 @@ const NAV = [
         icon: UserPlus,
         permission: "ajouter_utilisateur",
         // L'administrateur ajoute les utilisateurs depuis Administration → Utilisateurs.
+        hideForAdmin: true,
+    },
+    // Classes attribuées aux enseignants (public de leurs bibliographies de cours).
+    {
+        to: "/bibliothecaire/enseignants",
+        label: "Enseignants et classes",
+        icon: GraduationCap,
+        badge: "class_requests",
         hideForAdmin: true,
     },
     // Suivi des usagers (lecture seule : l'administrateur les trouve dans Administration)
@@ -209,7 +218,12 @@ function LibrarianLayoutContent() {
                             <>
                                 <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                 {item.label}
-                                <NavBadge name={item.badge} count={badges[item.badge]} active={isActive} />
+                                {/* `badge` : une rubrique, ou plusieurs (ex. dépôts à vérifier + brouillons). */}
+                                <span className="ml-auto flex shrink-0 gap-1">
+                                    {[].concat(item.badge || []).map((name) => (
+                                        <NavBadge key={name} name={name} count={badges[name]} active={isActive} />
+                                    ))}
+                                </span>
                             </>
                         )}
                     </NavLink>
