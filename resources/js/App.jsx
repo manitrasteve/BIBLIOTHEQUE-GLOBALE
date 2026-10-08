@@ -13,6 +13,7 @@ import AdminLayout from "./components/AdminLayout";
 import PageLoader from "./components/PageLoader";
 import PageErrorBoundary from "./components/PageErrorBoundary";
 import UserLayout from "./components/UserLayout";
+import ScrollProgressButton from "./components/ScrollProgressButton";
 import NotFoundPage from "./pages/NotFoundPage";
 
 import HomePage from "./pages/HomePage";
@@ -404,6 +405,7 @@ export default function App() {
                         </PageBoundary>
                     </main>
                     <HomeOnlyFooter />
+                    <ScrollProgressButton />
                 </div>
                 </ConfirmProvider>
                 </ToastProvider>
