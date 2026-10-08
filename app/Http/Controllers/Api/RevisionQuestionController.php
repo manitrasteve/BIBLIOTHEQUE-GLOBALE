@@ -37,7 +37,8 @@ class RevisionQuestionController extends Controller
             'type' => ['required', 'in:' . implode(',', array_keys(self::TYPES))],
             'count' => ['required', 'integer', 'min:1', 'max:20'],
             'page_from' => ['nullable', 'integer', 'min:1'],
-            'page_to' => ['nullable', 'integer', 'gte:page_from'],
+            // « Jusqu'à la page N » seul est accepté : gte ne s'applique que si page_from est donné.
+            'page_to' => ['nullable', 'integer', 'min:1', ...($request->filled('page_from') ? ['gte:page_from'] : [])],
             'topic' => ['nullable', 'string', 'max:200'],
             'level' => ['nullable', 'string', 'max:50'],
         ]);
@@ -134,15 +135,20 @@ PROMPT;
 
             if ($type === 'qcm') {
                 $choices = array_values(array_filter(array_map(fn ($c) => trim((string) $c), (array) ($q['choices'] ?? [])), 'strlen'));
-                $answer = (int) ($q['answer'] ?? -1);
-                if (count($choices) < 2 || $answer < 0 || $answer >= count($choices)) {
+                $answer = $this->choiceIndex($q['answer'] ?? null, $choices);
+                if (count($choices) < 2 || $answer === null || $answer < 0 || $answer >= count($choices)) {
                     continue;
                 }
                 $item += ['choices' => $choices, 'answer' => $answer];
             } elseif ($type === 'vrai_faux') {
                 $answer = $q['answer'] ?? null;
                 if (is_string($answer)) {
-                    $answer = in_array(mb_strtolower($answer), ['true', 'vrai'], true);
+                    // Valeur non reconnue (« peut-être ») : question écartée plutôt que comptée « faux ».
+                    $answer = match (mb_strtolower(trim($answer))) {
+                        'true', 'vrai' => true,
+                        'false', 'faux' => false,
+                        default => null,
+                    };
                 }
                 if (!is_bool($answer)) {
                     continue;
@@ -157,6 +163,29 @@ PROMPT;
             $clean[] = $item;
         }
 
-        return $clean;
+                return $clean;
+    }
+
+    /**
+     * Bonne réponse d'un QCM : index (0, « 2 »), lettre (« C », « c) ») ou texte exact d'un choix.
+     * Une valeur non reconnue renvoie null (question écartée) au lieu de désigner le premier choix.
+     */
+    private function choiceIndex(mixed $answer, array $choices): ?int
+    {
+        if (is_int($answer)) {
+            return $answer;
+        }
+        if (!is_string($answer) || ($answer = trim($answer)) === '') {
+            return null;
+        }
+        if (ctype_digit($answer)) {
+            return (int) $answer;
+        }
+        if (preg_match('/^([a-z])\W*$/i', $answer, $m)) {
+            return ord(strtolower($m[1])) - ord('a');
+        }
+        $index = array_search(mb_strtolower($answer), array_map('mb_strtolower', $choices), true);
+
+        return $index === false ? null : $index;
     }
 }

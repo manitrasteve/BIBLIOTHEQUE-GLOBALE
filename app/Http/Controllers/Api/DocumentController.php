@@ -37,6 +37,14 @@ class DocumentController extends Controller
         return array_values(array_unique(array_filter([$value, $labels[mb_strtolower($value)] ?? null])));
     }
 
+    // Paramètre texte d'une route publique : « ?q[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
+    private function textParam(Request $request, string $key): string
+    {
+        $value = $request->query($key);
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
     // Catégorie saisie librement : retrouve la catégorie existante (nom sans casse, ou même slug) ou la crée.
     private function resolveCategoryId(string $name): int
     {
@@ -52,7 +60,7 @@ class DocumentController extends Controller
             ->withCount(['consultations','favorites','aiQueries'])
             ->where('status', 'publie');
 
-        $search = trim((string) $request->get('q'));
+        $search = trim($this->textParam($request, 'q'));
         $fullText = $search !== '' && ! in_array($request->get('by'), ['title', 'author', 'category', 'keyword'], true) && $this->supportsFullText();
 
         if ($search !== '') {
@@ -76,7 +84,7 @@ class DocumentController extends Controller
         }
 
         // Filtre optionnel par auteur (Espace recherche du chercheur).
-        if ($author = $request->get('author')) {
+        if ($author = $this->textParam($request, 'author')) {
             $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$author}%"));
         }
 
@@ -137,7 +145,7 @@ class DocumentController extends Controller
     // Suggestions de la barre de recherche (pendant la frappe) : quelques titres et auteurs publiés.
     public function suggestions(Request $request)
     {
-        $search = trim((string) $request->query('q'));
+        $search = trim($this->textParam($request, 'q'));
         if (mb_strlen($search) < 2) {
             return response()->json(['documents' => [], 'authors' => []]);
         }

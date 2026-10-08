@@ -29,15 +29,14 @@ class ReadingController extends Controller
             'total_pages' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
 
-        $progress = ReadingProgress::updateOrCreate(
-            ['user_id' => $request->user()->id, 'document_id' => $document->id],
-            [
-                'last_page' => min($data['page'], $data['total_pages'] ?? $data['page']),
-                'total_pages' => $data['total_pages'] ?? null,
-            ],
-        );
+        $progress = ReadingProgress::firstOrNew(['user_id' => $request->user()->id, 'document_id' => $document->id]);
+        $progress->fill([
+            'last_page' => min($data['page'], $data['total_pages'] ?? $data['page']),
+            'total_pages' => $data['total_pages'] ?? $progress->total_pages,
+        ]);
+        $progress->save(); // completed_at : voir ReadingProgress::booted()
 
-        return response()->json($progress->only(['last_page', 'total_pages', 'updated_at']));
+        return response()->json($progress->only(['last_page', 'total_pages', 'completed_at', 'updated_at']));
     }
 
     public function notes(Request $request, string $slug)

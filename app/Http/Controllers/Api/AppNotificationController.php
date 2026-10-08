@@ -20,7 +20,11 @@ class AppNotificationController extends Controller
 
          $type = ltrim((string) $notification->related_type, '\\');
 
-         if ($notification->type === 'classe_demandee') {
+         if (in_array($notification->type, ['reponse_avis', 'reponse_signalement'], true)) {
+             // Réponse de l'administrateur à l'auteur : tout est dans le message ; aucun lien vers
+             // les pages de gestion (/administrateur/avis…), interdites à un lecteur.
+             $notification->related_url = null;
+         } elseif ($notification->type === 'classe_demandee') {
              $notification->related_url = $request->user()->isAdmin() ? '/administrateur/enseignants' : '/bibliothecaire/enseignants';
          } elseif (in_array($notification->type, ['classe_acceptee', 'classe_refusee'], true)) {
              $notification->related_url = '/mes-classes';

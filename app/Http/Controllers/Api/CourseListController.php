@@ -272,8 +272,7 @@ class CourseListController extends Controller
     /** [lus en entier, commencés] parmi les étudiants donnés ; « commencé » inclut une simple ouverture. */
     private function readingCounts(int $documentId, array $studentIds): array
     {
-        $rows = ReadingProgress::where('document_id', $documentId)->whereIn('user_id', $studentIds)->get(['user_id', 'last_page', 'total_pages']);
-        $done = $rows->filter(fn ($p) => $p->total_pages && $p->last_page >= $p->total_pages)->pluck('user_id');
+        $done = ReadingProgress::where('document_id', $documentId)->whereIn('user_id', $studentIds)->whereNotNull('completed_at')->pluck('user_id');
         $opened = collect($this->openedBy($documentId, $studentIds));
 
         return [$done->count(), $opened->diff($done)->count()];
@@ -289,7 +288,7 @@ class CourseListController extends Controller
 
     private function studentStatus(?ReadingProgress $progress, bool $consulted): string
     {
-        if ($progress && $progress->total_pages && $progress->last_page >= $progress->total_pages) {
+        if ($progress?->isCompleted()) {
             return 'lu';
         }
 
