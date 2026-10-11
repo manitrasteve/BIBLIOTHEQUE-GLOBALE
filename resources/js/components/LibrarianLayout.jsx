@@ -210,8 +210,8 @@ function LibrarianLayoutContent() {
                             className={({ isActive }) =>
                                 `group relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all ${
                                     isActive
-                                        ? "bg-white font-bold text-indigo-900 shadow-sm"
-                                        : "text-indigo-100/90 hover:bg-white/10 hover:text-white"
+                                        ? "bg-[#ffffff] font-bold text-[#11116f] shadow-sm"
+                                        : "text-[#e6e7f2]/85 hover:bg-[#ffffff]/10 hover:text-[#ffffff]"
                                 }`
                             }
                         >
