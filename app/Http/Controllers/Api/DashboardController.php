@@ -8,32 +8,115 @@ use App\Models\AiQuery;
 use App\Models\Consultation;
 use App\Models\Favorite;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     /**
      * Dashboard de l'utilisateur connecté.
+     *
+     * Renvoie :
+     * - chiffres du jour (compat ancienne version) : today_consultations, today_ai_queries, favorites, unread_notifications
+     * - chiffres du mois + variation vs mois précédent : month_* / month_*_delta (null si pas d'historique)
+     * - série 30 derniers jours : activity[] [{date, consultations, ai_queries}]
+     * - top 4 domaines consultés : top_categories[] [{name, count}]
+     * - 3 lectures en cours : current_readings[] [{slug, title, type, last_page, total_pages, percent}]
+     * - 3 dernières notifications : recent_activities[] [{type, title, created_at, related_url}]
      */
     public function me(Request $request)
     {
         $user = $request->user();
         $today = now()->toDateString();
+        $thirtyDaysAgo = now()->subDays(29)->startOfDay();
+
+        $monthStart = now()->startOfMonth();
+        $prevMonthStart = now()->subMonthNoOverflow()->startOfMonth();
+        $prevMonthEnd = now()->startOfMonth();
+
+        $monthConsultations = $user->consultations()->where('consulted_at', '>=', $monthStart)->count();
+        $prevMonthConsultations = $user->consultations()->whereBetween('consulted_at', [$prevMonthStart, $prevMonthEnd])->count();
+
+        $monthAiQueries = $user->aiQueries()->where('created_at', '>=', $monthStart)->count();
+        $prevMonthAiQueries = $user->aiQueries()->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])->count();
+
+        $monthNewFavorites = $user->favorites()->where('created_at', '>=', $monthStart)->count();
+
+        // Série sur 30 jours : groupée par date, pour la courbe d'activité (dates sans activité remplies à 0 côté client).
+        $activityRaw = $user->consultations()
+            ->where('consulted_at', '>=', $thirtyDaysAgo)
+            ->selectRaw('DATE(consulted_at) as day, COUNT(*) as count')
+            ->groupBy('day')
+            ->pluck('count', 'day');
+        $activity = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $activity[] = ['date' => $date, 'consultations' => (int) ($activityRaw[$date] ?? 0)];
+        }
+
+        // Top 4 domaines consultés par cet utilisateur (sur toute la période).
+        $topCategories = $user->consultations()
+            ->join('documents', 'consultations.document_id', '=', 'documents.id')
+            ->join('categories', 'documents.category_id', '=', 'categories.id')
+            ->selectRaw('categories.name as name, COUNT(*) as count')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('count')
+            ->limit(4)
+            ->get()
+            ->map(fn ($row) => ['name' => $row->name, 'count' => (int) $row->count])
+            ->all();
+
+        // Lectures en cours : 3 documents avec progression de lecture (page en cours), ordonnés par dernière mise à jour.
+        $currentReadings = DB::table('reading_progress')
+            ->join('documents', 'reading_progress.document_id', '=', 'documents.id')
+            ->where('reading_progress.user_id', $user->id)
+            ->where('documents.status', 'publie')
+            ->orderByDesc('reading_progress.updated_at')
+            ->limit(3)
+            ->get(['documents.slug', 'documents.title', 'documents.type', 'reading_progress.last_page', 'reading_progress.total_pages'])
+            ->map(function ($row) {
+                $percent = ($row->total_pages && $row->last_page)
+                    ? min(100, (int) round(($row->last_page / $row->total_pages) * 100))
+                    : null;
+                return [
+                    'slug' => $row->slug,
+                    'title' => $row->title,
+                    'type' => $row->type,
+                    'last_page' => (int) $row->last_page,
+                    'total_pages' => $row->total_pages ? (int) $row->total_pages : null,
+                    'percent' => $percent,
+                ];
+            })
+            ->all();
 
         return response()->json([
-            'today_consultations' => $user->consultations()
-                ->whereDate('consulted_at', $today)
-                ->count(),
-
-            'today_ai_queries' => $user->aiQueries()
-                ->whereDate('created_at', $today)
-                ->count(),
-
+            // --- Compat ancienne version (ne pas retirer) -----------------
+            'today_consultations' => $user->consultations()->whereDate('consulted_at', $today)->count(),
+            'today_ai_queries' => $user->aiQueries()->whereDate('created_at', $today)->count(),
             'favorites' => $user->favorites()->count(),
+            'unread_notifications' => $user->appNotifications()->unread()->count(),
 
-            'unread_notifications' => $user->appNotifications()
-                ->unread()
-                ->count(),
+            // --- Chiffres du mois + variation -----------------------------
+            'month_consultations' => $monthConsultations,
+            'month_consultations_delta' => self::delta($monthConsultations, $prevMonthConsultations),
+            'month_ai_queries' => $monthAiQueries,
+            'month_ai_queries_delta' => self::delta($monthAiQueries, $prevMonthAiQueries),
+            'month_new_favorites' => $monthNewFavorites,
+
+            // --- Graphiques et listes -------------------------------------
+            'activity' => $activity,
+            'top_categories' => $topCategories,
+            'current_readings' => $currentReadings,
         ]);
+    }
+
+    // Variation en pourcentage (arrondi) ; null si pas de référence.
+    private static function delta(int $current, int $previous): ?int
+    {
+        if ($previous === 0) {
+            return $current === 0 ? 0 : null;
+        }
+
+        return (int) round((($current - $previous) / $previous) * 100);
     }
 
     /**
