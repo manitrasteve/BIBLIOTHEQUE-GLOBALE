@@ -8,9 +8,6 @@ import { ArrowRight } from "lucide-react";
 export default function WelcomeBanner({ eyebrow, title, description, primary, secondary }) {
     return (
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-700 p-6 text-white shadow-sm sm:p-9">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-gold/15" aria-hidden="true" />
-            <div className="pointer-events-none absolute bottom-[-80px] right-24 h-40 w-40 rounded-full bg-gold-soft/10" aria-hidden="true" />
-
             <div className="relative">
                 {eyebrow && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft">
