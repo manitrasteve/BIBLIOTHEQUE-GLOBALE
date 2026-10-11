@@ -16,6 +16,8 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 import { SkeletonDashboard } from "../../components/Skeleton";
 import StatCard from "../../components/StatCard";
+import StatTrend from "../../components/StatTrend";
+import WelcomeBanner from "../../components/WelcomeBanner";
 import { useAuth } from "../../context/AuthContext";
 import MonthlyChart from "../../components/charts/MonthlyChart";
 import { HBarList, RoleShare, trend } from "../../components/charts/Breakdowns";
@@ -91,76 +93,93 @@ export default function AdminStatsPage() {
     const previousLabel = stats ? new Date(`${keys[keys.length - 2] ?? keys[0]}-01T12:00:00`).toLocaleDateString("fr-FR", { month: "short" }) : "";
     const reportUrl = `/rapport-mensuel?mois=${reportMonth}${establishment ? `&etablissement=${establishment}` : ""}`;
 
+    const firstName = user?.name?.split(" ")[0] || "";
+    const pendingTotal = (s.pending_account_validations ?? 0) + (s.pending_account_requests ?? 0);
+
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="font-display text-xl font-extrabold">
-                        Vue d'ensemble
-                    </h2>
+            <WelcomeBanner
+                eyebrow={isAdmin ? "Administrateur" : "Service Numérique"}
+                title={<>Bonjour, {firstName} <span aria-hidden="true">👋</span></>}
+                description={
+                    pendingTotal > 0
+                        ? <>Vous avez <strong className="text-white">{pendingTotal} demande{pendingTotal > 1 ? "s" : ""}</strong> de compte à traiter.</>
+                        : "Suivez les principales activités de la plateforme."
+                }
+                primary={
+                    pendingTotal > 0
+                        ? { label: "Traiter les demandes", to: isAdmin ? "/administrateur/comptes" : "/bibliothecaire/tickets-comptes" }
+                        : { label: "Rapport mensuel", to: reportUrl }
+                }
+                secondary={{ label: "Catalogue", to: "/recherche" }}
+            />
 
-                    <p className="mt-1 text-sm text-slate-500">
-                        Suivez les principales activités de la bibliothèque.
-                    </p>
-                </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Utilisateurs */}
-                <StatCard
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatTrend
                     icon={Users}
+                    tone="indigo"
+                    value={fmt(s.total_users)}
                     label="Utilisateurs"
-                    value={s.total_users}
+                    deltaText={isAdmin ? "Plateforme entière" : "Dans la bibliothèque"}
+                    deltaDirection="flat"
                     to={isAdmin ? "/administrateur/utilisateurs" : undefined}
                 />
-
-                {/* Comptes vérifiés à valider */}
-                <StatCard
-                    icon={UserCheck}
-                    label="Demandes vérifiées à valider"
-                    value={s.pending_account_validations}
-                    tone="warning"
-                    to={isAdmin ? "/administrateur/comptes?status=verifiee" : "/bibliothecaire/tickets-comptes?status=verifiee"}
-                />
-
-                {/* Documents publiés */}
-                <StatCard
+                <StatTrend
                     icon={BookOpen}
+                    tone="emerald"
+                    value={fmt(s.total_documents)}
                     label="Documents publiés"
-                    value={s.total_documents}
+                    deltaText={`${fmt(s.total_consultations)} consultation${(s.total_consultations ?? 0) > 1 ? "s" : ""}`}
+                    deltaDirection="flat"
                     to="/recherche"
                 />
-
-                {/* Nouvelles demandes */}
-                <StatCard
+                <StatTrend
+                    icon={UserCheck}
+                    tone="brass"
+                    value={fmt(s.pending_account_validations)}
+                    label="Comptes à valider"
+                    deltaText={s.pending_account_validations > 0 ? "À traiter" : "Rien à valider"}
+                    deltaDirection={s.pending_account_validations > 0 ? "up" : "flat"}
+                    to={isAdmin ? "/administrateur/comptes?status=verifiee" : "/bibliothecaire/tickets-comptes?status=verifiee"}
+                />
+                <StatTrend
                     icon={AlertTriangle}
+                    tone="rose"
+                    value={fmt(s.pending_account_requests)}
                     label="Nouvelles demandes"
-                    value={s.pending_account_requests}
-                    tone="warning"
+                    deltaText={s.pending_account_requests > 0 ? "À examiner" : "Boîte vide"}
+                    deltaDirection={s.pending_account_requests > 0 ? "up" : "flat"}
                     to={isAdmin ? "/administrateur/comptes?status=en_attente" : "/bibliothecaire/tickets-comptes?status=en_attente"}
                 />
+            </div>
 
-                {/* Consultations */}
-                <StatCard
+            {/* Deuxième ligne : usage de la plateforme (consultations, IA, favoris). */}
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <StatTrend
                     icon={Eye}
-                    label="Consultations"
-                    value={s.total_consultations}
+                    tone="indigo"
+                    value={fmt(s.total_consultations)}
+                    label="Consultations (total)"
+                    deltaText="Historique complet"
+                    deltaDirection="flat"
                     to={isAdmin ? "/administrateur/historique?type=consultations" : undefined}
                 />
-
-                {/* Questions IA */}
-                <StatCard
+                <StatTrend
                     icon={Sparkles}
-                    label="Questions posées à l'IA"
-                    value={s.total_ai_queries}
+                    tone="brass"
+                    value={fmt(s.total_ai_queries)}
+                    label="Questions à l'IA (total)"
+                    deltaText="Historique complet"
+                    deltaDirection="flat"
                     to={isAdmin ? "/administrateur/historique?type=ai" : undefined}
                 />
-
-                {/* Favoris */}
-                <StatCard
+                <StatTrend
                     icon={Heart}
-                    label="Favoris"
-                    value={s.total_favorites}
+                    tone="rose"
+                    value={fmt(s.total_favorites)}
+                    label="Favoris (total)"
+                    deltaText="Historique complet"
+                    deltaDirection="flat"
                     to={isAdmin ? "/administrateur/historique?type=favoris" : undefined}
                 />
             </div>

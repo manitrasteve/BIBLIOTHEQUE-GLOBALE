@@ -5,10 +5,6 @@ import {
     Sparkles,
     Bell,
     Heart,
-    ArrowRight,
-    ArrowUpRight,
-    ArrowDownRight,
-    Minus,
     BookOpen,
     PlayCircle,
     TrendingUp,
@@ -17,7 +13,8 @@ import { api } from "../lib/api";
 import RecommendedReadings from "../components/RecommendedReadings";
 import { usePageRefresh } from "../context/RefreshContext";
 import { useAuth } from "../context/AuthContext";
-import { Skeleton } from "../components/Skeleton";
+import WelcomeBanner from "../components/WelcomeBanner";
+import StatTrend, { StatTrendSkeleton } from "../components/StatTrend";
 
 const ROLE_LABELS = {
     etudiant: "Étudiant",
@@ -49,62 +46,21 @@ export default function DashboardPage() {
 
     return (
         <div className="w-full px-0 py-0">
-            {/* Bannière de bienvenue : navy avec dégradé + cercles dorés, pile de livres stylisée à droite */}
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-700 p-6 sm:p-9 text-white shadow-sm">
-                <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-gold/15" aria-hidden="true" />
-                <div className="pointer-events-none absolute bottom-[-80px] right-24 h-40 w-40 rounded-full bg-gold-soft/10" aria-hidden="true" />
-
-                <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                    <div>
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-gold-soft">
-                            {ROLE_LABELS[user?.role] || "Compte"}
-                        </span>
-                        <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                            Bonjour, {firstName} <span aria-hidden="true">👋</span>
-                        </h1>
-                        <p className="mt-2 max-w-xl text-sm leading-6 text-on-primary-soft sm:text-[15px]">
-                            {currentReadings.length > 0
-                                ? <>Vous avez <strong className="text-white">{currentReadings.length} lecture{currentReadings.length > 1 ? "s" : ""}</strong> en cours. Continuez sur votre élan&nbsp;!</>
-                                : "Retrouvez ici vos consultations, vos favoris et vos activités récentes."}
-                        </p>
-                        <div className="mt-5 flex flex-wrap gap-2.5">
-                            {resumeTarget ? (
-                                <Link
-                                    to={`/documents/${resumeTarget.slug}`}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-indigo-900 shadow-sm transition hover:bg-gold-soft hover:text-indigo-900"
-                                >
-                                    Reprendre ma lecture
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            ) : (
-                                <Link
-                                    to="/recherche"
-                                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-indigo-900 shadow-sm transition hover:bg-gold-soft"
-                                >
-                                    Parcourir le catalogue
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            )}
-                            <Link
-                                to="/mes-lectures"
-                                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/20"
-                            >
-                                Mes lectures
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* Pile de livres décorative (SVG inline, cohérente avec la charte or/navy) */}
-                    <div className="hidden min-w-[180px] flex-col items-center gap-1.5 lg:flex" aria-hidden="true">
-                        <span className="block h-5 w-28 rotate-[-3deg] rounded bg-gold" />
-                        <span className="block h-5 w-32 rotate-[2deg] rounded bg-white" />
-                        <span className="block h-5 w-24 rotate-[-1deg] rounded bg-gold-deep" />
-                        <span className="mt-1 flex h-16 w-32 items-center justify-center rounded-md bg-white/95">
-                            <BookOpen className="h-8 w-8 text-indigo-900" strokeWidth={1.5} />
-                        </span>
-                    </div>
-                </div>
-            </section>
+            <WelcomeBanner
+                eyebrow={ROLE_LABELS[user?.role] || "Compte"}
+                title={<>Bonjour, {firstName} <span aria-hidden="true">👋</span></>}
+                description={
+                    currentReadings.length > 0
+                        ? <>Vous avez <strong className="text-white">{currentReadings.length} lecture{currentReadings.length > 1 ? "s" : ""}</strong> en cours. Continuez sur votre élan&nbsp;!</>
+                        : "Retrouvez ici vos consultations, vos favoris et vos activités récentes."
+                }
+                primary={
+                    resumeTarget
+                        ? { label: "Reprendre ma lecture", to: `/documents/${resumeTarget.slug}` }
+                        : { label: "Parcourir le catalogue", to: "/recherche" }
+                }
+                secondary={{ label: "Mes lectures", to: "/mes-lectures" }}
+            />
 
             {error && (
                 <p role="alert" className="mt-5 rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
@@ -172,58 +128,6 @@ export default function DashboardPage() {
                     </div>
                 </>
             )}
-        </div>
-    );
-}
-
-// Teinte de carte stat : icône (fond + couleur) et accent du chiffre.
-const TONE_STYLES = {
-    indigo: { icon: "bg-indigo-50 text-indigo-800", value: "text-ink" },
-    brass: { icon: "bg-amber-50 text-brass-deep", value: "text-ink" },
-    rose: { icon: "bg-rose-50 text-rose-700", value: "text-ink" },
-    emerald: { icon: "bg-emerald-50 text-emerald-700", value: "text-ink" },
-};
-
-function StatTrend({ icon: Icon, tone = "indigo", value, label, delta, deltaText, deltaDirection, to }) {
-    const styles = TONE_STYLES[tone] || TONE_STYLES.indigo;
-    const Wrapper = to ? Link : "div";
-    const wrapperProps = to ? { to } : {};
-    const direction = deltaDirection ?? (delta === null || delta === undefined ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat");
-    const text = deltaText ?? (delta === null || delta === undefined ? "Nouveau" : `${delta > 0 ? "+" : ""}${delta}% vs mois dernier`);
-    const trendClass = {
-        up: "bg-emerald-50 text-emerald-700",
-        down: "bg-rose-50 text-rose-700",
-        flat: "bg-slate-100 text-slate-600",
-    }[direction];
-    const TrendIcon = { up: ArrowUpRight, down: ArrowDownRight, flat: Minus }[direction];
-
-    return (
-        <Wrapper
-            {...wrapperProps}
-            className={`group flex h-full flex-col gap-2.5 rounded-xl border border-slate-200 bg-surface p-4 transition ${to ? "hover:border-indigo-300" : ""}`}
-        >
-            <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${styles.icon}`}>
-                <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-            </span>
-            <div>
-                <p className={`font-display text-2xl font-extrabold tabular-nums tracking-tight ${styles.value}`}>{value}</p>
-                <p className="mt-0.5 text-xs font-semibold text-slate-600">{label}</p>
-            </div>
-            <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${trendClass}`}>
-                <TrendIcon className="h-3 w-3" aria-hidden="true" />
-                {text}
-            </span>
-        </Wrapper>
-    );
-}
-
-function StatTrendSkeleton() {
-    return (
-        <div aria-hidden="true" className="flex flex-col gap-2.5 rounded-xl border border-slate-200 bg-surface p-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
-            <Skeleton className="h-7 w-16 rounded" />
-            <Skeleton className="h-3 w-3/4 rounded" />
-            <Skeleton className="h-4 w-20 rounded-full" />
         </div>
     );
 }
