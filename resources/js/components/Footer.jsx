@@ -33,7 +33,14 @@ export default function Footer() {
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1f1f86]">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
             </span>
-            <span className="pt-1 text-[#e6e6fa]">Université de Mahajanga · Mahajanga 401, Madagascar</span>
+            <a
+              href="https://www.mahajanga-univ.mg/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pt-1 text-[#e6e6fa] hover:text-[#ffffff] hover:underline"
+            >
+              Université de Mahajanga · Mahajanga 401, Madagascar
+            </a>
           </li>
           <li className="flex items-center gap-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1f1f86]">
