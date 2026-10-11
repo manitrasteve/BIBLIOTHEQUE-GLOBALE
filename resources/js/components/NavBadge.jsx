@@ -66,8 +66,8 @@ export function useNavBadges() {
 export default function NavBadge({ name, count, active }) {
     if (!name || !count) return null;
     const tone = TONES[name] || "neutral";
-    // Entrée active (fond bleu marine) : pastille blanche, texte marine fixe (lisible aussi en mode sombre).
-    const cls = active ? "bg-white text-[#11116f]" : TONE_CLASSES[tone];
+    // Entrée active (fond blanc) : pastille marine ; sinon la pastille garde sa couleur de ton.
+    const cls = active ? "bg-[#11116f] text-white" : TONE_CLASSES[tone];
 
     return (
         <span

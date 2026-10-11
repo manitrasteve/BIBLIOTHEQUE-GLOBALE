@@ -190,44 +190,62 @@ function LibrarianLayoutContent() {
                 className={`connected-sidebar ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
             >
                 <div className="mb-2 flex items-center justify-between px-2 lg:hidden">
-                    <span className="text-sm font-bold text-slate-900">Navigation</span>
+                    <span className="text-sm font-bold text-white">Navigation</span>
                     <button
                         type="button"
                         onClick={() => setOpen(false)}
-                        className="btn-secondary !px-3 !py-2"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
                         aria-label="Fermer le menu"
                     >
                         <X className="h-4 w-4" aria-hidden="true" />
                     </button>
                 </div>
 
-                {nav.map((item) => (
-                    <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setOpen(false)}
-                        className={({ isActive }) =>
-                            `relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
-                                isActive
-                                    ? "bg-indigo-600 font-bold text-white"
-                                    : "text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
-                            }`
-                        }
-                    >
-                        {({ isActive }) => (
-                            <>
-                                <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
-                                {item.label}
-                                {/* `badge` : une rubrique, ou plusieurs (ex. dépôts à vérifier + brouillons). */}
-                                <span className="ml-auto flex shrink-0 gap-1">
-                                    {[].concat(item.badge || []).map((name) => (
-                                        <NavBadge key={name} name={name} count={badges[name]} active={isActive} />
-                                    ))}
-                                </span>
-                            </>
-                        )}
-                    </NavLink>
-                ))}
+                <div className="flex min-h-0 flex-1 flex-col gap-0.5">
+                    {nav.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            onClick={() => setOpen(false)}
+                            className={({ isActive }) =>
+                                `group relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all ${
+                                    isActive
+                                        ? "bg-white font-bold text-indigo-900 shadow-sm"
+                                        : "text-indigo-100/90 hover:bg-white/10 hover:text-white"
+                                }`
+                            }
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    {isActive && (
+                                        <span aria-hidden="true" className="absolute -left-3 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r bg-gold" />
+                                    )}
+                                    <item.icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
+                                    <span className="truncate">{item.label}</span>
+                                    {/* `badge` : une rubrique, ou plusieurs (ex. dépôts à vérifier + brouillons). */}
+                                    <span className="ml-auto flex shrink-0 gap-1">
+                                        {[].concat(item.badge || []).map((name) => (
+                                            <NavBadge key={name} name={name} count={badges[name]} active={isActive} />
+                                        ))}
+                                    </span>
+                                </>
+                            )}
+                        </NavLink>
+                    ))}
+                </div>
+
+                {/* Profil utilisateur en bas de la sidebar. */}
+                {user && (
+                    <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 pt-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-xs font-extrabold text-indigo-900">
+                            {(user.name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() || "").join("")}
+                        </span>
+                        <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-white">{user.name}</p>
+                            <p className="truncate text-[11px] text-indigo-200">{user.role === "administrateur" ? "Administrateur" : "Service Numérique"}</p>
+                        </div>
+                    </div>
+                )}
             </nav>
 
             <section className="connected-main">
