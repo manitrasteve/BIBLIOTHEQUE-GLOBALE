@@ -38,7 +38,7 @@ export default function LibrarianDashboardPage() {
         <div className="w-full">
             <WelcomeBanner
                 eyebrow="Service Numérique"
-                title={<>Bonjour, {firstName} <span aria-hidden="true">👋</span></>}
+                title={`Bonjour, ${firstName}`}
                 description={
                     pending > 0
                         ? <>Vous avez <strong className="text-white">{pending} demande{pending > 1 ? "s" : ""}</strong> de compte à traiter.</>

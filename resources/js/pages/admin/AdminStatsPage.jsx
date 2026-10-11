@@ -100,7 +100,7 @@ export default function AdminStatsPage() {
         <div>
             <WelcomeBanner
                 eyebrow={isAdmin ? "Administrateur" : "Service Numérique"}
-                title={<>Bonjour, {firstName} <span aria-hidden="true">👋</span></>}
+                title={`Bonjour, ${firstName}`}
                 description={
                     pendingTotal > 0
                         ? <>Vous avez <strong className="text-white">{pendingTotal} demande{pendingTotal > 1 ? "s" : ""}</strong> de compte à traiter.</>

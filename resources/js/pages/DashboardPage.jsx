@@ -48,7 +48,7 @@ export default function DashboardPage() {
         <div className="w-full px-0 py-0">
             <WelcomeBanner
                 eyebrow={ROLE_LABELS[user?.role] || "Compte"}
-                title={<>Bonjour, {firstName} <span aria-hidden="true">👋</span></>}
+                title={`Bonjour, ${firstName}`}
                 description={
                     currentReadings.length > 0
                         ? <>Vous avez <strong className="text-white">{currentReadings.length} lecture{currentReadings.length > 1 ? "s" : ""}</strong> en cours. Continuez sur votre élan&nbsp;!</>
