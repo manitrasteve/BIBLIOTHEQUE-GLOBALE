@@ -69,7 +69,10 @@ export default function NotificationsPage() {
                 setNotifications(res.data);
                 setMeta(res);
             })
-            .catch(() => setError("Impossible de charger vos notifications."));
+            .catch(() => {
+                setError("Impossible de charger vos notifications.");
+                setNotifications((prev) => prev ?? []);
+            });
     }
 
     async function openNotification(notification) {

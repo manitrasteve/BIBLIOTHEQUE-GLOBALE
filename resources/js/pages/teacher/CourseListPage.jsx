@@ -27,6 +27,7 @@ function AddDocument({ list, onAdded }) {
     const [meta, setMeta] = useState(null);
     const [loadError, setLoadError] = useState(false);
     const [busy, setBusy] = useState(null);
+    const [loadingMore, setLoadingMore] = useState(false);
     const inList = new Set(list.items.map((i) => i.document?.slug));
 
     function fetchPage(page) {
@@ -43,9 +44,15 @@ function AddDocument({ list, onAdded }) {
     }, [q]);
 
     async function more() {
-        const r = await fetchPage(meta.current_page + 1);
-        setResults((current) => [...current, ...(r.data || [])]);
-        setMeta(r);
+        if (loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const r = await fetchPage(meta.current_page + 1);
+            setResults((current) => [...current, ...(r.data || [])]);
+            setMeta(r);
+        } finally {
+            setLoadingMore(false);
+        }
     }
 
     async function add(doc) {
@@ -100,8 +107,8 @@ function AddDocument({ list, onAdded }) {
                 </ul>
             )}
             {meta && meta.current_page < meta.last_page && (
-                <button type="button" onClick={() => more().catch(() => toast("Chargement impossible."))} className="btn-secondary mt-2 w-full justify-center">
-                    Afficher plus de documents
+                <button type="button" onClick={() => more().catch(() => toast("Chargement impossible."))} disabled={loadingMore} className="btn-secondary mt-2 w-full justify-center disabled:opacity-50">
+                    {loadingMore ? "Chargement…" : "Afficher plus de documents"}
                 </button>
             )}
             {loadError && <p className="mt-2 text-xs text-rose-700">Impossible de charger le catalogue. Réessayez avec le bouton Actualiser.</p>}

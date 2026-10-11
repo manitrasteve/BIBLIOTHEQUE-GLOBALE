@@ -55,6 +55,15 @@ export default function AiAssistant({ slug }) {
         };
     }, []);
 
+    // Changement de document (sans démontage du composant) : recharge la conversation de CE document
+    // au lieu de laisser affichée celle du document précédent.
+    useEffect(() => {
+        setExchanges(sessionMemory.getAiChat(slug));
+        setError(null);
+        setPending(null);
+        setStreamText("");
+    }, [slug]);
+
     useEffect(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;

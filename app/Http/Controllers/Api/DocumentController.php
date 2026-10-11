@@ -97,10 +97,10 @@ class DocumentController extends Controller
         if ($year = $request->get('year')) {
             $query->where('year', $year);
         }
-        if ($type = $request->get('type')) {
+        if ($type = $this->textParam($request, 'type')) {
             $query->whereIn('type', $this->withLabel($type, self::TYPE_LABELS));
         }
-        if ($language = $request->get('language')) {
+        if ($language = $this->textParam($request, 'language')) {
             $query->whereIn('language', $this->withLabel($language, self::LANGUAGE_LABELS));
         }
 

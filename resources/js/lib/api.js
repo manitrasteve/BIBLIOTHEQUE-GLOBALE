@@ -836,7 +836,11 @@ export const api = {
     // Consultations / IA
     // ---------------------------------------------------------
 
-    getMyConsultations: () => request("/mes-consultations"),
+    getMyConsultations: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+
+        return request(`/mes-consultations${query ? `?${query}` : ""}`);
+    },
 
     getMyAiQueries: () => request("/mes-questions-ia"),
 

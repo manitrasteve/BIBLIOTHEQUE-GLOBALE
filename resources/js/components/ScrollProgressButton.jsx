@@ -51,7 +51,7 @@ export default function ScrollProgressButton() {
             title="Haut de page"
             tabIndex={visible ? 0 : -1}
             aria-hidden={!visible}
-            className={`fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line bg-surface text-indigo-600 transition-all duration-200 hover:bg-indigo-50 print:hidden ${
+            className={`fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line bg-surface text-brass transition-all duration-200 hover:bg-slate-50 hover:text-brass-deep print:hidden ${
                 visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
             }`}
         >

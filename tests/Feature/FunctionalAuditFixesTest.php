@@ -117,5 +117,7 @@ test('l’administrateur garde le lien vers la gestion des avis', function () {
 test('la recherche publique ignore un paramètre texte envoyé en tableau au lieu d’échouer', function () {
     $this->getJson('/api/documents?q[]=x')->assertOk();
     $this->getJson('/api/documents?author[]=x')->assertOk();
+    $this->getJson('/api/documents?type[]=x')->assertOk();
+    $this->getJson('/api/documents?language[]=x')->assertOk();
     $this->getJson('/api/documents/suggestions?q[]=xx')->assertOk()->assertJson(['documents' => [], 'authors' => []]);
 });

@@ -107,6 +107,8 @@ export default function DocumentsManagePage() {
     try {
       await api.publishDocument(doc.id);
       load();
+    } catch (e) {
+      toast(e?.data?.message || 'Publication impossible.');
     } finally {
       setBusySlug(null);
     }
@@ -125,6 +127,8 @@ export default function DocumentsManagePage() {
     try {
       await api.unscheduleDocument(doc.id);
       load();
+    } catch (e) {
+      toast(e?.data?.message || 'Annulation impossible.');
     } finally {
       setBusySlug(null);
     }
@@ -151,13 +155,25 @@ export default function DocumentsManagePage() {
     }
   }
 
-  async function reindex(doc) { setBusySlug(doc.slug); try { await api.reindexDocument(doc.id); toast('Indexation RAG relancée.'); } finally { setBusySlug(null); } }
+  async function reindex(doc) {
+    setBusySlug(doc.slug);
+    try {
+      await api.reindexDocument(doc.id);
+      toast('Indexation RAG relancée.');
+    } catch (e) {
+      toast(e?.data?.message || 'Indexation impossible.');
+    } finally {
+      setBusySlug(null);
+    }
+  }
 
   async function archive(doc) {
     setBusySlug(doc.slug);
     try {
       await api.archiveDocument(doc.id);
       load();
+    } catch (e) {
+      toast(e?.data?.message || 'Archivage impossible.');
     } finally {
       setBusySlug(null);
     }
@@ -169,6 +185,8 @@ export default function DocumentsManagePage() {
     try {
       await api.deleteDocument(doc.id);
       load();
+    } catch (e) {
+      toast(e?.data?.message || 'Suppression impossible.');
     } finally {
       setBusySlug(null);
     }

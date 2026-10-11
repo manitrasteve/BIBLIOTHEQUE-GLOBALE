@@ -5,16 +5,19 @@ import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
 
 function Inbox({ kind }) {
     const confirm = useConfirm();
+    const toast = useToast();
     // Consultation seule pour le bibliothécaire : répondre / supprimer restent réservés à l'administrateur.
     const { user } = useAuth();
     const isAdmin = user?.role === "administrateur";
     const [rows, setRows] = useState(null);
     const [counts, setCounts] = useState(null);
     const [meta, setMeta] = useState(null);
+    const [error, setError] = useState(null);
     const isFeedback = kind === "feedback";
 
     // Carte de compteur sélectionnée (statut) et zone de la liste vers laquelle on descend après un clic.
@@ -33,11 +36,16 @@ function Inbox({ kind }) {
             .then((r) => {
                 // Dernier élément d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1, { rethrow });
+                setError(null);
                 setRows(r.data || []);
                 setCounts(r.counts || null);
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
-            .catch((e) => { if (rethrow) throw e; });
+            .catch((e) => {
+                setError(isFeedback ? "Impossible de charger les avis." : "Impossible de charger les signalements.");
+                setRows((current) => current ?? []);
+                if (rethrow) throw e;
+            });
     }
 
     usePageRefresh(() => load(undefined, { rethrow: true }));
@@ -69,7 +77,9 @@ function Inbox({ kind }) {
                 ),
             );
             load(); // compteurs à jour
-        } catch {}
+        } catch (e) {
+            toast(e?.data?.message || "Envoi de la réponse impossible.");
+        }
     }
 
     async function removeOne(row) {
@@ -84,7 +94,9 @@ function Inbox({ kind }) {
             else await api.deleteProblemReport(row.id);
             setRows((x) => x.filter((r) => r.id !== row.id));
             load(); // compteurs à jour
-        } catch {}
+        } catch (e) {
+            toast(e?.data?.message || "Suppression impossible.");
+        }
     }
 
     async function clearAll() {
@@ -99,7 +111,9 @@ function Inbox({ kind }) {
             else await api.clearProblemReports();
             setRows([]);
             load(1); // tout est effacé : retour à la première page
-        } catch {}
+        } catch (e) {
+            toast(e?.data?.message || "Effacement impossible.");
+        }
     }
 
     return (
@@ -147,6 +161,8 @@ function Inbox({ kind }) {
             </div>
 
             <div ref={listRef} className="scroll-mt-24" />
+
+            {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
             {rows?.length ? (
                 rows.map((r) => (
