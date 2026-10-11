@@ -234,18 +234,6 @@ function LibrarianLayoutContent() {
                     ))}
                 </div>
 
-                {/* Profil utilisateur en bas de la sidebar. */}
-                {user && (
-                    <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 pt-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-xs font-extrabold text-indigo-900">
-                            {(user.name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() || "").join("")}
-                        </span>
-                        <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-white">{user.name}</p>
-                            <p className="truncate text-[11px] text-indigo-200">{user.role === "administrateur" ? "Administrateur" : "Service Numérique"}</p>
-                        </div>
-                    </div>
-                )}
             </nav>
 
             <section className="connected-main">

@@ -6,25 +6,6 @@ import RefreshButton from "./RefreshButton";
 import NavBadge, { useNavBadges } from "./NavBadge";
 import { RefreshProvider } from "../context/RefreshContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
-import { useAuth } from "../context/AuthContext";
-
-const ROLE_LABELS = {
-    etudiant: "Étudiant",
-    enseignant: "Enseignant",
-    chercheur: "Chercheur",
-    autres: "Membre",
-    bibliothecaire: "Service Numérique",
-    administrateur: "Administrateur",
-};
-
-function initials(name) {
-    return (name || "?")
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase() || "")
-        .join("");
-}
 
 // Le contexte d'actualisation englobe aussi le menu : ses badges se rechargent après « Actualiser ».
 export default function ConnectedLayout(props) {
@@ -37,7 +18,6 @@ export default function ConnectedLayout(props) {
 
 function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
     const badges = useNavBadges();
-    const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const location = useLocation();
     const navigationId = useId();
@@ -118,18 +98,6 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
                     ))}
                 </div>
 
-                {/* Profil utilisateur en bas de la sidebar (avatar + nom + rôle), persistant quelle que soit la page. */}
-                {user && (
-                    <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 pt-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-xs font-extrabold text-indigo-900">
-                            {initials(user.name)}
-                        </span>
-                        <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-white">{user.name}</p>
-                            <p className="truncate text-[11px] text-indigo-200">{ROLE_LABELS[user.role] || "Membre"}</p>
-                        </div>
-                    </div>
-                )}
             </nav>
 
             <section className="connected-main">
