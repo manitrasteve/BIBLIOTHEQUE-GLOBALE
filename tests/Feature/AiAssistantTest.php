@@ -424,6 +424,13 @@ test('détection des demandes d\'image et des questions visuelles', function () 
         'Fais une image résumant les étapes présentées.',
         'Montre-moi un schéma qui explique ce concept.',
         'Dessine un diagramme des étapes',
+        // Formulations étendues : "en + nom" et verbes forts seuls.
+        'Mets ça en image',
+        'Transforme ce résumé en visuel',
+        'Convertis en schéma',
+        'Illustre ce résumé',
+        'Schématise cette page',
+        'Visualise les étapes',
     ] as $q) {
         expect($rag->isImageRequest($q))->toBeTrue($q);
     }
@@ -434,6 +441,8 @@ test('détection des demandes d\'image et des questions visuelles', function () 
         'Résume le chapitre 2',
         'Que montre le schéma de la page 4 ?',
         'À quelle page trouve-t-on la définition ?',
+        // "Montre le schéma" fait référence à un schéma existant, pas à une création.
+        'Montre le schéma présenté',
     ] as $q) {
         expect($rag->isImageRequest($q))->toBeFalse($q);
     }

@@ -956,16 +956,55 @@ PROMPT;
 
     /**
      * Détecte une demande explicite de création d'image (≠ analyse d'une
-     * image du document).
+     * image du document). Trois formes acceptées :
+     *   1. verbe + un/une/des/ce/… + nom visuel         ("Crée une image", "Dessine ce schéma")
+     *   2. verbe de transformation + "en" + nom visuel  ("Mets ça en image", "Transforme en visuel")
+     *   3. verbe fort seul                               ("Illustre ce résumé", "Visualise ce chapitre")
      */
     public function isImageRequest(string $question): bool
     {
         $q = $this->normalize($question);
 
+        // Une phrase interrogative ("Que montre…", "Qu'est-ce que…", "Comment…") est une analyse,
+        // pas une demande de création d'image, même si elle contient "montre + ce + schéma".
+        if (preg_match('/^(que\s|qu[\'`]|comment\s|pourquoi\s|quand\s|ou\s|a\s+quel|dans\s+quel|quelle?s?\s|quel\s)/u', $q)) {
+            return false;
+        }
+
+        $verbs = 'cree|creer|genere|generer|dessine|dessiner|produis|realise|fabrique|fais|faire|'
+            . 'imagine|montre|donne|propose|mets|mettre|transforme|transformer|convertis|convertir|'
+            . 'change|changer|rends|rendre|affiche|afficher';
+        // Articles indéfinis + démonstratifs seulement : "le/la/les" ou "mon/ton/son" renvoient à
+        // un contenu existant ("Montre LE schéma" ≠ création d'image). "ce/cette/ces" accepté
+        // car il désigne souvent le résumé/document que l'IA vient de produire.
+        $articles = 'un|une|des|ce|cette|ces';
+        $nouns = 'image|illustration|schema|dessin|infographie|visuel|diagramme|affiche|graphique';
+
+        // 1. "Crée une image de X", "Fais-moi un schéma", "Génère ce visuel"…
+        if (preg_match(
+            '/\b(' . $verbs . ')\b(?:[\s\-]+\w+){0,4}?[\s\-]+(?:' . $articles . ')\s+(?:\w+\s+){0,2}?'
+            . '(' . $nouns . ')\b/u',
+            $q
+        )) {
+            return true;
+        }
+
+        // 2. "Mets ça en image", "Transforme ce résumé en visuel", "Convertis en schéma"…
+        if (preg_match(
+            '/\b(mets|mettre|transforme|transformer|convertis|convertir|change|changer|rends|rendre|'
+            . 'fais|faire)\b.{0,30}?\ben\s+(' . $nouns . ')\b/u',
+            $q
+        )) {
+            return true;
+        }
+
+        // 3. Verbes dont le sens est déjà « crée une image » : pas besoin d'article ni de nom
+        //    (ex. "Illustre ce résumé", "Schématise cette page", "Visualise les étapes").
+        //    Précédé d'un article défini ("l'illustre savant") : adjectif → non.
         return (bool) preg_match(
-            '/\b(cree|creer|genere|generer|dessine|dessiner|produis|realise|fabrique|fais|faire|imagine|illustre|montre|donne|propose)\b'
-            . '(?:[\s\-]+\w+){0,4}?[\s\-]+(?:un|une|des)\s+(?:\w+\s+){0,2}?'
-            . '(image|illustration|schema|dessin|infographie|visuel|diagramme|affiche)\b/u',
+            '/(?<!l[\'`]|le\s|la\s|les\s|un\s|une\s)\b(illustre|illustrer|illustres|'
+            . 'visualise|visualiser|visualises|schematise|schematiser|schematises|'
+            . 'esquisse|esquisser|esquisses)\b/u',
             $q
         );
     }
