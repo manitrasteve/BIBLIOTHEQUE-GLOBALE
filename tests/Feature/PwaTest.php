@@ -58,5 +58,5 @@ test('hors ligne, le service worker sert la dernière coquille de l\'application
         // L'éviction du cache ne touche ni la page hors ligne ni la coquille.
         ->and($sw)->toContain('path !== OFFLINE_URL && path !== SHELL_URL')
         // Nouvelle version du cache : les anciens caches sont supprimés à l'activation.
-        ->and($sw)->toContain("const CACHE_VERSION = 'v2'");
+        ->and($sw)->toContain("const CACHE_VERSION = 'v3'");
 });

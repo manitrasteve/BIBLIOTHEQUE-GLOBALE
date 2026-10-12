@@ -11,7 +11,7 @@
  *   icônes / manifest / logo en « stale-while-revalidate ».
  * - Mise à jour : CACHE_VERSION change => les anciens caches sont supprimés à l'activation.
  */
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `bm-static-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const SHELL_URL = '/__app-shell'; // clé de cache de la coquille HTML de l'application
@@ -69,12 +69,18 @@ async function cacheFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    const response = await fetch(request);
-    if (response.ok) {
-        await cache.put(request, response.clone());
-        await trim(cache);
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            await cache.put(request, response.clone());
+            await trim(cache);
+        }
+        return response;
+    } catch {
+        // Hors ligne et ressource jamais vue : on renvoie une erreur réseau propre
+        // plutôt que de laisser la promesse rejeter (respondWith jetterait une TypeError).
+        return Response.error();
     }
-    return response;
 }
 
 async function staleWhileRevalidate(request) {
@@ -85,7 +91,7 @@ async function staleWhileRevalidate(request) {
             if (response.ok) cache.put(request, response.clone());
             return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || Response.error());
 
     return cached || network;
 }
