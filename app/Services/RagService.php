@@ -230,21 +230,40 @@ class RagService
          * de l'analyse d'une image du document.
          */
         if ($this->isImageRequest($question)) {
+            // Contexte extrait du document pour le secours Pollinations : passages pertinents
+            // + dernière réponse de Gemini de l'historique (ex. "Convertis en schéma" ← ce résumé).
+            $relevantContext = '';
+            try {
+                $usable = $chunks->filter(fn (DocumentChunk $chunk) => $this->isMeaningfulChunk($chunk))->values();
+                if ($usable->isNotEmpty()) {
+                    $relevantContext = Str::limit(
+                        $this->buildContext($this->retrieveRelevantChunks(
+                            $usable,
+                            $this->contextualQuery($question, $history),
+                            3
+                        )),
+                        1500,
+                        '…'
+                    );
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            $lastAnswer = '';
+            if (!empty($history)) {
+                $lastAnswer = (string) ($history[array_key_last($history)]['answer'] ?? '');
+            }
+
             return ['image' => [
                 'question' => $question,
-                'prompt' => $this->imagePrompt(
-                    $document,
-                    $question,
-                    $chunks,
-                    $history
-                ),
-                // Détails utilisés par le secours Pollinations si Gemini (image) échoue.
-                'fallback_details' => [
+                'prompt' => $this->imagePrompt($document, $question, $chunks, $history),
+                // Secours Pollinations : contexte réel du document + question + réponse précédente.
+                'fallback' => [
                     'title' => (string) $document->title,
-                    'subtitle' => (string) ($document->subtitle ?? ''),
-                    'type' => (string) ($document->type ?? ''),
-                    'abstract' => Str::limit((string) ($document->abstract ?? ''), 600, ''),
-                    'instructions' => $question,
+                    'question' => $question,
+                    'document_context' => $relevantContext,
+                    'previous_answer' => Str::limit($lastAnswer, 1500, '…'),
                 ],
             ]];
         }
@@ -906,7 +925,7 @@ PROMPT;
             }
 
             try {
-                $pollinationsImage = $this->generateImageWithPollinations($request['fallback_details'] ?? []);
+                $pollinationsImage = $this->generateImageWithPollinations($request['fallback'] ?? []);
             } catch (\Throwable $pollinationsError) {
                 report($pollinationsError);
 
@@ -932,26 +951,131 @@ PROMPT;
     }
 
     /**
-     * Secours Pollinations : décrit le document en une scène anglaise courte,
-     * puis demande l'image. Sans jeton, Pollinations limite à une requête par IP,
-     * d'où un délai borné (une seule tentative : on reste dans la requête HTTP).
+     * Secours Pollinations : construit un prompt Pollinations centré sur la DEMANDE de
+     * l'utilisateur (pas sur une couverture de livre), avec le style adapté au type de
+     * visuel demandé (schéma, infographie, illustration…) et le contexte du document.
      *
-     * @param  array{title?:string,subtitle?:string,type?:string,abstract?:string,instructions?:string}  $details
+     * @param  array{title?:string,question?:string,document_context?:string,previous_answer?:string}  $context
      * @return array{mime:string,data:string}
      */
-    private function generateImageWithPollinations(array $details): array
+    private function generateImageWithPollinations(array $context): array
     {
+        $question = (string) ($context['question'] ?? '');
+        $title = (string) ($context['title'] ?? '');
+        $documentContext = (string) ($context['document_context'] ?? '');
+        $previousAnswer = (string) ($context['previous_answer'] ?? '');
+
+        [$style, $visualType] = $this->pollinationsStyleFor($question);
+
+        // Contexte riche pour que le modèle de texte Pollinations traduise la demande
+        // en scène visuelle anglaise collant au sujet. Priorité : question → résumé
+        // précédent (ex. « Convertis en schéma » renvoie à la réponse d'avant) → document.
+        $textContext = implode("\n", array_filter([
+            'User request (translate it into English): ' . $question,
+            $title !== '' ? 'Document title: ' . $title : null,
+            $previousAnswer !== '' ? "Previous AI answer that the user may be referring to:\n" . $previousAnswer : null,
+            $documentContext !== '' ? "Relevant document passages:\n" . $documentContext : null,
+            'Visual type requested: ' . $visualType,
+        ]));
+
+        $systemPrompt = "You write prompts for an image generator. Given a user's request about an academic "
+            . "document, reply with ONE English sentence of at most 40 words describing a specific visual "
+            . "that answers the request. The visual type is given (schema, diagram, infographic, illustration, "
+            . "etc.) — match its conventions. Prefer concrete symbols, labeled elements, arrows for schemas; "
+            . "scenes and objects for illustrations. No text content, no letters. Output only the sentence.";
+
         try {
-            $scene = $this->pollinations->describeScene($details, 20);
+            $scene = $this->pollinationsDescribe($systemPrompt, $textContext, 20);
         } catch (\Throwable $e) {
             report($e);
-            // Sans scène décrite : titre + demande en guise de secours.
-            $scene = trim(($details['title'] ?? '') . '. ' . ($details['instructions'] ?? ''), ' .');
+            // Sans scène : question + titre en guise de secours.
+            $scene = trim($question . '. ' . $title, ' .');
         }
 
-        $prompt = $scene . '. Editorial illustration, painterly, rich harmonious colors. High quality, no text, no letters.';
+        $prompt = rtrim($scene, '. ') . '. ' . $style . '. High quality, no text, no letters.';
 
         return $this->pollinations->generate($prompt, timeout: 45);
+    }
+
+    /**
+     * Détecte le type de visuel demandé (schéma, infographie, illustration…) et renvoie
+     * le style Pollinations correspondant + le nom à passer au modèle de texte.
+     *
+     * @return array{0:string,1:string} [style, visual type]
+     */
+    private function pollinationsStyleFor(string $question): array
+    {
+        $q = $this->normalize($question);
+
+        if (preg_match('/\b(schema|diagramme)\b/u', $q)) {
+            return [
+                'Clean educational diagram, flat vector style, connected labeled shapes and arrows, '
+                . 'white background, high contrast, minimal decoration',
+                'schema / diagram',
+            ];
+        }
+
+        if (preg_match('/\b(infographie|infographic)\b/u', $q)) {
+            return [
+                'Infographic style, flat icons, bold colors, clean grid layout, white background',
+                'infographic',
+            ];
+        }
+
+        if (preg_match('/\b(graphique|graph|courbe)\b/u', $q)) {
+            return [
+                'Clean data chart / graph visualization, flat vector style, axes and bars or curves, '
+                . 'white background',
+                'chart / graph',
+            ];
+        }
+
+        if (preg_match('/\b(dessin|affiche|poster)\b/u', $q)) {
+            return [
+                'Educational poster illustration, bold colors, simple composition',
+                'poster illustration',
+            ];
+        }
+
+        // Illustration / image / visuel (par défaut)
+        return [
+            'Editorial illustration, painterly, rich harmonious colors',
+            'illustration',
+        ];
+    }
+
+    /**
+     * Appel direct de l'endpoint texte Pollinations avec des instructions personnalisées
+     * (describeScene du client est verrouillé sur la description de couverture de livre).
+     */
+    private function pollinationsDescribe(string $systemPrompt, string $userContent, int $timeout): string
+    {
+        $url = rtrim((string) config('services.pollinations.text_url', 'https://text.pollinations.ai'), '/') . '/openai';
+
+        $response = \Illuminate\Support\Facades\Http::connectTimeout(10)
+            ->timeout(max(5, $timeout))
+            ->post($url, [
+                'model' => config('services.pollinations.text_model') ?: 'openai',
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $userContent],
+                ],
+                'private' => true,
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException("Pollinations (texte) a échoué : HTTP {$response->status()}");
+        }
+
+        $scene = trim((string) $response->json('choices.0.message.content'));
+        $scene = trim(preg_replace('/\s+/u', ' ', $scene), " \t\"'«»");
+        $scene = preg_replace('/^(prompt|scene|image)\s*:\s*/i', '', $scene);
+
+        if (mb_strlen($scene) < 10) {
+            throw new \RuntimeException("Pollinations n'a pas décrit de scène.");
+        }
+
+        return Str::limit($scene, 300, '');
     }
 
     /**
