@@ -221,7 +221,13 @@ class UserController extends Controller
 
     public function reactivate(Request $request, User $user)
     {
-        $user->update(['is_active' => true, 'password_set_at' => null]);
+        // L'ancien hash est écrasé pour forcer le passage par le lien de création reçu par e-mail
+        // (sinon l'utilisateur pourrait se reconnecter avec son mot de passe d'avant la désactivation).
+        $user->update([
+            'is_active' => true,
+            'password' => \Illuminate\Support\Facades\Hash::make(Str::random(64)),
+            'password_set_at' => null,
+        ]);
         $user->tokens()->delete(); // l'utilisateur doit se reconnecter avec son nouveau mot de passe
         if ($registry = MemberRegistry::where('user_id', $user->id)->first()) {
             $registry->update(['status' => 'desactive']);

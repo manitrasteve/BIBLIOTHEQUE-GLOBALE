@@ -282,6 +282,9 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::get('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'show']);
        Route::put('/bibliothecaires/{librarian}/permissions', [PermissionManagementController::class, 'update']);
 
+       // Publication d'une actualité du site : admin uniquement (les routes GET /site-updates sont publiques).
+       Route::post('/site-updates', [SiteUpdateController::class, 'store']);
+
        // Paramètres → Modifier la page d'accueil (brouillon, publication, historique).
        Route::prefix('admin/homepage')->group(function () {
            Route::get('/', [HomepageController::class, 'show']);

@@ -31,13 +31,20 @@ class DashboardController extends Controller
 
         $monthStart = now()->startOfMonth();
         $prevMonthStart = now()->subMonthNoOverflow()->startOfMonth();
-        $prevMonthEnd = now()->startOfMonth();
 
+        // Borne haute exclusive (`<` $monthStart) : évite de compter deux fois une activité
+        // enregistrée exactement à 00:00:00 le 1er du mois (whereBetween est inclusif).
         $monthConsultations = $user->consultations()->where('consulted_at', '>=', $monthStart)->count();
-        $prevMonthConsultations = $user->consultations()->whereBetween('consulted_at', [$prevMonthStart, $prevMonthEnd])->count();
+        $prevMonthConsultations = $user->consultations()
+            ->where('consulted_at', '>=', $prevMonthStart)
+            ->where('consulted_at', '<', $monthStart)
+            ->count();
 
         $monthAiQueries = $user->aiQueries()->where('created_at', '>=', $monthStart)->count();
-        $prevMonthAiQueries = $user->aiQueries()->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])->count();
+        $prevMonthAiQueries = $user->aiQueries()
+            ->where('created_at', '>=', $prevMonthStart)
+            ->where('created_at', '<', $monthStart)
+            ->count();
 
         $monthNewFavorites = $user->favorites()->where('created_at', '>=', $monthStart)->count();
 
