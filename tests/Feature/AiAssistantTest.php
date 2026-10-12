@@ -325,7 +325,8 @@ test('une demande d\'image génère une image sans la stocker en base', function
     $response->assertOk();
     expect($response->json('image.mime'))->toBe('image/png');
     expect($response->json('image.data'))->toBe('QUJD');
-    expect($response->json('answer'))->toContain('pas un extrait du document');
+    // Le texte accompagnant une image générée est volontairement vide : l'image parle d'elle-même.
+    expect($response->json('answer'))->toBe('Voici le schéma.');
 
     $stored = AiQuery::first();
     expect(json_encode($stored->toArray()))->not->toContain('QUJD');
@@ -358,7 +359,8 @@ test('quand Gemini refuse la génération d\'image, Pollinations prend le relais
     expect($response->json('image.data'))->toBe(base64_encode($png));
     expect($response->json('meta.fallback'))->toBeTrue();
     expect($response->json('meta.model'))->toBe('pollinations');
-    expect($response->json('answer'))->toContain('secours');
+    // Pas de texte au-dessus de l'image : l'illustration seule est présentée.
+    expect($response->json('answer'))->toBe('');
 });
 
 test('le flux SSE envoie les fragments puis la réponse finale validée', function () {

@@ -903,8 +903,9 @@ PROMPT;
             $image = $this->gemini->generateImage($request['prompt']);
 
             return [
-                'answer' => ($image['text'] !== '' ? $image['text'] . "\n\n" : '')
-                    . "_Image générée par l'IA à ta demande : c'est une illustration, pas un extrait du document._",
+                // Seul le texte éventuel renvoyé par le modèle est affiché : la mention
+                // "c'est une illustration, pas un extrait" est retirée (l'image parle d'elle-même).
+                'answer' => $image['text'] !== '' ? $image['text'] : '',
                 'sources' => [],
                 'image' => ['mime' => $image['mime'], 'data' => $image['data']],
                 'meta' => ['model' => $image['model'], 'generated_image' => true],
@@ -937,7 +938,8 @@ PROMPT;
             }
 
             return [
-                'answer' => "_Image générée à ta demande (service de secours gratuit) : c'est une illustration, pas un extrait du document._",
+                // Pas de texte explicatif : l'image seule est affichée (meta.fallback reste pour le debug).
+                'answer' => '',
                 'sources' => [],
                 // Pollinations renvoie du binaire brut ; Gemini renvoie du base64. Le frontend fait atob(),
                 // donc on uniformise au format base64 (ne pas re-encoder la donnée Gemini en revanche).
