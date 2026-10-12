@@ -184,7 +184,18 @@ class StaffDiscussionController extends Controller
 
         $sender = $request->user();
 
-        $recipient = User::findOrFail($data['recipient_id']);
+        /*
+         * Un bibliothécaire n'a qu'un seul interlocuteur possible : le même administrateur
+         * canonique que myConversation()/conversation() (le premier actif). Faire confiance
+         * au recipient_id envoyé par le client fragmenterait la conversation en une seconde,
+         * invisible depuis « ma conversation », si un autre administrateur actif existe.
+         */
+        if ($sender->role === 'bibliothecaire') {
+            $recipient = User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->first();
+            abort_unless($recipient, 404, 'Aucun administrateur n’est disponible.');
+        } else {
+            $recipient = User::findOrFail($data['recipient_id']);
+        }
 
         /*
          * La discussion est uniquement :
