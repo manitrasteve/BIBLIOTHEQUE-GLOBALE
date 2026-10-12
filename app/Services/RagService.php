@@ -257,7 +257,7 @@ class RagService
 
             return ['image' => [
                 'question' => $question,
-                'prompt' => $this->imagePrompt($document, $question, $chunks, $history),
+                'prompt' => $this->imagePrompt($document, $question, $relevantContext),
                 // Secours Pollinations : contexte réel du document + question + réponse précédente.
                 'fallback' => [
                     'title' => (string) $document->title,
@@ -1009,7 +1009,7 @@ PROMPT;
     {
         $q = $this->normalize($question);
 
-        if (preg_match('/\b(schema|diagramme)\b/u', $q)) {
+        if (preg_match('/\b(schema|diagramme|schematise|schematiser|schematises)\b/u', $q)) {
             return [
                 'Clean educational diagram, flat vector style, connected labeled shapes and arrows, '
                 . 'white background, high contrast, minimal decoration',
@@ -1032,7 +1032,7 @@ PROMPT;
             ];
         }
 
-        if (preg_match('/\b(dessin|affiche|poster)\b/u', $q)) {
+        if (preg_match('/\b(dessin|affiche|poster|esquisse|esquisser|esquisses)\b/u', $q)) {
             return [
                 'Educational poster illustration, bold colors, simple composition',
                 'poster illustration',
@@ -1052,11 +1052,20 @@ PROMPT;
      */
     private function pollinationsDescribe(string $systemPrompt, string $userContent, int $timeout): string
     {
-        $url = rtrim((string) config('services.pollinations.text_url', 'https://text.pollinations.ai'), '/') . '/openai';
+        $token = trim((string) config('services.pollinations.token'));
 
-        $response = \Illuminate\Support\Facades\Http::connectTimeout(10)
-            ->timeout(max(5, $timeout))
-            ->post($url, [
+        // Avec un jeton (enter.pollinations.ai) : API authentifiée, plus fiable (même règle que
+        // PollinationsClient::describeScene). Sans jeton : accès anonyme limité à une requête par IP.
+        $url = $token !== ''
+            ? rtrim((string) config('services.pollinations.gen_url'), '/') . '/v1/chat/completions'
+            : rtrim((string) config('services.pollinations.text_url', 'https://text.pollinations.ai'), '/') . '/openai';
+
+        $request = \Illuminate\Support\Facades\Http::connectTimeout(10)->timeout(max(5, $timeout));
+        if ($token !== '') {
+            $request = $request->withToken($token);
+        }
+
+        $response = $request->post($url, [
                 'model' => config('services.pollinations.text_model') ?: 'openai',
                 'messages' => [
                     ['role' => 'system', 'content' => $systemPrompt],
@@ -1257,33 +1266,8 @@ PROMPT;
     private function imagePrompt(
         Document $document,
         string $question,
-        Collection $chunks,
-        array $history
+        string $context
     ): string {
-        $context = '';
-
-        try {
-            $usable = $chunks->filter(
-                fn (DocumentChunk $chunk) => $this->isMeaningfulChunk($chunk)
-            )->values();
-
-            if ($usable->isNotEmpty()) {
-                $context = Str::limit(
-                    $this->buildContext(
-                        $this->retrieveRelevantChunks(
-                            $usable,
-                            $this->contextualQuery($question, $history),
-                            3
-                        )
-                    ),
-                    1500,
-                    '…'
-                );
-            }
-        } catch (\Throwable $e) {
-            report($e);
-        }
-
         return "Crée une illustration pédagogique claire, sobre et lisible (fond clair, peu de texte, "
             . "libellés courts en français si nécessaire).\n\n"
             . "Demande de l'utilisateur : {$question}\n\n"
