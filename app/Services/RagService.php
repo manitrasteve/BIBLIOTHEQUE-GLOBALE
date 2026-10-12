@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Document;
 use App\Models\DocumentChunk;
+use App\Services\Pollinations\PollinationsClient;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +62,7 @@ class RagService
 
     public function __construct(
         private readonly GeminiClient $gemini,
+        private readonly PollinationsClient $pollinations,
     ) {
     }
 
@@ -236,6 +238,14 @@ class RagService
                     $chunks,
                     $history
                 ),
+                // Détails utilisés par le secours Pollinations si Gemini (image) échoue.
+                'fallback_details' => [
+                    'title' => (string) $document->title,
+                    'subtitle' => (string) ($document->subtitle ?? ''),
+                    'type' => (string) ($document->type ?? ''),
+                    'abstract' => Str::limit((string) ($document->abstract ?? ''), 600, ''),
+                    'instructions' => $question,
+                ],
             ]];
         }
 
@@ -862,32 +872,86 @@ PROMPT;
 
     /**
      * Génère l'image demandée (fonction distincte de l'analyse d'image).
+     *
+     * Stratégie :
+     *   1. Gemini (image) — si billing activé, modèles Nano Banana.
+     *   2. Repli Pollinations — si Gemini renvoie 429 (quota 0 sur tier gratuit),
+     *      403 (accès refusé) ou 404 (modèle retiré). Reste 100 % gratuit.
      */
     private function generateImageAnswer(array $request): array
     {
         try {
             $image = $this->gemini->generateImage($request['prompt']);
+
+            return [
+                'answer' => ($image['text'] !== '' ? $image['text'] . "\n\n" : '')
+                    . "_Image générée par l'IA à ta demande : c'est une illustration, pas un extrait du document._",
+                'sources' => [],
+                'image' => ['mime' => $image['mime'], 'data' => $image['data']],
+                'meta' => ['model' => $image['model'], 'generated_image' => true],
+            ];
+        } catch (\Throwable $geminiError) {
+            report($geminiError);
+
+            $status = $geminiError instanceof GeminiException ? $geminiError->status() : 0;
+
+            // 429 / 403 / 404 : Gemini n'offrira pas d'image à cette clé — on tente Pollinations.
+            // 500+, blocage de contenu, autres : on n'insiste pas (coûterait du temps pour le même échec).
+            if (! in_array($status, [429, 403, 404], true)) {
+                return $this->errorResult(
+                    $geminiError,
+                    "L'image n'a pas pu être générée pour le moment. Réessaie plus tard.",
+                    false
+                );
+            }
+
+            try {
+                $pollinationsImage = $this->generateImageWithPollinations($request['fallback_details'] ?? []);
+            } catch (\Throwable $pollinationsError) {
+                report($pollinationsError);
+
+                return $this->errorResult(
+                    $pollinationsError,
+                    "La génération d'images est momentanément indisponible. Réessaie plus tard.",
+                    false
+                );
+            }
+
+            return [
+                'answer' => "_Image générée à ta demande (service de secours gratuit) : c'est une illustration, pas un extrait du document._",
+                'sources' => [],
+                // Pollinations renvoie du binaire brut ; Gemini renvoie du base64. Le frontend fait atob(),
+                // donc on uniformise au format base64 (ne pas re-encoder la donnée Gemini en revanche).
+                'image' => [
+                    'mime' => $pollinationsImage['mime'],
+                    'data' => base64_encode($pollinationsImage['data']),
+                ],
+                'meta' => ['model' => 'pollinations', 'generated_image' => true, 'fallback' => true],
+            ];
+        }
+    }
+
+    /**
+     * Secours Pollinations : décrit le document en une scène anglaise courte,
+     * puis demande l'image. Sans jeton, Pollinations limite à une requête par IP,
+     * d'où un délai borné (une seule tentative : on reste dans la requête HTTP).
+     *
+     * @param  array{title?:string,subtitle?:string,type?:string,abstract?:string,instructions?:string}  $details
+     * @return array{mime:string,data:string}
+     */
+    private function generateImageWithPollinations(array $details): array
+    {
+        try {
+            $scene = $this->pollinations->describeScene($details, 20);
         } catch (\Throwable $e) {
             report($e);
-
-            $status = $e instanceof GeminiException ? $e->status() : 0;
-
-            return $this->errorResult(
-                $e,
-                $status === 429
-                    ? "La génération d'images est indisponible : le quota de l'API Gemini pour les images est atteint ou non activé."
-                    : "L'image n'a pas pu être générée pour le moment. Réessaie plus tard.",
-                false
-            );
+            // Sans scène décrite : titre + demande en guise de secours.
+            $scene = trim(($details['title'] ?? '') . '. ' . ($details['instructions'] ?? ''), ' .');
         }
 
-        return [
-            'answer' => ($image['text'] !== '' ? $image['text'] . "\n\n" : '')
-                . "_Image générée par l'IA à ta demande : c'est une illustration, pas un extrait du document._",
-            'sources' => [],
-            'image' => ['mime' => $image['mime'], 'data' => $image['data']],
-            'meta' => ['model' => $image['model'], 'generated_image' => true],
-        ];
+        $prompt = $scene . '. Editorial illustration, painterly, rich harmonious colors. High quality, no text, no letters.';
+
+        return $this->pollinations->generate($prompt, timeout: 45);
     }
 
     /**

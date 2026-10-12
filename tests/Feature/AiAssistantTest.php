@@ -331,10 +331,22 @@ test('une demande d\'image génère une image sans la stocker en base', function
     expect(json_encode($stored->toArray()))->not->toContain('QUJD');
 });
 
-test('quand la génération d\'image est refusée par quota une erreur claire est renvoyée', function () {
+test('quand Gemini refuse la génération d\'image, Pollinations prend le relais', function () {
     [$document, $user] = aiSetup();
 
+    // Vrai PNG 10x10 blanc : finfo doit le détecter comme image/png.
+    $gd = imagecreatetruecolor(10, 10);
+    imagefill($gd, 0, 0, imagecolorallocate($gd, 255, 255, 255));
+    ob_start();
+    imagepng($gd);
+    $png = ob_get_clean();
+    imagedestroy($gd);
+
+    Http::preventStrayRequests();
     Http::fake([
+        '*pollinations*' => Http::sequence()
+            ->push(['choices' => [['message' => ['content' => 'Watercolor illustration of a vibrant ecosystem.']]]])
+            ->push($png, 200, ['Content-Type' => 'image/png']),
         '*:embedContent' => Http::response(['embedding' => ['values' => [1.0, 0.0, 0.0]]]),
         '*models/img-1:generateContent' => Http::response(['error' => ['message' => 'quota']], 429),
     ]);
@@ -342,8 +354,11 @@ test('quand la génération d\'image est refusée par quota une erreur claire es
     $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/documents/{$document->slug}/ask", ['question' => 'Dessine un schéma pédagogique de ce concept']);
 
-    $response->assertStatus(429);
-    expect($response->json('message'))->toContain('images');
+    $response->assertOk();
+    expect($response->json('image.data'))->toBe(base64_encode($png));
+    expect($response->json('meta.fallback'))->toBeTrue();
+    expect($response->json('meta.model'))->toBe('pollinations');
+    expect($response->json('answer'))->toContain('secours');
 });
 
 test('le flux SSE envoie les fragments puis la réponse finale validée', function () {
