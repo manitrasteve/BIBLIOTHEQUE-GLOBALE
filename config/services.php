@@ -36,43 +36,41 @@ return [
     ],
 
     'gemini' => [
-    'key' => env('GEMINI_API_KEY'),
+        'key' => env('GEMINI_API_KEY'),
 
-    'model' => env(
-        'GEMINI_MODEL',
-        'gemini-flash-latest'
-    ),
+        // Alias Google qui pointe toujours sur la dernière version stable de Flash :
+        // pas de maintenance quand un nouveau modèle sort (3.8 → 3.9 → …).
+        'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),
 
-    // Modèle rapide pour les questions simples (vide = modèle principal).
-    'fast_model' => env('GEMINI_FAST_MODEL', 'gemini-3.1-flash-lite'),
+        // Modèle rapide pour les questions simples (coût et latence réduits).
+        'fast_model' => env('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite'),
 
-    // Modèles essayés dans l'ordre si le modèle demandé est indisponible
-    // (503 surcharge, 429 quota, 404 modèle retiré).
-    'fallback_models' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env(
-            'GEMINI_FALLBACK_MODELS',
-            'gemini-flash-latest,gemini-3.8-flash,gemini-3.1-flash-lite'
-        ))
-    ))),
+        // Modèles essayés dans l'ordre si le modèle demandé est indisponible
+        // (503 surcharge, 429 quota, 404 modèle retiré). Chaîne pensée pour
+        // dégrader proprement : latest → 3.8 (stable) → 3.6 (rapide) → lite.
+        'fallback_models' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'GEMINI_FALLBACK_MODELS',
+                'gemini-flash-latest,gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite'
+            ))
+        ))),
 
-    // Génération d'images (modèles essayés dans l'ordre).
-    'image_models' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env(
-            'GEMINI_IMAGE_MODELS',
-            'gemini-3.1-flash-image,gemini-3.1-flash-lite-image'
-        ))
-    ))),
+        // Génération d'images (Nano Banana 2 → Nano Banana 2 Lite en secours).
+        // Quota gratuit : ~500 images/jour, ~10/min, 1024x1024 (confirmé 2026).
+        'image_models' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'GEMINI_IMAGE_MODELS',
+                'gemini-3.1-flash-image,gemini-3.1-flash-lite-image'
+            ))
+        ))),
 
-    // Taille maximale d'un PDF envoyé en entrée visuelle (octets).
-    'max_inline_pdf_bytes' => (int) env('GEMINI_MAX_INLINE_PDF_BYTES', 15 * 1024 * 1024),
+        // Taille maximale d'un PDF envoyé en entrée visuelle (octets).
+        'max_inline_pdf_bytes' => (int) env('GEMINI_MAX_INLINE_PDF_BYTES', 15 * 1024 * 1024),
 
-    'embedding_model' => env(
-        'GEMINI_EMBEDDING_MODEL',
-        'gemini-embedding-001'
-    ),
-],
+        'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
+    ],
 
     // « Générer une couverture par IA » (formulaire des documents) : génération d'images gratuite ;
     // une couverture dessinée par le serveur est proposée si le service échoue.
