@@ -55,6 +55,9 @@ class AccountRequest extends Model
         'matricule',
         'role',
         'library_id',
+        // Numéro de carte du membre déjà inscrit (parcours « recreate » : relie la demande
+        // à sa fiche member_registries existante au moment de la validation).
+        'card_number',
 
         // Suivi de la demande
         'created_by',

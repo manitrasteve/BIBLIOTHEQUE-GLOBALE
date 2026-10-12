@@ -824,7 +824,7 @@ class AccountRequestController extends Controller
 
             $this->provisioner->registerMember($user, $accountRequest->only([
                 'role', 'last_name', 'first_name', 'email', 'phone', 'address', 'gender',
-            ]));
+            ]), $accountRequest->library_id, $accountRequest->card_number);
 
             // Jeton sécurisé permettant à l'utilisateur de définir son mot de passe.
             [$token, $tokenHash] = $this->provisioner->newSetupToken();
@@ -1165,6 +1165,10 @@ class AccountRequestController extends Controller
             'gender' => $member->gender,
             'role' => $member->role ?: 'etudiant',
             'library_id' => $member->library_id,
+            // Relie la demande à sa fiche member_registries existante : sans ce numéro,
+            // la validation créerait une seconde fiche orpheline (perte du matricule et
+            // de la carte déjà émis).
+            'card_number' => $member->card_number,
             'status' => 'en_attente',
             'created_by' => null,
             'expires_at' => now()->addDays(3),

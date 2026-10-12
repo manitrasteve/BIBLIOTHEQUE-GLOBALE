@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccountRequest;
 use App\Models\Category;
 use App\Models\Library;
 use App\Models\MemberRegistry;
@@ -34,6 +35,47 @@ test('une demande de membre sans téléphone ni adresse reprend ceux du registre
     ])->assertCreated()
         ->assertJsonPath('request.phone', '0340000000')
         ->assertJsonPath('request.address', 'Lot II A');
+});
+
+test('valider une demande « recreate » relie la fiche existante au lieu d’en créer une seconde orpheline', function () {
+    $library = Library::factory()->create();
+    $member = MemberRegistry::create([
+        'library_id' => $library->id,
+        'card_number' => 'CARTE-99',
+        'matricule' => 'ETU-2020-0099',
+        'role' => 'etudiant',
+        'last_name' => 'Rakoto',
+        'first_name' => 'Jean',
+        'phone' => '0340000000',
+        'address' => 'Lot II A',
+        'gender' => 'masculin',
+        'status' => 'actif',
+    ]);
+
+    $this->postJson('/api/account-requests/recreate', [
+        'library_id' => $library->id,
+        'card_number' => 'CARTE-99',
+        'email' => 'jean99@example.com',
+    ])->assertCreated();
+
+    $accountRequest = AccountRequest::where('email', 'jean99@example.com')->firstOrFail();
+    expect($accountRequest->card_number)->toBe('CARTE-99');
+
+    Sanctum::actingAs(reviewAdmin());
+    $this->postJson("/api/account-requests/{$accountRequest->id}/validate")->assertOk();
+
+    // Une seule fiche : l'ancienne (carte, matricule physique) est reliée au compte, pas dupliquée.
+    expect(MemberRegistry::count())->toBe(1);
+
+    $member->refresh();
+    expect($member->user_id)->not->toBeNull()
+        ->and($member->matricule)->toBe('ETU-2020-0099')
+        ->and($member->library_id)->toBe($library->id);
+
+    $this->postJson('/api/account-requests/verify-member', [
+        'library_id' => $library->id,
+        'card_number' => 'CARTE-99',
+    ])->assertOk()->assertJsonPath('has_account', true);
 });
 
 test("l'administrateur peut créer un utilisateur sans envoyer de prénom", function () {

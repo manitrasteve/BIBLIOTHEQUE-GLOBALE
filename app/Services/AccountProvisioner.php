@@ -41,9 +41,29 @@ class AccountProvisioner
         ]);
     }
 
-    /** Inscription au registre des membres (une seule fois par compte), statut « désactivé » jusqu'au mot de passe. */
-    public function registerMember(User $user, array $identity, ?int $libraryId = null): MemberRegistry
+    /**
+     * Inscription au registre des membres (une seule fois par compte), statut « désactivé » jusqu'au mot de passe.
+     *
+     * Si un numéro de carte est donné (parcours « recreate » : le membre avait déjà une fiche
+     * physique sans compte numérique), la fiche existante est reliée au compte au lieu d'en
+     * créer une seconde — sinon l'ancienne fiche (carte, matricule) reste orpheline pour toujours
+     * et « has_account » continue de répondre faux pour ce membre.
+     */
+    public function registerMember(User $user, array $identity, ?int $libraryId = null, ?string $cardNumber = null): MemberRegistry
     {
+        if ($cardNumber !== null && $cardNumber !== '' && $libraryId !== null) {
+            $existing = MemberRegistry::where('library_id', $libraryId)
+                ->where('card_number', $cardNumber)
+                ->whereNull('user_id')
+                ->first();
+
+            if ($existing) {
+                $existing->update(['user_id' => $user->id]);
+
+                return $existing;
+            }
+        }
+
         return MemberRegistry::firstOrCreate(
             ['user_id' => $user->id],
             [
