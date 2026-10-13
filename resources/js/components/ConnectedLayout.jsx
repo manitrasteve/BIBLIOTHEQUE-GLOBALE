@@ -22,6 +22,10 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
     const location = useLocation();
     const navigationId = useId();
 
+    // `showIfBadge` : l'item n'apparaît que lorsque le badge correspondant est renseigné
+    // (ex. « Lectures recommandées » s'affiche dès qu'une lecture a été reçue).
+    const visibleNav = nav.filter((item) => !item.showIfBadge || badges[item.showIfBadge]);
+
     useDrawerScrollLock(open);
 
     useEffect(() => setOpen(false), [location.pathname]);
@@ -65,7 +69,7 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
                 </div>
 
                 <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-                    {nav.map((item) => (
+                    {visibleNav.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}

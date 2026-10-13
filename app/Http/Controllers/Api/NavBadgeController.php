@@ -34,6 +34,8 @@ class NavBadgeController extends Controller
         if ($user->role === 'etudiant') {
             // Lectures recommandées par ses enseignants qu'il n'a pas encore ouvertes.
             $documentIds = CourseList::recommendedFor($user)->flatMap(fn ($l) => $l->items->pluck('document_id'))->unique();
+            // Total reçu (lu ou non) : pilote l'apparition de l'onglet « Lectures recommandées ».
+            $badges['recommended_total'] = $documentIds->count();
             if ($documentIds->isNotEmpty()) {
                 $opened = ReadingProgress::where('user_id', $user->id)->whereIn('document_id', $documentIds)->pluck('document_id')
                     ->merge(Consultation::where('user_id', $user->id)->whereIn('document_id', $documentIds)->pluck('document_id'));

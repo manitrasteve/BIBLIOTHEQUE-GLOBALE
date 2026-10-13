@@ -33,7 +33,7 @@ const ITEM = {
     report: { to: "/signaler-un-probleme", label: "Signaler un problème", icon: LifeBuoy },
     // Enseignant
     // Étudiant : lectures envoyées par ses enseignants (badge : pas encore ouvertes).
-    recommended: { to: "/lectures-recommandees", label: "Lectures recommandées", icon: BookOpenCheck, badge: "recommended" },
+    recommended: { to: "/lectures-recommandees", label: "Lectures recommandées", icon: BookOpenCheck, badge: "recommended", showIfBadge: "recommended_total" },
     classes: { to: "/configuration", label: "Paramètre de configuration", icon: SlidersHorizontal },
     submissions: { to: "/mes-depots", label: "Mes dépôts", icon: UploadCloud },
     questions: { to: "/questions-revision", label: "Questions de révision", icon: Sparkles },
