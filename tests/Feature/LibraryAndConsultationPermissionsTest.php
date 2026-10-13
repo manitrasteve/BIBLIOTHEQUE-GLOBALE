@@ -189,6 +189,7 @@ function adminTeacherPayload(array $overrides = []): array
         'address' => 'Mahajanga',
         'gender' => 'masculin',
         'date_of_birth' => '1980-01-01',
+        'school' => 'IOSTM',
         'faculty' => 'IOSTM',
         'teaching_specialty' => 'Informatique',
         'department' => '',

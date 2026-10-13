@@ -36,7 +36,20 @@ class ProfileController extends Controller
             if ($user->photo_path) Storage::disk('public')->delete($user->photo_path);
             $data['photo_path'] = $request->file('photo')->store('profiles','public');
         }
+
+        // Si un enseignant change d'établissement, ses classes suivent le nouvel établissement
+        // pour que le ciblage des bibliographies reste cohérent.
+        $schoolChanged = $user->role === 'enseignant'
+            && array_key_exists('school', $data)
+            && filled($data['school'])
+            && $data['school'] !== $user->school;
+
         $user->update($data);
+
+        if ($schoolChanged) {
+            \App\Models\TeacherClass::where('user_id', $user->id)->update(['school' => $data['school']]);
+        }
+
         return response()->json($user->fresh()->load('library'));
     }
 

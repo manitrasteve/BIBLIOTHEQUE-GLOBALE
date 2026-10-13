@@ -7,7 +7,6 @@ import { useRefresh } from "../context/RefreshContext";
 const TONES = {
     account_requests: "urgent",
     submissions: "urgent",
-    class_requests: "urgent",
     reports: "urgent",
     feedbacks: "new",
     recommended: "new",
@@ -27,7 +26,6 @@ const TONE_CLASSES = {
 const LABELS = {
     account_requests: "à traiter",
     submissions: "dépôts à vérifier",
-    class_requests: "demandes de classe",
     reports: "nouveaux",
     feedbacks: "nouveaux",
     recommended: "à lire",

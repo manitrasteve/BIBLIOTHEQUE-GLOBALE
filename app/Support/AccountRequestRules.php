@@ -68,12 +68,18 @@ final class AccountRequestRules
     }
 
     // Niveau d'études : toujours « Université » pour un étudiant, sans objet pour les autres rôles.
+    // L'enseignant conserve son `school` (centre d'enseignement qu'il a intégré), mais pas les autres
+    // champs de scolarité.
     public static function normalizeLevel(array $validated): array
     {
-        if (($validated['role'] ?? null) === 'etudiant') {
+        $role = $validated['role'] ?? null;
+
+        if ($role === 'etudiant') {
             $validated['niveau_type'] = 'Université';
         } else {
-            $validated['school'] = null;
+            if ($role !== 'enseignant') {
+                $validated['school'] = null;
+            }
             $validated['filiere'] = null;
             $validated['niveau_type'] = null;
             $validated['niveau_detail'] = null;

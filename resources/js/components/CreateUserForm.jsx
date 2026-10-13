@@ -5,7 +5,7 @@ import { isAdult, isCompleteBirthDate } from "../lib/age";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-const STUDENT_CENTERS = [
+const CENTERS = [
     "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",
     "Faculté de Médecine",
     "Faculté des sciences, technologies et de l'environnement (FSTE)",
@@ -94,7 +94,7 @@ function StudentAdminFields({ form, update, setForm, step, requireLevel }) {
     </div>;
 
     return <div className="space-y-6">
-        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700">Quel est votre établissement ? *</legend><p className="mb-2 text-xs font-bold uppercase text-slate-500">Instituts</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(0, 5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div><p className="mb-2 mt-4 text-xs font-bold uppercase text-slate-500">Facultés</p><div className="grid gap-2 md:grid-cols-2">{STUDENT_CENTERS.slice(5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div></fieldset>
+        <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700">Quel est votre établissement ? *</legend><p className="mb-2 text-xs font-bold uppercase text-slate-500">Instituts</p><div className="grid gap-2 md:grid-cols-2">{CENTERS.slice(0, 5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div><p className="mb-2 mt-4 text-xs font-bold uppercase text-slate-500">Facultés</p><div className="grid gap-2 md:grid-cols-2">{CENTERS.slice(5).map((center) => <label key={center} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input required type="radio" name="admin-school" value={center} checked={form.school === center} onChange={update("school")} />{center}</label>)}</div></fieldset>
         <div className="grid gap-5 md:grid-cols-2"><label className={labelClass}>Parcours *<input required value={form.filiere} onChange={update("filiere")} className={inputClass} /></label><label className={labelClass}>N° de carte d'étudiant *<input required value={form.student_card_number} onChange={update("student_card_number")} className={inputClass} /></label></div>
         <fieldset><legend className="mb-3 text-sm font-semibold text-slate-700">Niveau{requireLevel ? " *" : ""}</legend><div className="flex flex-wrap gap-4">{STUDENT_LEVELS.map((level) => <label key={level} className="flex items-center gap-2 text-sm"><input type="radio" required={requireLevel} name="niveau_detail" value={level} checked={form.niveau_detail === level} onChange={update("niveau_detail")} />{level}</label>)}</div></fieldset>
     </div>;
@@ -295,6 +295,24 @@ export default function CreateUserForm({
                         </div>
                         {form.role === "enseignant" && (
                             <>
+                                <div className="md:col-span-2">
+                                    <Label htmlFor="enseignant-school" className="mb-1.5 block text-xs">
+                                        Centre / Établissement *
+                                    </Label>
+                                    <select
+                                        id="enseignant-school"
+                                        name="school"
+                                        required
+                                        value={form.school}
+                                        onChange={update("school")}
+                                        className="h-9 w-full rounded-md border border-slate-200 bg-surface px-3 text-sm text-slate-900 outline-none focus:border-brass focus:ring-2 focus:ring-indigo-200"
+                                    >
+                                        <option value="">Choisir le centre…</option>
+                                        {CENTERS.map((center) => (
+                                            <option key={center} value={center}>{center}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 {field(
                                     "faculty",
                                     "Faculté / Institut",

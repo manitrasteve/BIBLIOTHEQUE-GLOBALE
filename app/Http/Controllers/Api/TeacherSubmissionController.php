@@ -7,6 +7,7 @@ use App\Jobs\IngestDocumentJob;
 use App\Models\Category;
 use App\Models\CourseList;
 use App\Models\Document;
+use App\Models\Library;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
@@ -41,7 +42,7 @@ class TeacherSubmissionController extends Controller
             'type' => ['required', 'string', 'max:100'],
             'abstract' => ['nullable', 'string', 'max:5000'],
             'category' => ['required', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
-            'library_id' => ['required', 'exists:libraries,id'],
+            'library_id' => ['nullable', 'exists:libraries,id'],
             'niveau' => ['nullable', 'string', 'max:100'],
             'language' => ['nullable', 'string', 'max:50'],
             'course_list_id' => ['nullable', 'integer'],
@@ -53,6 +54,11 @@ class TeacherSubmissionController extends Controller
             $courseListId = CourseList::where('teacher_id', $teacher->id)->findOrFail($data['course_list_id'])->id;
         }
 
+        // Bibliothèque Numérique Globale : le dépôt n'est plus rattaché à une bibliothèque par l'enseignant.
+        // Le Service Numérique l'ajuste au besoin avant publication ; repli sur la première bibliothèque.
+        $libraryId = $data['library_id'] ?? Library::orderBy('id')->value('id');
+        abort_if(! $libraryId, 422, 'Aucune bibliothèque n’est disponible. Contactez l’administration.');
+
         $document = Document::create([
             'title' => $data['title'],
             'type' => $data['type'],
@@ -60,7 +66,7 @@ class TeacherSubmissionController extends Controller
             'niveau' => $data['niveau'] ?? null,
             'language' => $data['language'] ?? 'fr',
             'category_id' => Category::resolveId($data['category']),
-            'library_id' => $data['library_id'],
+            'library_id' => $libraryId,
             'access_level' => 'authentifie',
             'status' => 'soumis',
             'file_path' => $request->file('file')->store('documents', 'local'),

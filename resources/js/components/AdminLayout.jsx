@@ -1,4 +1,4 @@
-import { Activity, GraduationCap, FileText, BarChart3, Building2, UserCheck, History, ShieldCheck, Heart, MessageSquare, LifeBuoy, Mail, Users, Trash2, KeyRound, Sparkles } from "lucide-react";
+import { Activity, FileText, BarChart3, Building2, UserCheck, History, ShieldCheck, Heart, MessageSquare, LifeBuoy, Mail, Users, Trash2, KeyRound, Sparkles } from "lucide-react";
 import ConnectedLayout from "./ConnectedLayout";
 
 // Ordre logique (même logique que l'espace Service Numérique) : pilotage → contenu → comptes → suivi des
@@ -14,7 +14,6 @@ const NAV = [
     { to: "/administrateur/comptes", label: "Comptes à valider", icon: UserCheck, badge: "account_requests" },
     { to: "/administrateur/utilisateurs", label: "Utilisateurs", icon: Users },
     { to: "/administrateur/bibliothecaires", label: "Bibliothécaires", icon: Users },
-    { to: "/administrateur/enseignants", label: "Enseignants et classes", icon: GraduationCap, badge: "class_requests" },
     { to: "/administrateur/permissions", label: "Gestion des permissions", icon: KeyRound },
     // Suivi des usagers
     { to: "/administrateur/popularite", label: "Popularité", icon: Heart },

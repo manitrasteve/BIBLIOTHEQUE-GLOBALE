@@ -1340,7 +1340,7 @@ class AccountRequestController extends Controller
             ],
 
             'faculty' => [Rule::requiredIf(in_array($request->input('role'), ['enseignant', 'chercheur'], true)), 'nullable', 'string', 'max:255'],
-            'school' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', Rule::in(Rules::SCHOOLS)],
+            'school' => [Rule::requiredIf(in_array($request->input('role'), ['etudiant', 'enseignant'], true)), 'nullable', Rule::in(Rules::SCHOOLS)],
             'filiere' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
             'niveau_type' => ['nullable', Rule::in(['Université'])],
             'niveau_detail' => ['nullable', Rule::in(Rules::LEVELS)],

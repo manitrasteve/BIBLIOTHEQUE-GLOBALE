@@ -6,7 +6,7 @@ import { useDebouncedValue } from "../../lib/search";
 
 // Public d'une bibliographie : une des classes attribuées à l'enseignant, parcours facultatif,
 // avec le nombre d'étudiants concernés calculé par le serveur.
-export default function AudienceFields({ classes, value, onChange }) {
+export default function AudienceFields({ classes, value, onChange, showFiliere = true }) {
     const [count, setCount] = useState(null);
     const filiere = useDebouncedValue((value.filiere || "").trim(), 400);
     const classKey = value.school && value.level ? `${value.school}|${value.level}` : "";
@@ -23,9 +23,9 @@ export default function AudienceFields({ classes, value, onChange }) {
     if (!classes.length) {
         return (
             <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">
-                Aucune classe ne vous est encore attribuée.{" "}
-                <Link to="/mes-classes" className="font-semibold underline">Demandez une classe</Link> au Service Numérique
-                pour pouvoir adresser une bibliographie à vos étudiants.
+                Vous n'avez encore activé aucune classe.{" "}
+                <Link to="/configuration" className="font-semibold underline">Ajoutez vos classes</Link> dans
+                Paramètre de configuration pour pouvoir adresser une bibliographie à vos étudiants.
             </p>
         );
     }
@@ -49,15 +49,17 @@ export default function AudienceFields({ classes, value, onChange }) {
                     ))}
                 </select>
             </label>
-            <label className="block text-sm font-semibold text-slate-700">
-                Parcours <span className="font-normal text-slate-500">(facultatif)</span>
-                <input
-                    value={value.filiere || ""}
-                    onChange={(e) => onChange({ ...value, filiere: e.target.value })}
-                    placeholder="Tous les parcours"
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm font-normal"
-                />
-            </label>
+            {showFiliere && (
+                <label className="block text-sm font-semibold text-slate-700">
+                    Parcours <span className="font-normal text-slate-500">(facultatif)</span>
+                    <input
+                        value={value.filiere || ""}
+                        onChange={(e) => onChange({ ...value, filiere: e.target.value })}
+                        placeholder="Tous les parcours"
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm font-normal"
+                    />
+                </label>
+            )}
             {count !== null && (
                 <p className="flex items-center gap-1.5 text-sm text-emerald-700 sm:col-span-2" aria-live="polite">
                     <Users className="h-4 w-4" />

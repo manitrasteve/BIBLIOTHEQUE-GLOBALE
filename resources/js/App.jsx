@@ -65,10 +65,9 @@ const MonthlyReportPage = lazy(() => import("./pages/admin/MonthlyReportPage"));
 const AdminLibrariesPage = lazy(() => import("./pages/admin/AdminLibrariesPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTrashPage = lazy(() => import("./pages/admin/AdminTrashPage"));
-const TeacherClassesPage = lazy(() => import("./pages/librarian/TeacherClassesPage"));
 // Espace enseignant
 const RecommendedReadingsPage = lazy(() => import("./pages/RecommendedReadingsPage"));
-const MyClassesPage = lazy(() => import("./pages/teacher/MyClassesPage"));
+const TeacherConfigPage = lazy(() => import("./pages/teacher/TeacherConfigPage"));
 const MyCoursesPage = lazy(() => import("./pages/teacher/MyCoursesPage"));
 const CourseListPage = lazy(() => import("./pages/teacher/CourseListPage"));
 const MySubmissionsPage = lazy(() => import("./pages/teacher/MySubmissionsPage"));
@@ -201,8 +200,8 @@ export default function App() {
                                     element={<RoleRoute roles={["etudiant"]}><RecommendedReadingsPage /></RoleRoute>}
                                 />
                                 <Route
-                                    path="/mes-classes"
-                                    element={<RoleRoute roles={["enseignant"]}><MyClassesPage /></RoleRoute>}
+                                    path="/configuration"
+                                    element={<RoleRoute roles={["enseignant"]}><TeacherConfigPage /></RoleRoute>}
                                 />
                                 <Route
                                     path="/mes-cours"
@@ -288,7 +287,6 @@ export default function App() {
                                 />
                                 <Route path="documents" element={<DocumentsManagePage />} />
                                 <Route path="corbeille" element={<PermissionRoute permission="voir_corbeille"><AdminTrashPage /></PermissionRoute>} />
-                                <Route path="enseignants" element={<TeacherClassesPage />} />
                                 <Route path="bibliotheques" element={<PermissionRoute permissions={["voir_bibliotheques", "ajouter_bibliotheque", "modifier_bibliotheque"]}><AdminLibrariesPage /></PermissionRoute>} />
                                 <Route path="statistiques" element={<PermissionRoute permission="voir_statistiques"><AdminStatsPage /></PermissionRoute>} />
                                 <Route path="popularite" element={<PermissionRoute permission="voir_popularite"><AdminEngagementPage /></PermissionRoute>} />
@@ -363,7 +361,6 @@ export default function App() {
                                 <Route path="documents/importer" element={<DocumentImportPage />} />
                                 <Route path="documents/:id/modifier" element={<DocumentFormPage />} />
                                 <Route path="permissions" element={<AdminPermissionsPage />} />
-                                <Route path="enseignants" element={<TeacherClassesPage />} />
                                 <Route
                                     path="comptes"
                                     element={<AccountRequestsPage />}

@@ -54,7 +54,7 @@ function memberPayload(string $role, string $email): array
 
     return $base + match ($role) {
         'etudiant' => ['birth_place' => 'Mahajanga', 'student_card_number' => 'CARTE-1', 'school' => 'IOSTM', 'filiere' => 'Informatique', 'niveau_type' => 'Université', 'niveau_detail' => 'L1', 'cin_number' => '123456789012', 'cin_issued_at' => '2015-01-10'],
-        'enseignant' => ['faculty' => 'Faculté de Droit', 'teaching_specialty' => 'Droit des affaires'],
+        'enseignant' => ['school' => 'IOSTM', 'faculty' => 'Faculté de Droit', 'teaching_specialty' => 'Droit des affaires'],
         'chercheur' => ['faculty' => 'IOSTM', 'researcher_field' => 'Océanographie', 'specialty' => 'Courants marins'],
     };
 }

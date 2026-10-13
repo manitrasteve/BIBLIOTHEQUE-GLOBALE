@@ -10,8 +10,7 @@ use App\Http\Controllers\Api\AuthorController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CourseListController;
 use App\Http\Controllers\Api\RevisionQuestionController;
-use App\Http\Controllers\Api\TeacherClassController;
-use App\Http\Controllers\Api\TeacherClassRequestController;
+use App\Http\Controllers\Api\TeacherConfigController;
 use App\Http\Controllers\Api\TeacherSubmissionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
@@ -128,10 +127,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Espace enseignant : bibliographies de cours (adressées à ses classes), suivi de lecture,
     // dépôt de supports de cours et questions de révision générées par l'IA.
     Route::middleware('role:enseignant')->group(function () {
-        // Mes classes et demandes de classe (validées par le Service Numérique).
-        Route::get('/teacher-class-requests/mine', [TeacherClassRequestController::class, 'mine']);
-        Route::post('/teacher-class-requests', [TeacherClassRequestController::class, 'store'])->middleware('throttle:10,1');
-        Route::delete('/teacher-class-requests/{classRequest}', [TeacherClassRequestController::class, 'destroy']);
+        // Paramètre de configuration : l'enseignant gère ses niveaux dans son centre.
+        Route::get('/teacher-config', [TeacherConfigController::class, 'show']);
+        Route::put('/teacher-config', [TeacherConfigController::class, 'update']);
 
         Route::get('/course-lists', [CourseListController::class, 'index']);
         Route::post('/course-lists', [CourseListController::class, 'store']);
@@ -193,12 +191,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
         Route::post('/account-requests/verify-all', [AccountRequestController::class, 'verifyAll']);
-        // Classes attribuées aux enseignants (public possible de leurs bibliographies de cours).
-        Route::get('/teachers', [TeacherClassController::class, 'index']);
-        Route::put('/teachers/{user}/classes', [TeacherClassController::class, 'update']);
-        Route::get('/teacher-class-requests', [TeacherClassRequestController::class, 'pending']);
-        Route::post('/teacher-class-requests/{classRequest}/approve', [TeacherClassRequestController::class, 'approve']);
-        Route::post('/teacher-class-requests/{classRequest}/reject', [TeacherClassRequestController::class, 'reject']);
         // Refus d'un dépôt d'enseignant (avec motif) ; l'acceptation passe par Publier / Programmer.
         Route::post('/documents/{document}/reject', [TeacherSubmissionController::class, 'reject'])->middleware('permission:publier_document');
 

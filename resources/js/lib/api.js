@@ -131,22 +131,11 @@ export const api = {
     // Questions de révision générées par l'IA à partir des pages d'un document.
     generateRevisionQuestions: (slug, data) => request(`/documents/${slug}/revision-questions`, { method: "POST", body: data }),
 
-    // Enseignant : mes classes attribuées et mes demandes de classe.
-    getMyClassRequests: () => request("/teacher-class-requests/mine"),
-    createClassRequest: (data) => request("/teacher-class-requests", { method: "POST", body: data }),
-    cancelClassRequest: (id) => request(`/teacher-class-requests/${id}`, { method: "DELETE" }),
+    // Enseignant : paramètre de configuration (niveaux assurés dans son centre).
+    getTeacherConfig: () => request("/teacher-config"),
+    updateTeacherConfig: (levels) => request("/teacher-config", { method: "PUT", body: { levels } }),
 
-    // Service Numérique : demandes de classe en attente, validation ou refus (motif).
-    getPendingClassRequests: () => request("/teacher-class-requests"),
-    approveClassRequest: (id) => request(`/teacher-class-requests/${id}/approve`, { method: "POST" }),
-    rejectClassRequest: (id, reason) => request(`/teacher-class-requests/${id}/reject`, { method: "POST", body: { reason } }),
-
-    // Service Numérique : classes des enseignants et refus d'un dépôt.
-    getTeachers: (params = {}) => {
-        const query = new URLSearchParams(params).toString();
-        return request(`/teachers${query ? `?${query}` : ""}`);
-    },
-    updateTeacherClasses: (id, classes) => request(`/teachers/${id}/classes`, { method: "PUT", body: { classes } }),
+    // Service Numérique : refus d'un dépôt d'enseignant (avec motif).
     rejectDocument: (id, reason) => request(`/documents/${id}/reject`, { method: "POST", body: { reason } }),
 
     // Profil lecteur : chiffres de lecture et catégories préférées.

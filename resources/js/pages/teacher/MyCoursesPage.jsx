@@ -84,7 +84,7 @@ export default function MyCoursesPage() {
                             className="mt-1 w-full rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm font-normal"
                         />
                     </label>
-                    <AudienceFields classes={data.classes} value={form} onChange={setForm} />
+                    <AudienceFields classes={data.classes} value={form} onChange={setForm} showFiliere={false} />
                     {formError && <p role="alert" className="rounded-lg bg-rose-50 p-2.5 text-sm text-rose-700">{formError}</p>}
                     <div className="flex justify-end">
                         <button type="submit" disabled={saving || !data.classes.length} className="btn-primary disabled:opacity-50">

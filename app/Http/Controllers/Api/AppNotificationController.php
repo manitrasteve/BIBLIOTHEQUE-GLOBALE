@@ -24,10 +24,8 @@ class AppNotificationController extends Controller
              // Réponse de l'administrateur à l'auteur : tout est dans le message ; aucun lien vers
              // les pages de gestion (/administrateur/avis…), interdites à un lecteur.
              $notification->related_url = null;
-         } elseif ($notification->type === 'classe_demandee') {
-             $notification->related_url = $request->user()->isAdmin() ? '/administrateur/enseignants' : '/bibliothecaire/enseignants';
          } elseif (in_array($notification->type, ['classe_acceptee', 'classe_refusee'], true)) {
-             $notification->related_url = '/mes-classes';
+             $notification->related_url = '/configuration';
          } elseif ($notification->type === 'lecture_recommandee') {
              $notification->related_url = '/lectures-recommandees';
          } elseif (in_array($notification->type, ['depot_publie', 'depot_refuse'], true)) {

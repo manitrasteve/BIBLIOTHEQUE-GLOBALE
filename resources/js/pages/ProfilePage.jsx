@@ -15,6 +15,13 @@ import {
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
+const CENTERS = [
+    "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",
+    "Faculté de Médecine",
+    "Faculté des sciences, technologies et de l'environnement (FSTE)",
+    "Ecoles et formations rattachées",
+];
+
 export default function ProfilePage() {
     const { user, setUser } = useAuth();
 
@@ -30,10 +37,10 @@ export default function ProfilePage() {
     const [error, setError] = useState(null);
     const [photoBusy, setPhotoBusy] = useState(false);
     const [editing, setEditing] = useState(false);
-    const [profileForm, setProfileForm] = useState({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
+    const [profileForm, setProfileForm] = useState({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', date_of_birth: user?.date_of_birth ? String(user.date_of_birth).slice(0, 10) : '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
 
     function startEditing() {
-        setProfileForm({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
+        setProfileForm({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', date_of_birth: user?.date_of_birth ? String(user.date_of_birth).slice(0, 10) : '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
         setEditing(true);
     }
 
@@ -124,13 +131,20 @@ export default function ProfilePage() {
                     <p className="mb-5 text-xs text-slate-500">Le nom, le genre, le rôle et le numéro de compte sont protégés. Seules les informations autorisées peuvent être modifiées.</p>
                     <div className="grid gap-4 md:grid-cols-2">
                         {Object.entries(profileForm).map(([key,value]) => {
-                            const labels={email:'Adresse e-mail',phone:'Téléphone',address:'Adresse',school:'École',filiere:'Parcours',niveau_type:'Type de niveau',niveau_detail:'Niveau',faculty:'Faculté / Institut',department:'Département',position:'Fonction / Grade',teaching_specialty:"Spécialité / Domaine d'enseignement",research_lab:'Laboratoire / Centre de recherche',researcher_field:'Domaine de recherche',specialty:'Spécialité',diploma:'Diplôme',workplace:'Lieu de travail',profession:'Profession / Statut',experience:'Expérience'};
+                            const labels={email:'Adresse e-mail',phone:'Téléphone',address:'Adresse',date_of_birth:'Date de naissance',school:'École',filiere:'Parcours',niveau_type:'Type de niveau',niveau_detail:'Niveau',faculty:'Faculté / Institut',department:'Département',position:'Fonction / Grade',teaching_specialty:"Spécialité / Domaine d'enseignement",research_lab:'Laboratoire / Centre de recherche',researcher_field:'Domaine de recherche',specialty:'Spécialité',diploma:'Diplôme',workplace:'Lieu de travail',profession:'Profession / Statut',experience:'Expérience'};
                             if (user?.role === 'etudiant' && ['faculty','department','position','teaching_specialty','research_lab','researcher_field','specialty','diploma','workplace','profession','experience'].includes(key)) return null;
-                            if (user?.role === 'enseignant' && ['school','filiere','niveau_type','niveau_detail','research_lab','researcher_field'].includes(key)) return null;
+                            // Enseignant : uniquement e-mail, téléphone, adresse, date de naissance, école, faculté, département, fonction, domaine d'enseignement.
+                            if (user?.role === 'enseignant' && ['filiere','niveau_type','niveau_detail','research_lab','researcher_field','specialty','diploma','workplace','profession','experience'].includes(key)) return null;
                             if (user?.role === 'chercheur' && ['school','filiere','niveau_type','niveau_detail','department','position','teaching_specialty'].includes(key)) return null;
                             // Administrateur / Service Numérique : aucun champ métier (étudiant/enseignant/chercheur) ne s'applique à ces comptes.
                             if (['administrateur','bibliothecaire'].includes(user?.role) && !['email','phone','address'].includes(key)) return null;
-                            return <label key={key} className="block"><span className="mb-1 block text-xs font-bold text-slate-500">{labels[key]||key}</span>{key==='experience'?<textarea rows="4" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"/>:<input type={key==='email'?'email':'text'} value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"/>}</label>;
+                            const inputCls="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
+                            let control;
+                            if (key==='experience') control=<textarea rows="4" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
+                            else if (key==='date_of_birth') control=<input type="date" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
+                            else if (key==='school') control=<select value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}><option value="">Choisir…</option>{CENTERS.map(c=><option key={c} value={c}>{c}</option>)}</select>;
+                            else control=<input type={key==='email'?'email':'text'} value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
+                            return <label key={key} className="block"><span className="mb-1 block text-xs font-bold text-slate-500">{labels[key]||key}</span>{control}</label>;
                         })}
                     </div>
                     <div className="mt-5 flex justify-end"><button type="submit" className="btn-primary">Enregistrer les modifications</button></div>

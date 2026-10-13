@@ -6,7 +6,6 @@ import {
     LibraryBig,
     BarChart3,
     Bot,
-    GraduationCap,
     BookOpen,
     AlertTriangle,
     UserCheck,
@@ -117,7 +116,6 @@ export default function LibrarianDashboardPage() {
                 <ShortcutCard icon={Ticket} title="Demandes de compte" description="Vérifier et traiter les demandes de création de compte." to="/bibliothecaire/tickets-comptes" />
                 <ShortcutCard icon={FileText} title="Documents" description="Gérer les livres, mémoires et documents numériques." to="/bibliothecaire/documents" />
                 <ShortcutCard icon={LibraryBig} title="Catalogue" description="Consulter les documents publiés dans la bibliothèque." to="/bibliothecaire/catalogue" />
-                <ShortcutCard icon={GraduationCap} title="Enseignants" description="Gérer les classes des enseignants." to="/bibliothecaire/enseignants" />
                 {canSeeStats && (
                     <ShortcutCard icon={BarChart3} title="Statistiques" description="Suivi des indicateurs de la bibliothèque." to="/bibliothecaire/statistiques" />
                 )}

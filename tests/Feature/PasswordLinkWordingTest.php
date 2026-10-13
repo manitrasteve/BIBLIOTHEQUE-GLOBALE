@@ -91,7 +91,7 @@ test('la création directe d\'un compte par l\'administrateur envoie un message 
     $this->actingAs($admin, 'sanctum')->postJson('/api/users/creer', [
         'library_id' => $library->id, 'role' => 'enseignant', 'last_name' => 'Rabe', 'first_name' => 'Jean', 'email' => 'enseignant.lien@example.test',
         'phone' => '0340000000', 'address' => 'Mahajanga', 'gender' => 'masculin', 'date_of_birth' => '1980-01-01',
-        'faculty' => 'IOSTM', 'teaching_specialty' => 'Informatique',
+        'school' => 'IOSTM', 'faculty' => 'IOSTM', 'teaching_specialty' => 'Informatique',
     ])->assertCreated();
 
     $html = pwdLastMail()->getHtmlBody();

@@ -89,6 +89,7 @@ test("l'administrateur peut créer un utilisateur sans envoyer de prénom", func
         'gender' => 'feminin',
         'date_of_birth' => '1980-01-01',
         'role' => 'enseignant',
+        'school' => 'IOSTM',
         'faculty' => 'Sciences',
         'teaching_specialty' => 'Physique',
     ])->assertCreated();

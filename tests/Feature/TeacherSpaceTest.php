@@ -16,7 +16,8 @@ use Laravel\Sanctum\Sanctum;
 
 function teacher(array $classes = [['ISSTM', 'L1']]): User
 {
-    $t = User::factory()->create(['role' => 'enseignant', 'is_active' => true, 'name' => 'Dr. Haja']);
+    // Le centre (users.school) est déduit de la première classe ; sans classe il reste nul.
+    $t = User::factory()->create(['role' => 'enseignant', 'is_active' => true, 'name' => 'Dr. Haja', 'school' => $classes[0][0] ?? null]);
     foreach ($classes as [$school, $level]) {
         TeacherClass::create(['user_id' => $t->id, 'school' => $school, 'level' => $level]);
     }
@@ -29,28 +30,39 @@ function student(string $school = 'ISSTM', string $level = 'L1', ?string $filier
     return User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'school' => $school, 'niveau_detail' => $level, 'filiere' => $filiere]);
 }
 
-// ------------------------------------------------------------------ Classes attribuées (Service Numérique)
+// ------------------------------------------------------------------ Paramètre de configuration (classes auto-gérées)
 
-test('le Service Numérique attribue les classes d’un enseignant', function () {
-    $librarian = User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => Library::factory()->create()->id]);
-    $t = teacher([]);
-    Sanctum::actingAs($librarian);
-
-    $this->getJson('/api/teachers')->assertOk()->assertJsonPath('data.0.id', $t->id)->assertJsonFragment(['levels' => ['L1', 'L2', 'L3', 'M1', 'M2', 'Doctorat']]);
-
-    $this->putJson("/api/teachers/{$t->id}/classes", ['classes' => [['school' => 'ISSTM', 'level' => 'L1'], ['school' => 'ISSTM', 'level' => 'L1'], ['school' => 'IUGM', 'level' => 'M1']]])
-        ->assertOk()->assertJsonCount(2);
-    $this->putJson("/api/teachers/{$t->id}/classes", ['classes' => [['school' => 'Inconnu', 'level' => 'L1']]])->assertUnprocessable();
-
-    expect($t->fresh()->teachesClass('ISSTM', 'L1'))->toBeTrue()->and($t->fresh()->teachesClass('ISSTM', 'L2'))->toBeFalse();
-});
-
-test('un enseignant ne peut pas s’attribuer des classes lui-même', function () {
-    $t = teacher([]);
+test('l’enseignant gère lui-même ses niveaux, toujours dans son centre', function () {
+    $t = User::factory()->create(['role' => 'enseignant', 'is_active' => true, 'school' => 'ISSTM']);
     Sanctum::actingAs($t);
 
-    $this->putJson("/api/teachers/{$t->id}/classes", ['classes' => [['school' => 'ISSTM', 'level' => 'L1']]])->assertForbidden();
+    $this->getJson('/api/teacher-config')->assertOk()
+        ->assertJsonPath('centre', 'ISSTM')
+        ->assertJsonFragment(['levels' => ['L1', 'L2', 'L3', 'M1', 'M2', 'Doctorat']])
+        ->assertJsonPath('selected', []);
+
+    $this->putJson('/api/teacher-config', ['levels' => ['L1', 'L1', 'M1']])->assertOk()->assertJsonCount(2, 'selected');
+    $this->putJson('/api/teacher-config', ['levels' => ['Inconnu']])->assertUnprocessable();
+
+    expect($t->fresh()->teachesClass('ISSTM', 'L1'))->toBeTrue()
+        ->and($t->fresh()->teachesClass('ISSTM', 'M1'))->toBeTrue()
+        ->and($t->fresh()->teachesClass('ISSTM', 'L2'))->toBeFalse()
+        // Les classes sont toujours rattachées au centre du compte, jamais à un autre établissement.
+        ->and($t->fresh()->teacherClasses()->pluck('school')->unique()->all())->toBe(['ISSTM']);
 });
+
+test('un enseignant sans centre ne peut pas configurer ses classes', function () {
+    $t = User::factory()->create(['role' => 'enseignant', 'is_active' => true, 'school' => null]);
+    Sanctum::actingAs($t);
+
+    $this->putJson('/api/teacher-config', ['levels' => ['L1']])->assertUnprocessable();
+});
+
+test('un étudiant ou un chercheur n’accède pas au paramètre de configuration', function (string $role) {
+    Sanctum::actingAs(User::factory()->create(['role' => $role, 'is_active' => true]));
+
+    $this->getJson('/api/teacher-config')->assertForbidden();
+})->with(['etudiant', 'chercheur']);
 
 // ------------------------------------------------------------------ Bibliographies de cours
 
