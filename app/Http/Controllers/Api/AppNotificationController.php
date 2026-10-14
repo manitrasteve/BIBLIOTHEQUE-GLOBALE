@@ -77,6 +77,17 @@ class AppNotificationController extends Controller
      return "{$base}/documents/{$document->id}/modifier";
  }
  public function unreadCount(Request $request){return response()->json(['count'=>$request->user()->appNotifications()->unread()->count()]);}
+ // Compteur + dernière notification non lue : permet au client (polling) d'afficher un toast à l'arrivée d'une nouveauté.
+ public function recent(Request $request)
+ {
+     $unread = $request->user()->appNotifications()->unread();
+     $latest = (clone $unread)->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at']);
+
+     return response()->json([
+         'count' => (clone $unread)->count(),
+         'latest' => $latest ? ['id' => $latest->id, 'title' => $latest->title, 'created_at' => $latest->created_at] : null,
+     ]);
+ }
  public function markRead(Request $request,AppNotification $appNotification){abort_unless($appNotification->user_id===$request->user()->id,403);$appNotification->markAsRead();return response()->json($appNotification);}
  public function markUnread(Request $request,AppNotification $appNotification){abort_unless($appNotification->user_id===$request->user()->id,403);$appNotification->update(['read_at'=>null]);return response()->json($appNotification);}
  public function markAllRead(Request $request){$request->user()->appNotifications()->unread()->update(['read_at'=>now()]);return response()->json(['message'=>'Toutes les notifications sont marquées comme lues.']);}

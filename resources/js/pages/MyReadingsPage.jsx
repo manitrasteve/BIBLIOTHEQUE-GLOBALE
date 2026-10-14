@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { usePageRefresh } from "../context/RefreshContext";
 import { sessionMemory } from "../lib/sessionMemory";
 import { matchesSearch } from "../lib/search";
+import EmptyState from "../components/EmptyState";
 
 function formatDate(value) {
     if (!value) return "";
@@ -76,11 +77,21 @@ export default function MyReadingsPage() {
             {result === null ? (
                 <p className="text-slate-500">Chargement…</p>
             ) : rows.length === 0 ? (
-                <div className="modern-card p-10 text-center text-slate-500">
-                    {search
-                        ? "Aucune lecture ne correspond à votre recherche."
-                        : "Vous n'avez encore lu aucun document."}
-                </div>
+                search ? (
+                    <EmptyState
+                        icon={Search}
+                        title="Aucune lecture ne correspond à votre recherche"
+                        description="Essayez un autre titre ou effacez la recherche."
+                    />
+                ) : (
+                    <EmptyState
+                        icon={BookMarked}
+                        title="Vous n'avez encore lu aucun document"
+                        description="Ouvrez un document depuis le catalogue : votre progression de lecture apparaîtra ici."
+                        actionTo="/recherche"
+                        actionLabel="Parcourir le catalogue"
+                    />
+                )
             ) : (
                 <div className="space-y-3">
                     {rows.map((row) => {

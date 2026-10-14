@@ -45,6 +45,15 @@ return [
         // Modèle rapide pour les questions simples (coût et latence réduits).
         'fast_model' => env('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite'),
 
+        // Niveau de réflexion des assistants de gestion (appel d'outils).
+        // Gemini « réfléchit » par défaut, ce qui ralentit chaque appel : on abaisse ce
+        // niveau pour accélérer les réponses. Valeurs : low | medium | high (« minimal »
+        // n'est accepté que par certains modèles — « low » est le plus bas commun à tous
+        // les modèles flash de la chaîne). Laisser vide = réflexion dynamique par défaut.
+        // Si un modèle refuse la valeur, GeminiClient réessaie automatiquement sans elle.
+        // Champ API (generateContent) : generationConfig.thinkingConfig.thinkingLevel.
+        'thinking_level' => env('GEMINI_THINKING_LEVEL', 'low'),
+
         // Modèles essayés dans l'ordre si le modèle demandé est indisponible
         // (503 surcharge, 429 quota, 404 modèle retiré). Chaîne pensée pour
         // dégrader proprement : latest → 3.8 (stable) → 3.6 (rapide) → lite.

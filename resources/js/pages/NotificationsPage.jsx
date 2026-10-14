@@ -17,6 +17,7 @@ import { api } from "../lib/api";
 import { usePageRefresh } from "../context/RefreshContext";
 import Pager from "../components/Pager";
 import { SkeletonList } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 
 const TYPE_ICONS = {
     document_publie: BookOpen,
@@ -143,15 +144,11 @@ export default function NotificationsPage() {
             {notifications === null && <SkeletonList count={5} />}
 
             {notifications?.length === 0 && (
-                <div className="rounded-xl border border-dashed border-line p-10 text-center">
-                    <Inbox
-                        className="h-6 w-6 mx-auto text-slate-400 mb-2"
-                        strokeWidth={1.5}
-                    />
-                    <p className="text-ink-soft text-sm">
-                        Aucune notification pour le moment.
-                    </p>
-                </div>
+                <EmptyState
+                    icon={Inbox}
+                    title="Aucune notification"
+                    description="Vous serez prévenu ici dès qu'une action vous concerne."
+                />
             )}
 
             {notifications?.length > 0 && (

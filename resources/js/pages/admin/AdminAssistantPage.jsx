@@ -27,6 +27,7 @@ export default function AdminAssistantPage() {
 
             <ManagementAssistantChat
                 ask={api.askAdminAssistant}
+                stream={api.askAdminAssistantStream}
                 memory={() => sessionMemory.getManagementChat("admin")}
                 setMemory={(m) => sessionMemory.setManagementChat("admin", m)}
                 examples={EXAMPLES}

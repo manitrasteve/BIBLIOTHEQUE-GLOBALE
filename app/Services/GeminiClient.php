@@ -186,6 +186,23 @@ public function batchEmbed(array $texts): array
     }
 
     /**
+     * POST generateContent avec repli sur le niveau de réflexion : certains modèles refusent
+     * le « thinkingLevel » demandé (HTTP 400). Plutôt que d'échouer, on réessaie une fois sans
+     * ce paramètre — la réflexion n'est qu'une optimisation de latence, jamais une barrière.
+     */
+    private function postContent(string $url, array $contents, array $options)
+    {
+        $response = $this->http($options['timeout'] ?? 60)->post($url, $this->payload($contents, $options));
+
+        if ($response->status() === 400 && !empty($options['thinking_level']) && str_contains(mb_strtolower((string) $response->body()), 'thinking')) {
+            unset($options['thinking_level']);
+            $response = $this->http($options['timeout'] ?? 60)->post($url, $this->payload($contents, $options));
+        }
+
+        return $response;
+    }
+
+    /**
      * Statuts pour lesquels on tente le modèle suivant : surcharge (503),
      * quota (429), erreur serveur, modèle retiré (404).
      */
@@ -244,6 +261,14 @@ public function batchEmbed(array $texts): array
         // Réponse structurée (ex. questions de révision) : JSON valide garanti par l'API.
         if (!empty($options['json'])) {
             $payload['generationConfig']['responseMimeType'] = 'application/json';
+        }
+
+        // Niveau de réflexion (Gemini 3) : abaissé pour réduire la latence des
+        // assistants. Omis si vide → réflexion dynamique par défaut du modèle.
+        if (!empty($options['thinking_level'])) {
+            $payload['generationConfig']['thinkingConfig'] = [
+                'thinkingLevel' => (string) $options['thinking_level'],
+            ];
         }
 
         if (!empty($options['system'])) {
@@ -325,11 +350,7 @@ public function batchEmbed(array $texts): array
 
         foreach ($this->modelChain($options['model'] ?? null) as $model) {
             try {
-                $response = $this->http($options['timeout'] ?? 60)
-                    ->post(
-                        "{$this->baseUrl}/models/{$model}:generateContent",
-                        $this->payload($contents, $options)
-                    );
+                $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $contents, $options);
             } catch (ConnectionException $e) {
                 // Délai dépassé / réseau : on tente le modèle suivant.
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
@@ -392,11 +413,7 @@ public function batchEmbed(array $texts): array
 
         foreach ($this->modelChain($options['model'] ?? null) as $model) {
             try {
-                $response = $this->http($options['timeout'] ?? 60)
-                    ->post(
-                        "{$this->baseUrl}/models/{$model}:generateContent",
-                        $this->payload($contents, $options)
-                    );
+                $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $contents, $options);
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
                 $this->markDown($model);
@@ -457,13 +474,19 @@ public function batchEmbed(array $texts): array
         $last = null;
 
         foreach ($this->modelChain($options['model'] ?? null) as $model) {
+            $url = "{$this->baseUrl}/models/{$model}:streamGenerateContent?alt=sse";
             try {
                 $response = $this->http($options['timeout'] ?? 90)
                     ->withOptions(['stream' => true])
-                    ->post(
-                        "{$this->baseUrl}/models/{$model}:streamGenerateContent?alt=sse",
-                        $this->payload($contents, $options)
-                    );
+                    ->post($url, $this->payload($contents, $options));
+
+                // Repli : un modèle peut refuser le niveau de réflexion (400). On réessaie sans.
+                if ($response->status() === 400 && !empty($options['thinking_level']) && str_contains(mb_strtolower((string) $response->body()), 'thinking')) {
+                    unset($options['thinking_level']);
+                    $response = $this->http($options['timeout'] ?? 90)
+                        ->withOptions(['stream' => true])
+                        ->post($url, $this->payload($contents, $options));
+                }
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
                 $this->markDown($model);

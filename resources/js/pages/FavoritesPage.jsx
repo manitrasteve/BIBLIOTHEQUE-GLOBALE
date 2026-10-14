@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { api } from "../lib/api";
 import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../components/CatalogueCard";
 import Pager from "../components/Pager";
+import EmptyState from "../components/EmptyState";
 import { usePageRefresh } from "../context/RefreshContext";
 import { useFavoriteToggle } from "../lib/useFavoriteToggle";
 
@@ -116,9 +117,13 @@ export default function FavoritesPage() {
             {items === null ? (
                 <p className="text-slate-500">Chargement…</p>
             ) : visible.length === 0 ? (
-                <div className="modern-card p-10 text-center text-slate-500">
-                    Aucun document dans vos favoris.
-                </div>
+                <EmptyState
+                    icon={Heart}
+                    title="Aucun favori pour l'instant"
+                    description="Ajoutez un document à vos favoris pour le retrouver ici en un clic."
+                    actionTo="/recherche"
+                    actionLabel="Parcourir le catalogue"
+                />
             ) : (
                 <div className={CATALOGUE_GRID_CLASS}>
                     {visible.map((item) => (

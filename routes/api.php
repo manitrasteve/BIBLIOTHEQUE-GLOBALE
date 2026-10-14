@@ -159,6 +159,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/notifications', [AppNotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [AppNotificationController::class, 'unreadCount']);
+    Route::get('/notifications/recent', [AppNotificationController::class, 'recent']);
     // Badges du menu latéral (éléments à traiter / non lus).
     Route::get('/nav-badges', NavBadgeController::class);
     Route::post('/notifications/{appNotification}/read', [AppNotificationController::class, 'markRead']);
@@ -187,6 +188,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::post('/assistant/librarian', [LibrarianAssistantController::class, 'ask'])->middleware(['role:bibliothecaire', 'throttle:20,1']);
+    Route::post('/assistant/librarian/stream', [LibrarianAssistantController::class, 'askStream'])->middleware(['role:bibliothecaire', 'throttle:20,1']);
 
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
@@ -266,6 +268,7 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::delete('/users/{user}', [UserController::class, 'destroy']);
        // Assistant IA de gestion : administrateur uniquement, limité pour maîtriser les appels Gemini.
        Route::post('/assistant/admin', [AdminAssistantController::class, 'ask'])->middleware('throttle:20,1');
+       Route::post('/assistant/admin/stream', [AdminAssistantController::class, 'askStream'])->middleware('throttle:20,1');
        Route::get('/librarians', [LibrarianManagementController::class, 'index']);
        Route::post('/librarians', [LibrarianManagementController::class, 'store']);
        Route::post('/librarians/{librarian}/resend-setup-link', [LibrarianManagementController::class, 'resendSetupLink']);

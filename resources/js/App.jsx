@@ -14,6 +14,7 @@ import PageLoader from "./components/PageLoader";
 import PageErrorBoundary from "./components/PageErrorBoundary";
 import UserLayout from "./components/UserLayout";
 import ScrollProgressButton from "./components/ScrollProgressButton";
+import CommandPalette from "./components/CommandPalette";
 import NotFoundPage from "./pages/NotFoundPage";
 
 import HomePage from "./pages/HomePage";
@@ -403,6 +404,7 @@ export default function App() {
                     </main>
                     <HomeOnlyFooter />
                     <ScrollProgressButton />
+                    <CommandPalette />
                 </div>
                 </ConfirmProvider>
                 </ToastProvider>

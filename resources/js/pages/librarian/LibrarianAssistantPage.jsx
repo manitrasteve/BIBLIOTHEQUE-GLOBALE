@@ -29,6 +29,7 @@ export default function LibrarianAssistantPage() {
 
             <ManagementAssistantChat
                 ask={api.askLibrarianAssistant}
+                stream={api.askLibrarianAssistantStream}
                 memory={() => sessionMemory.getManagementChat("librarian")}
                 setMemory={(m) => sessionMemory.setManagementChat("librarian", m)}
                 examples={EXAMPLES}

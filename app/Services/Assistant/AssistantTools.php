@@ -34,6 +34,9 @@ class AssistantTools
     private const USER_ACTIONS = ['creation_compte', 'validation_compte', 'desactivation_compte', 'reactivation_compte', 'suppression_utilisateur', 'restauration_utilisateur', 'suppression_definitive_utilisateur', 'creation_bibliothecaire', 'classes_enseignant_modifiees'];
     private const ADMIN_ONLY_ACTIONS = ['permissions_modifiees', 'vidage_corbeille'];
 
+    // Mouvements des membres (activité, non gestion). Réservés à l'administrateur.
+    private const MEMBER_ACTIONS = ['connexion', 'consultation_document', 'question_ia', 'recherche', 'ajout_favori', 'retrait_favori'];
+
     private const ACTION_LABELS = [
         'creation_document' => 'Document ajouté', 'modification_document' => 'Document modifié', 'publication_document' => 'Document publié', 'programmation_document' => 'Publication programmée', 'annulation_programmation_document' => 'Programmation annulée',
         'archivage_document' => 'Document archivé', 'suppression_document' => 'Document supprimé', 'restauration_document' => 'Document restauré',
@@ -55,7 +58,7 @@ class AssistantTools
     // Libellés des actions propres à l'historique PERSONNEL (les autres codes sont affichés sous une forme lisible).
     private const OWN_ACTION_LABELS = [
         'connexion' => 'Connexion', 'consultation_document' => "Consultation d'un document", 'question_ia' => "Question à l'assistant IA",
-        'ajout_favori' => 'Ajout aux favoris', 'retrait_favori' => 'Retrait des favoris',
+        'ajout_favori' => 'Ajout aux favoris', 'retrait_favori' => 'Retrait des favoris', 'recherche' => 'Recherche',
     ];
 
     public function __construct(private readonly AssistantScope $scope)
@@ -133,6 +136,17 @@ class AssistantTools
                     'periode' => $enum('« tout » = tout l\'historique (par défaut) ; « aujourdhui » = les actions du jour.', ['tout', 'aujourdhui']),
                 ] + $dates],
             ],
+            // Mouvements des membres (consultations, connexions, questions IA, recherches, favoris) : administrateur uniquement.
+            // $admin = isGlobal() (vrai aussi pour le bibliothécaire) : on gate ici sur le VRAI rôle admin.
+            ...($this->scope->isAdmin() ? [[
+                'name' => 'rechercher_activite_membres',
+                'description' => "Activité et mouvements des MEMBRES (étudiants, enseignants, chercheurs) : consultations de documents, connexions, questions posées à l'assistant documentaire, recherches dans le catalogue, ajouts/retraits de favoris. Donne le total, le détail par type de mouvement et la liste récente (qui, quoi, quand). À utiliser pour « qui a consulté… », « combien de consultations/connexions », « mouvements dans la bibliothèque », « activité des membres ».",
+                'parameters' => ['type' => 'OBJECT', 'properties' => [
+                    'type_mouvement' => $enum('Type de mouvement à filtrer.', self::MEMBER_ACTIONS),
+                    'membre' => $string('Nom (ou partie du nom) du membre concerné.'),
+                    'document' => $string('Titre (ou partie) du document concerné (consultation, question IA, favori).'),
+                ] + $library + $dates],
+            ]] : []),
             [
                 'name' => 'aucune_donnee_necessaire',
                 'description' => 'À utiliser UNIQUEMENT pour une salutation, un remerciement ou une question sur ce que l\'assistant sait faire. Interdit dès que la question porte sur des documents, bibliothèques, actions ou utilisateurs.',
@@ -155,6 +169,7 @@ class AssistantTools
                 'rechercher_bibliotheques' => $this->rechercherBibliotheques($args),
                 'lister_bibliothecaires' => $this->listerBibliothecaires($args),
                 'mon_historique' => $this->monHistorique($args),
+                'rechercher_activite_membres' => $this->rechercherActiviteMembres($args),
                 'aucune_donnee_necessaire' => $this->aucuneDonnee(),
                 default => ['erreur' => "Outil inconnu : {$name}."],
             };
@@ -410,11 +425,86 @@ class AssistantTools
         ];
     }
 
+    /**
+     * Mouvements des MEMBRES (consultations, connexions, questions IA, recherches, favoris).
+     * Réservé à l'administrateur : garde défensive en plus de la déclaration (l'outil n'existe pas pour le bibliothécaire).
+     */
+    private function rechercherActiviteMembres(array $args): array
+    {
+        if (!$this->scope->isAdmin()) {
+            return ['trouve' => false, 'hors_perimetre' => true, 'message' => "Les mouvements des membres sont réservés à l'administrateur."];
+        }
+
+        [$ids, $error] = $this->libraryIds($this->text($args, 'bibliotheque'));
+        if ($error) {
+            return $error;
+        }
+
+        $query = ActivityLog::query()->whereIn('action', self::MEMBER_ACTIONS);
+        $filters = [];
+
+        // Périmètre bibliothèque : les connexions et recherches n'ont pas de bibliothèque, donc exclues si un périmètre est imposé.
+        if ($ids !== null) {
+            $query->whereIn('library_id', $ids);
+        }
+
+        if ($action = $this->choice($args, 'type_mouvement', self::MEMBER_ACTIONS)) {
+            $query->where('action', $action);
+            $filters['type_mouvement'] = self::OWN_ACTION_LABELS[$action] ?? $action;
+        }
+        if ($document = $this->text($args, 'document')) {
+            $query->where('subject_label', 'like', "%{$document}%");
+            $filters['document'] = $document;
+        }
+        if ($member = $this->text($args, 'membre')) {
+            $query->whereHas('user', fn ($q) => $q->where('name', 'like', "%{$member}%"));
+            $filters['membre'] = $member;
+        }
+        if ($range = $this->dateRange($args)) {
+            $query->whereBetween('created_at', $range);
+            $filters['entre'] = [$this->local($range[0]), $this->local($range[1])];
+        }
+
+        $total = (clone $query)->count();
+
+        if ($total === 0) {
+            return ['trouve' => false, 'total' => 0, 'filtres' => $filters, 'message' => 'Aucun mouvement de membre trouvé dans les données disponibles.', 'perimetre' => $this->perimeter($ids)];
+        }
+
+        $label = fn (string $action) => self::OWN_ACTION_LABELS[$action] ?? Str::ucfirst(str_replace('_', ' ', $action));
+        $byAction = (clone $query)->selectRaw('action, COUNT(*) as total')->groupBy('action')->orderByDesc('total')->pluck('total', 'action');
+        $logs = $query->with(['user:id,name,role', 'library:id,name'])->orderByDesc('created_at')->orderByDesc('id')->limit(self::LOG_LIMIT)->get();
+
+        return [
+            'trouve' => true,
+            'total' => $total,
+            'affiches' => $logs->count(),
+            'par_type_mouvement' => $byAction->mapWithKeys(fn ($n, $a) => [$label($a) => (int) $n])->all(),
+            'mouvements' => $logs->map(fn (ActivityLog $l) => [
+                'mouvement' => $label($l->action),
+                'membre' => $l->user?->name ?? 'Utilisateur inconnu ou supprimé',
+                'role_membre' => $l->user?->role,
+                'element' => $l->subject_label,
+                'bibliotheque' => $l->library?->name,
+                'date' => $this->local($l->created_at, 'Y-m-d'),
+                'heure' => $this->local($l->created_at, 'H:i'),
+            ])->all(),
+            'filtres' => $filters,
+            'perimetre' => $this->perimeter($ids),
+        ];
+    }
+
     private function aucuneDonnee(): array
     {
         return [
             'info' => "Aucune donnée n'a été consultée. Réponds seulement à une salutation ou présente ce que tu sais faire ; toute question sur les données doit passer par un outil.",
-            'capacites' => ['compter et répartir les documents', 'rechercher des documents', "consulter l'historique d'un document", 'rechercher les actions de gestion (documents, bibliothèques, comptes)', 'lister les bibliothèques', 'lister les bibliothécaires (nombre, noms, date de création des comptes)', 'consulter votre propre historique (tout, aujourd\'hui ou une date)'],
+            'capacites' => [
+                'compter et répartir les documents', 'rechercher des documents', "consulter l'historique d'un document",
+                'rechercher les actions de gestion (documents, bibliothèques, comptes)', 'lister les bibliothèques',
+                'lister les bibliothécaires (nombre, noms, date de création des comptes)',
+                'consulter votre propre historique (tout, aujourd\'hui ou une date)',
+                ...($this->scope->isAdmin() ? ['consulter les mouvements des membres : consultations, connexions, questions IA, recherches, favoris'] : []),
+            ],
         ];
     }
 

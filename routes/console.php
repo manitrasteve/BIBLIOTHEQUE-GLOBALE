@@ -21,3 +21,13 @@ Artisan::command('documents:publier-programmes', function () {
 })->purpose('Publie les documents programmés dont la date de publication est passée');
 
 \Illuminate\Support\Facades\Schedule::command('documents:publier-programmes')->everyMinute()->withoutOverlapping();
+
+// Digest hebdomadaire des membres (nouveautés + reprise de lecture), envoyé le lundi matin.
+Artisan::command('digest:hebdomadaire', function (\App\Services\WeeklyDigest $digest) {
+    $this->info($digest->sendAll() . ' digest(s) envoyé(s).');
+})->purpose('Envoie le digest hebdomadaire aux membres actifs');
+
+\Illuminate\Support\Facades\Schedule::command('digest:hebdomadaire')
+    ->weeklyOn(1, '08:00')
+    ->timezone(config('app.display_timezone', 'Indian/Antananarivo'))
+    ->withoutOverlapping();

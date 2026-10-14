@@ -692,6 +692,24 @@ tbody tr:hover {
     .ai-typing-dots span { animation: none; }
 }
 
+/* Curseur clignotant pendant qu'une réponse se streame mot à mot. */
+.ai-stream-caret {
+    display: inline-block;
+    width: 0.5em;
+    height: 1em;
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    background: currentColor;
+    opacity: 0.6;
+    animation: ai-caret-blink 1s steps(1) infinite;
+}
+@keyframes ai-caret-blink {
+    50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ai-stream-caret { animation: none; }
+}
+
 /* ===== Accessibilité ===== */
 
 /* Focus clavier toujours visible sur les éléments interactifs (la souris n'en déclenche pas :

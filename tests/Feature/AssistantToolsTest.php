@@ -259,13 +259,51 @@ test('les déclarations d\'outils : le bibliothécaire a désormais le même pé
     $adminNames = collect(toolsFor($w->admin)->declarations())->pluck('name')->all();
     $librarianDeclarations = collect(toolsFor($w->librarianA)->declarations());
 
-    expect($adminNames)->toBe(['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'lister_bibliothecaires', 'mon_historique', 'aucune_donnee_necessaire']);
+    expect($adminNames)->toBe(['compter_documents', 'repartition_documents', 'rechercher_documents', 'historique_document', 'rechercher_actions', 'rechercher_bibliotheques', 'lister_bibliothecaires', 'mon_historique', 'rechercher_activite_membres', 'aucune_donnee_necessaire']);
     expect(json_encode(toolsFor($w->admin)->declarations()))->toContain('"bibliotheque"')->toContain('permissions_modifiees');
     // Le bibliothécaire a désormais aussi le paramètre « bibliotheque » (compte global)...
     expect(json_encode($librarianDeclarations->all()))->toContain('"bibliotheque"')
         // ... mais jamais les actions réservées à l'administrateur (RBAC, inchangé).
-        ->not->toContain('permissions_modifiees')->not->toContain('vidage_corbeille');
+        ->not->toContain('permissions_modifiees')->not->toContain('vidage_corbeille')
+        // ... ni l'outil de mouvements des membres (réservé à l'administrateur).
+        ->not->toContain('rechercher_activite_membres');
+    expect($librarianDeclarations->pluck('name')->all())->not->toContain('rechercher_activite_membres');
     // Aucun paramètre ne permet de fournir un identifiant, pour aucun rôle.
     expect(json_encode(toolsFor($w->admin)->declarations()))->not->toContain('library_id')->not->toContain('user_id');
     expect(json_encode($librarianDeclarations->all()))->not->toContain('library_id')->not->toContain('user_id');
+});
+
+// ---------- Mouvements des membres (administrateur uniquement) ----------
+
+test('l\'administrateur consulte les mouvements des membres ; le bibliothécaire n\'y a pas accès', function () {
+    $w = toolsWorld();
+
+    $membre = User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'name' => 'Koto Rakoto', 'library_id' => $w->a->id]);
+
+    // Mouvements variés d'un membre (consultation, question IA, recherche, favori, connexion).
+    ActivityLogService::log($membre->id, 'consultation_document', $w->algo->title, $w->algo);
+    ActivityLogService::log($membre->id, 'question_ia', 'Quel est le sujet ?', $w->algo);
+    ActivityLogService::log($membre->id, 'ajout_favori', $w->algo->title, $w->algo);
+    ActivityLogService::log($membre->id, 'recherche', 'algorithmique');
+    ActivityLogService::log($membre->id, 'connexion');
+
+    // Admin : total, détail par type de mouvement et liste.
+    $all = toolsFor($w->admin)->run('rechercher_activite_membres', []);
+    expect($all['trouve'])->toBeTrue()
+        ->and($all['total'])->toBe(5)
+        ->and($all['par_type_mouvement'])->toHaveKey("Consultation d'un document")
+        ->and(collect($all['mouvements'])->pluck('membre'))->toContain('Koto Rakoto');
+
+    // Filtre par type de mouvement.
+    $consult = toolsFor($w->admin)->run('rechercher_activite_membres', ['type_mouvement' => 'consultation_document']);
+    expect($consult['total'])->toBe(1)
+        ->and($consult['mouvements'][0]['element'])->toBe($w->algo->title);
+
+    // Filtre par membre.
+    expect(toolsFor($w->admin)->run('rechercher_activite_membres', ['membre' => 'Koto'])['total'])->toBe(5);
+
+    // Bibliothécaire : outil absent des déclarations ET garde défensive à l'exécution.
+    $guard = toolsFor($w->librarianA)->run('rechercher_activite_membres', []);
+    expect($guard)->toHaveKey('hors_perimetre')
+        ->and($guard['hors_perimetre'])->toBeTrue();
 });

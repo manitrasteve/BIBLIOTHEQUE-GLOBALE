@@ -62,7 +62,7 @@ function Sources({ sources }) {
  * Chat de l'assistant de gestion. Le serveur impose le périmètre : ce composant n'envoie
  * que la question et un court historique texte (mémoire en RAM, perdue au rechargement).
  */
-export default function ManagementAssistantChat({ ask, memory, setMemory, examples, placeholder }) {
+export default function ManagementAssistantChat({ ask, stream, memory, setMemory, examples, placeholder }) {
     const [messages, setMessages] = useState(() => memory());
     const [question, setQuestion] = useState("");
     const [loading, setLoading] = useState(false);
@@ -99,14 +99,37 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
             .filter((m) => m.text.trim() !== "");
 
         const withQuestion = [...messages, { role: "user", text: q }];
-        commit(withQuestion);
+        // Un message « modèle » vide en cours de flux : il se remplit mot à mot.
+        commit([...withQuestion, { role: "model", text: "", streaming: true }]);
         setQuestion("");
         setLoading(true);
 
+        // Ajoute un fragment au dernier message (le message en cours de streaming).
+        const appendDelta = (delta) =>
+            setMessages((prev) => {
+                const next = prev.slice();
+                const last = next[next.length - 1];
+                if (last && last.role === "model" && last.streaming) {
+                    next[next.length - 1] = { ...last, text: (last.text || "") + delta };
+                }
+                return next;
+            });
+
         let reply;
         try {
-            const res = await ask(q, history);
-            reply = { role: "model", text: res.answer, sources: res.sources, error: res.ok === false };
+            if (stream) {
+                let acc = "";
+                const res = await stream(q, history, {
+                    onDelta: (d) => {
+                        acc += d;
+                        if (alive.current) appendDelta(d);
+                    },
+                });
+                reply = { role: "model", text: acc, sources: res?.sources, error: res?.ok === false };
+            } else {
+                const res = await ask(q, history);
+                reply = { role: "model", text: res.answer, sources: res.sources, error: res.ok === false };
+            }
         } catch (e) {
             const text =
                 e.status === 403
@@ -115,7 +138,9 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                       ? "Trop de questions en peu de temps. Patientez une minute puis réessayez."
                       : e.status === 422
                         ? e.data?.errors?.question?.[0] || "Question invalide : elle doit contenir entre 1 et 1000 caractères."
-                        : "Impossible de joindre l'assistant. Vérifiez votre connexion et réessayez.";
+                        : e.streamed
+                          ? e.message || "La réponse a été interrompue."
+                          : "Impossible de joindre l'assistant. Vérifiez votre connexion et réessayez.";
             reply = { role: "model", text, error: true };
         }
 
@@ -134,6 +159,11 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
         commit([]);
         setQuestion("");
     }
+
+    // Pendant le flux : tant que le dernier message « modèle » n'a pas encore de texte, on montre
+    // l'indicateur « Consultation… » ; dès que les fragments arrivent, c'est le message qui s'affiche.
+    const last = messages[messages.length - 1];
+    const streamingWithText = last?.role === "model" && last?.streaming && !!last?.text;
 
     return (
         <div className="flex flex-col">
@@ -178,7 +208,7 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                                 {m.text}
                             </div>
                         </div>
-                    ) : (
+                    ) : m.streaming && !m.text ? null : (
                         <div key={i} className="flex justify-start">
                             <div
                                 className={`max-w-[92%] break-words rounded-2xl rounded-bl-md border px-4 py-3 text-sm text-slate-950 ${
@@ -186,13 +216,14 @@ export default function ManagementAssistantChat({ ask, memory, setMemory, exampl
                                 }`}
                             >
                                 <AnswerText text={m.text} />
+                                {m.streaming && <span className="ai-stream-caret" aria-hidden="true" />}
                                 <Sources sources={m.sources} />
                             </div>
                         </div>
                     ),
                 )}
 
-                {loading && (
+                {loading && !streamingWithText && (
                     <div className="flex justify-start">
                         <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-surface px-4 py-3 text-sm text-ink-soft">
                             Consultation des données…

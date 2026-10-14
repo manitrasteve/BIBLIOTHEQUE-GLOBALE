@@ -166,3 +166,52 @@ test('une question sans réponse dans les données est signalée comme telle à 
     expect($response->json('sources.0'))->toMatchArray(['trouve' => false, 'total' => 0]);
     expect(json_encode(Http::recorded()[1][0]->data()['contents'][2], JSON_UNESCAPED_UNICODE))->toContain('"trouve":false');
 });
+
+test('le flux SSE de l\'assistant de gestion streame la réponse puis les sources consultées', function () {
+    $w = adminAssistantWorld();
+    Document::factory()->count(3)->create(['status' => 'brouillon']);
+
+    $sse = "data: " . json_encode(['candidates' => [['content' => ['parts' => [['text' => 'Il y a ']]]]]]) . "\r\n\r\n"
+         . "data: " . json_encode(['candidates' => [['content' => ['parts' => [['text' => '3 brouillons.']]]]]]) . "\r\n\r\n";
+
+    Http::fake([
+        '*:streamGenerateContent*' => Http::response($sse, 200, ['Content-Type' => 'text/event-stream']),
+        '*:generateContent*' => Http::response(adminCall('compter_documents', ['statut' => 'brouillon'])),
+    ]);
+    Sanctum::actingAs($w->admin);
+
+    $body = $this->post('/api/assistant/admin/stream', ['question' => 'Combien de brouillons ?'], ['Accept' => 'text/event-stream'])
+        ->assertOk()
+        ->streamedContent();
+
+    expect($body)->toContain('event: delta')
+        ->and($body)->toContain('3 brouillons.')
+        ->and($body)->toContain('event: done')
+        ->and($body)->toContain('Comptage des documents'); // libellé de la source dans l'événement « done »
+});
+
+test('le flux SSE de gestion est fermé aux rôles non administrateurs', function () {
+    $w = adminAssistantWorld();
+    Http::fake();
+
+    Sanctum::actingAs(User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'library_id' => $w->a->id]));
+    $this->post('/api/assistant/admin/stream', ['question' => 'Combien de documents ?'])->assertForbidden();
+
+    Http::assertNothingSent();
+});
+
+test('un niveau de réflexion refusé (400) déclenche un repli sans réflexion, sans casser l\'assistant', function () {
+    $w = adminAssistantWorld();
+    config(['services.gemini.thinking_level' => 'minimal']); // valeur refusée par le modèle simulé
+    Document::factory()->count(2)->create(['status' => 'brouillon']);
+
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::sequence()
+        ->push(['error' => ['message' => 'Thinking level MINIMAL is not supported for this model.']], 400)
+        ->push(adminCall('compter_documents', ['statut' => 'brouillon']))
+        ->push(adminText('Il y a 2 brouillons.'))]);
+    Sanctum::actingAs($w->admin);
+
+    $response = $this->postJson('/api/assistant/admin', ['question' => 'Combien de brouillons ?'])->assertOk();
+
+    expect($response->json('answer'))->toBe('Il y a 2 brouillons.')->and($response->json('ok'))->toBeTrue();
+});
