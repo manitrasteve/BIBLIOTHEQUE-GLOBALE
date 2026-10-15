@@ -17,14 +17,33 @@ import {
     LibraryBig,
     Home,
     MonitorDown,
+    Search,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { useInstallAction } from "./InstallApp";
+import { CommandPaletteButton, openCommandPalette } from "./CommandPalette";
 import { installPrefs } from "../lib/pwaInstall";
 
 // Badge « Nouveau » de la ligne « Installer l'application » : affiché jusqu'au premier clic.
 const INSTALL_SEEN_KEY = "bm_install_menu_seen";
+
+// Menu ☰ sur téléphone : accès à la recherche rapide (le bouton de l'en-tête n'y est pas affiché).
+function QuickSearchMenuItem({ onSelect }) {
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                onSelect();
+                openCommandPalette();
+            }}
+            className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep sm:hidden"
+        >
+            <Search className="h-4 w-4" />
+            Recherche rapide
+        </button>
+    );
+}
 import { isWorkspacePath } from "../lib/layout";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
@@ -437,6 +456,9 @@ export default function Header() {
                             ====================================================== */
 
                             <>
+                                {/* Recherche rapide (⌘K / Ctrl+K) */}
+                                <CommandPaletteButton />
+
                                 {/* Lune */}
                                 <ThemeToggle />
 
@@ -468,6 +490,8 @@ export default function Header() {
 
                                     {menuOpen && (
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
+                                            <QuickSearchMenuItem onSelect={() => setMenuOpen(false)} />
+
                                             {/* Accueil (membres) ou Catalogue (personnel) */}
                                             <Link
                                                 to={catalogueLink}
@@ -539,6 +563,9 @@ export default function Header() {
                             ====================================================== */
 
                             <>
+                                {/* Recherche rapide (⌘K / Ctrl+K) */}
+                                {user && <CommandPaletteButton />}
+
                                 {/* Lune */}
                                 <ThemeToggle />
 
@@ -574,6 +601,8 @@ export default function Header() {
 
                                     {menuOpen && (
                                         <div className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-surface p-2 ">
+                                            <QuickSearchMenuItem onSelect={() => setMenuOpen(false)} />
+
                                             {/* Accueil (membres) ou Catalogue (personnel) */}
                                             <Link
                                                 to={catalogueLink}
