@@ -15,6 +15,7 @@ import PageErrorBoundary from "./components/PageErrorBoundary";
 import UserLayout from "./components/UserLayout";
 import ScrollProgressButton from "./components/ScrollProgressButton";
 import CommandPalette from "./components/CommandPalette";
+import { InstallBanner } from "./components/InstallApp";
 import NotFoundPage from "./pages/NotFoundPage";
 
 import HomePage from "./pages/HomePage";
@@ -403,6 +404,7 @@ export default function App() {
                         </PageBoundary>
                     </main>
                     <HomeOnlyFooter />
+                    <InstallBanner />
                     <ScrollProgressButton />
                     <CommandPalette />
                 </div>

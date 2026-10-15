@@ -436,7 +436,11 @@ export const api = {
     // Notifications
     // ---------------------------------------------------------
 
-    getNotifications: (page = 1) => request(`/notifications?page=${page}`),
+    // filters : { search, date, weekday, time_from, time_to } (valeurs vides ignorées).
+    getNotifications: (page = 1, filters = {}) => {
+        const query = new URLSearchParams({ page, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== "" && v != null)) });
+        return request(`/notifications?${query}`);
+    },
 
     getUnreadNotificationCount: () => request("/notifications/unread-count"),
 
@@ -827,7 +831,11 @@ export const api = {
     // Messages utilisateur
     // ---------------------------------------------------------
 
-    getMessages: (page = 1) => request(`/messages?page=${page}`),
+    // filters : { search, sender_role, date, time_from, time_to, weekday } (valeurs vides ignorées).
+    getMessages: (page = 1, filters = {}) => {
+        const query = new URLSearchParams({ page, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== "" && v != null)) });
+        return request(`/messages?${query}`);
+    },
 
     markMessageRead: (id) =>
         request(`/messages/${id}/read`, {
@@ -998,8 +1006,14 @@ export const api = {
     // Journal d'activité
     // ---------------------------------------------------------
 
+    // Valeurs vides ignorées ; un tableau (ex. actions) est envoyé en actions[]=…
     getActivityLogs: (params = {}) => {
-        const query = new URLSearchParams(params).toString();
+        const search = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (Array.isArray(value)) value.forEach((v) => search.append(`${key}[]`, v));
+            else if (value !== "" && value != null) search.append(key, value);
+        });
+        const query = search.toString();
 
         return request(`/activity-logs${query ? `?${query}` : ""}`);
     },

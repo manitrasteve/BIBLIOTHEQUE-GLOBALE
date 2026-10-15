@@ -8,6 +8,19 @@ import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
 
+// Libellés des types (mêmes listes que FeedbackPage / ProblemReportPage).
+const FEEDBACK_TYPES = { general: "Opinion générale", suggestion: "Suggestion", bug: "Bug", document: "Problème document", ai: "Problème IA", autre: "Autre" };
+const REPORT_TYPES = {
+    login: "Connexion", profile: "Profil", email: "E-mail", password: "Mot de passe", document: "Lecture d'un document",
+    ai: "Assistant IA", favorites: "Favoris", notifications: "Notifications", display: "Affichage", autre: "Autre",
+};
+
+// « Autre » : le type précisé par l'utilisateur est affiché à la place.
+function typeLabel(row, isFeedback) {
+    if (row.type === "autre" && row.custom_type) return `Autre : ${row.custom_type}`;
+    return (isFeedback ? FEEDBACK_TYPES : REPORT_TYPES)[row.type] || row.type;
+}
+
 function Inbox({ kind }) {
     const confirm = useConfirm();
     const toast = useToast();
@@ -168,7 +181,12 @@ function Inbox({ kind }) {
                 rows.map((r) => (
                     <div key={r.id} className="modern-card p-5 mb-3">
                         <div className="flex justify-between gap-4">
-                            <div>
+                            <div className="min-w-0">
+                                {r.type && (
+                                    <span className="mb-1.5 inline-block max-w-full truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                                        {typeLabel(r, isFeedback)}
+                                    </span>
+                                )}
                                 <p className="font-bold">{r.subject}</p>
                                 <p className="text-xs text-slate-500">
                                     {r.user?.name} ·{" "}

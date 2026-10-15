@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     BookOpen,
@@ -12,8 +12,12 @@ import {
     Pencil,
     Archive,
     Trash2,
+    Search,
+    SlidersHorizontal,
+    X,
 } from "lucide-react";
 import { api } from "../lib/api";
+import LocalTimeFilters, { EMPTY_TIME_FILTERS } from "../components/LocalTimeFilters";
 import { usePageRefresh } from "../context/RefreshContext";
 import Pager from "../components/Pager";
 import { SkeletonList } from "../components/Skeleton";
@@ -43,7 +47,9 @@ function timeAgo(dateStr) {
     if (diff < 60) return "à l'instant";
     if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-    return new Date(dateStr).toLocaleDateString("fr-FR");
+    // Au-delà d'un jour : date ET heure (utile avec le filtre « Heure de réception »).
+    const date = new Date(dateStr);
+    return `${date.toLocaleDateString("fr-FR")} à ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 export default function NotificationsPage() {
@@ -53,27 +59,55 @@ export default function NotificationsPage() {
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState(null);
     const navigate = useNavigate();
+    // Recherche (envoyée après une courte pause de frappe) et filtres, appliqués par le serveur sur toutes les pages.
+    const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [filters, setFilters] = useState(EMPTY_TIME_FILTERS);
+    const [showFilters, setShowFilters] = useState(false);
 
+    const activeFilterCount = Object.values(filters).filter(Boolean).length;
+    const isFiltering = Boolean(debouncedSearch.trim()) || activeFilterCount > 0;
+
+    // Nouvelle recherche : retour à la première page (dans la même mise à jour : une seule requête).
     useEffect(() => {
-        load();
-    }, [page]);
+        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+        return () => clearTimeout(t);
+    }, [search]);
 
-    usePageRefresh(() => api.getNotifications(page).then((res) => {
+    // Seule la réponse de la dernière requête est affichée (frappe rapide, changements de filtres successifs).
+    const requestRef = useRef(0);
+    async function fetchNotifications() {
+        const requestId = ++requestRef.current;
+        const res = await api.getNotifications(page, { search: debouncedSearch.trim(), ...filters });
+        if (requestId !== requestRef.current) return;
         setNotifications(res.data);
         setMeta(res);
         setError(null);
-    }));
+    }
+
+    useEffect(() => {
+        load();
+    }, [page, debouncedSearch, filters]);
+
+    usePageRefresh(fetchNotifications);
 
     function load() {
-        api.getNotifications(page)
-            .then((res) => {
-                setNotifications(res.data);
-                setMeta(res);
-            })
-            .catch(() => {
-                setError("Impossible de charger vos notifications.");
-                setNotifications((prev) => prev ?? []);
-            });
+        fetchNotifications().catch(() => {
+            setError("Impossible de charger vos notifications.");
+            setNotifications((prev) => prev ?? []);
+        });
+    }
+
+    function setFilter(key, value) {
+        setFilters((current) => ({ ...current, [key]: value }));
+        setPage(1);
+    }
+
+    function resetFilters() {
+        setSearch("");
+        setDebouncedSearch("");
+        setFilters(EMPTY_TIME_FILTERS);
+        setPage(1);
     }
 
     async function openNotification(notification) {
@@ -139,16 +173,65 @@ export default function NotificationsPage() {
                 )}
             </div>
 
+            {/* Recherche + filtres */}
+            <div className="mb-5 space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative min-w-0 flex-1">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Rechercher une notification…"
+                            aria-label="Rechercher dans mes notifications"
+                            className="w-full rounded-xl border border-slate-200 bg-surface py-2.5 pl-9 pr-3 text-sm"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters((v) => !v)}
+                        aria-expanded={showFilters}
+                        className={`btn-secondary shrink-0 justify-center ${activeFilterCount ? "border-brass text-brass-deep" : ""}`}
+                    >
+                        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                        Filtres{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                    </button>
+                </div>
+
+                {showFilters && (
+                    <div className="modern-card grid gap-3 p-4 sm:grid-cols-3">
+                        <LocalTimeFilters value={filters} onChange={setFilter} timeLabel="Heure de réception" />
+                    </div>
+                )}
+
+                {isFiltering && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
+                        <span>{meta?.total != null ? `${meta.total} notification${meta.total > 1 ? "s" : ""} trouvée${meta.total > 1 ? "s" : ""}` : "Recherche…"}</span>
+                        <button type="button" onClick={resetFilters} className="inline-flex items-center gap-1 font-semibold text-brass hover:text-brass-deep">
+                            <X className="h-4 w-4" aria-hidden="true" /> Réinitialiser
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {error && <p className="text-red-700">{error}</p>}
 
             {notifications === null && <SkeletonList count={5} />}
 
             {notifications?.length === 0 && (
-                <EmptyState
-                    icon={Inbox}
-                    title="Aucune notification"
-                    description="Vous serez prévenu ici dès qu'une action vous concerne."
-                />
+                isFiltering ? (
+                    <EmptyState
+                        icon={Search}
+                        title="Aucune notification ne correspond"
+                        description="Essayez un autre mot ou modifiez les filtres."
+                    />
+                ) : (
+                    <EmptyState
+                        icon={Inbox}
+                        title="Aucune notification"
+                        description="Vous serez prévenu ici dès qu'une action vous concerne."
+                    />
+                )
             )}
 
             {notifications?.length > 0 && (

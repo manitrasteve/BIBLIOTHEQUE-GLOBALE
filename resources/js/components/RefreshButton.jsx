@@ -47,7 +47,7 @@ export default function RefreshButton() {
                 onClick={run}
                 disabled={refreshing}
                 className="btn-secondary disabled:opacity-60"
-                title="Recharger les données de cette page"
+                title={`Les données de cette page se mettent à jour automatiquement (toutes les ${Math.round((ctx.autoRefreshMs || 15000) / 1000)} s). Cliquez pour les actualiser tout de suite.`}
             >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
                 <span className="hidden sm:inline">Actualiser</span>

@@ -181,7 +181,8 @@ function ProgressTab({ list }) {
 
     async function remind(row) {
         const r = await api.remindCourseListItem(list.id, row.item_id);
-        toast(r.sent ? `Rappel envoyé à ${r.sent} étudiant${r.sent > 1 ? "s" : ""}.` : "Tous les étudiants ont déjà ouvert ce document.");
+        // sent = null : petite classe, le nombre n'est pas communiqué (anonymat).
+        toast(r.sent === null ? "Rappel envoyé aux étudiants qui n'ont pas encore ouvert ce document." : r.sent ? `Rappel envoyé à ${r.sent} étudiant${r.sent > 1 ? "s" : ""}.` : "Tous les étudiants ont déjà ouvert ce document.");
     }
 
     if (!data) return <p className="text-sm text-slate-500">Chargement…</p>;

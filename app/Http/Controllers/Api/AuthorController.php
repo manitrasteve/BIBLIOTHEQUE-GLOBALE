@@ -12,7 +12,9 @@ class AuthorController extends Controller
     {
         $query = Author::query();
 
-        if ($search = $request->get('search')) {
+        // Route publique : « ?search[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
+        $search = $request->query('search');
+        if (is_scalar($search) && ($search = (string) $search) !== '') {
             $query->where('name', 'like', "%{$search}%");
         }
 

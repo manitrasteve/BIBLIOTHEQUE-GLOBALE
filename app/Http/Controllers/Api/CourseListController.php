@@ -188,7 +188,10 @@ class CourseListController extends Controller
             ));
         }
 
-        return response()->json(['sent' => count($targets)]);
+        // Petite classe : comme pour le suivi, le nombre de non-lecteurs n'est pas révélé (on reconnaîtrait les personnes).
+        return response()->json([
+            'sent' => count($studentIds) < self::MIN_AUDIENCE_FOR_STATS ? null : count($targets),
+        ]);
     }
 
     // ---------------------------------------------------------------- Étudiant

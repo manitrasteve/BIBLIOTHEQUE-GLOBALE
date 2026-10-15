@@ -34,7 +34,8 @@ class AppServiceProvider extends ServiceProvider
         // Connexion : limite par couple e-mail + IP (anti force brute) sans bloquer tout un réseau
         // partagé (salle informatique, Wi-Fi de l'université) derrière une même adresse IP.
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(10)
-            ->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip())
+            // « email » non textuel (tableau) : clé limitée à l'IP au lieu d'une erreur 500 avant la validation.
+            ->by(mb_strtolower(is_string($request->input('email')) ? $request->input('email') : '').'|'.$request->ip())
             ->response(fn () => response()->json([
                 'message' => 'Trop de tentatives de connexion. Réessayez dans une minute.',
             ], 429)));

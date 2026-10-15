@@ -71,7 +71,7 @@ export default function AdminMessagesPage() {
                         <Mail className="h-5 w-5 text-brass" />
                         Messages aux utilisateurs
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500">{isLibrarian ? "Envoyez une information aux membres de la Bibliothèque." : "Envoyez une information aux membres et, lors d’un envoi général, informez également les bibliothécaires."}</p>
+                    <p className="mt-1 text-sm text-slate-500">{isLibrarian ? "Envoyez une information aux membres de la Bibliothèque. L’administrateur en reçoit une copie dans ses Messages." :"Envoyez une information aux membres et, lors d’un envoi général, informez également les bibliothécaires."}</p>
                 </div>
                 <Link
                     to={isLibrarian ? "/bibliothecaire/discussions" : "/administrateur/discussions"}

@@ -68,12 +68,12 @@ class AccountRequestController extends Controller
         $query->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'));
 
         // Recherche (toutes les pages) : appliquée aussi aux compteurs, qui décrivent les résultats trouvés.
-        $this->applySearch($query, $request->get('search'));
+        $this->applySearch($query, $this->textParam($request, 'search'));
 
         // Compteurs : même périmètre que la liste, calculés avant d'appliquer le filtre de statut.
         $counts = $this->requestCounts(clone $query);
 
-        $this->applyStatusFilter($query, $request->get('status'));
+        $this->applyStatusFilter($query, $this->textParam($request, 'status'));
 
         return response()->json([
             ...$query->latest()->paginate(20)->toArray(),
@@ -87,8 +87,8 @@ class AccountRequestController extends Controller
         $query = AccountRequest::query();
         $request->user()->restrictToManagedLibrary($query);
         $query->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'));
-        $this->applySearch($query, $request->get('search'));
-        $this->applyStatusFilter($query, $request->get('status'));
+        $this->applySearch($query, $this->textParam($request, 'search'));
+        $this->applyStatusFilter($query, $this->textParam($request, 'status'));
 
         $statuses = [
             'en_attente' => 'En cours', 'verifiee' => 'Vérifiée', 'validee' => 'Compte activé',
@@ -127,6 +127,14 @@ class AccountRequestController extends Controller
             'Content-Disposition' => 'attachment; filename="demandes-de-compte-'.now(config('app.display_timezone'))->format('Y-m-d').'.xlsx"',
             'Cache-Control' => 'no-store',
         ]);
+    }
+
+    // Paramètre texte de la liste : « ?status[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
+    private function textParam(Request $request, string $key): ?string
+    {
+        $value = $request->query($key);
+
+        return is_scalar($value) ? (string) $value : null;
     }
 
     /**

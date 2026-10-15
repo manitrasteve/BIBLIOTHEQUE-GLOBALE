@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 class ProblemReport extends Model
 {
-    protected $fillable = ['uuid','user_id','type','subject','description','screenshot_path','status','admin_reply','replied_at'];
+    protected $fillable = ['uuid','user_id','type','custom_type','subject','description','screenshot_path','status','admin_reply','replied_at'];
     protected $casts = ['replied_at'=>'datetime'];
     protected static function booted(){ static::creating(function($m){ $m->uuid ??= (string) Str::uuid(); }); }
     public function user(){ return $this->belongsTo(User::class); }

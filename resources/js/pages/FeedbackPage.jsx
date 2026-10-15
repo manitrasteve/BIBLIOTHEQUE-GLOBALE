@@ -10,6 +10,7 @@ const RATING_LABELS = ["", "Pas du tout satisfait", "Peu satisfait", "Moyennemen
 
 const initialForm = {
     type: "general",
+    custom_type: "",
     subject: "",
     message: "",
     rating: 5,
@@ -38,6 +39,7 @@ export default function FeedbackPage() {
         try {
             await api.createFeedback({
                 type: form.type,
+                ...(form.type === "autre" ? { custom_type: form.custom_type.trim() } : {}),
                 subject: form.subject.trim(),
                 message: form.message.trim(),
                 rating: Number(form.rating),
@@ -97,6 +99,22 @@ export default function FeedbackPage() {
                         <option value="autre">Autre</option>
                     </select>
                 </label>
+
+                {/* « Autre » : l'utilisateur précise lui-même le type d'avis. */}
+                {form.type === "autre" && (
+                    <label className={labelClass}>
+                        Précisez le type d'avis *
+                        <input
+                            required
+                            autoFocus
+                            maxLength={100}
+                            placeholder="Ex. : accessibilité, horaires d'ouverture…"
+                            value={form.custom_type}
+                            onChange={(event) => update("custom_type", event.target.value)}
+                            className={inputClass}
+                        />
+                    </label>
+                )}
 
                 <label className={labelClass}>
                     Sujet *

@@ -5,14 +5,30 @@ use App\Models\AppNotification;
 use App\Models\Document;
 use App\Models\StaffMessage;
 use App\Models\AdminMessageRecipient;
+use App\Support\LocalTimeFilter;
 use Illuminate\Http\Request;
 class AppNotificationController extends Controller
 {
  public function index(Request $request)
  {
-     $items = $request->user()
-         ->appNotifications()
+     // Recherche (titre, texte) et filtres date / jour de la semaine / heure, à l'heure locale.
+     $filters = $request->validate([
+         'search' => ['nullable', 'string', 'max:255'],
+         ...LocalTimeFilter::rules(),
+     ]);
+
+     $query = AppNotification::query()->where('user_id', $request->user()->id);
+
+     if (filled($filters['search'] ?? null)) {
+         $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], trim($filters['search'])) . '%';
+         $query->where(fn ($q) => $q->where('title', 'like', $like)->orWhere('message', 'like', $like));
+     }
+
+     LocalTimeFilter::apply($query, $filters);
+
+     $items = $query
          ->orderByDesc('created_at')
+         ->orderByDesc('id')
          ->paginate(20);
 
      $items->getCollection()->transform(function ($notification) use ($request) {
@@ -51,7 +67,13 @@ class AppNotificationController extends Controller
                    $notification->type === 'signalement') {
              $notification->related_url = '/administrateur/signalements';
          } elseif ($type === 'App\\Models\\AdminMessage') {
-             $notification->related_url = $request->user()->isAdmin() ? '/administrateur/messages' : '/bibliothecaire/messages';
+             // Message reçu (envoi groupé) : boîte de réception /messages, accessible à tous les rôles
+             // et ouverte sur ce message. L'ancien lien /bibliothecaire/messages (page d'ENVOI du
+             // personnel) était refusé aux étudiants, enseignants et chercheurs.
+             $recipientId = AdminMessageRecipient::where('admin_message_id', $notification->related_id)
+                 ->where('user_id', $request->user()->id)
+                 ->value('id');
+             $notification->related_url = '/messages' . ($recipientId ? "?message={$recipientId}" : '');
          } elseif ($type === 'App\\Models\\StaffMessage' || $notification->type === 'message_discussion') {
              $notification->related_url = $request->user()->isAdmin() ? '/administrateur/discussions' : '/bibliothecaire/discussions';
          }

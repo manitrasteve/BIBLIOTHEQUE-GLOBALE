@@ -35,10 +35,34 @@ class SendAdminBroadcastJob implements ShouldQueue
 
     public function handle(): void
     {
+        $users = User::whereIn('id', $this->userIds)->get();
+
+        // 1) Message interne + notification pour TOUS les destinataires d'abord : ils le voient
+        // aussitôt dans l'application. Avant, chaque destinataire attendait les envois SMTP
+        // (1 à 3 s chacun) de tous ceux qui le précédaient dans la liste.
+        $recipients = [];
+        foreach ($users as $user) {
+            $recipients[$user->id] = AdminMessageRecipient::create([
+                'admin_message_id' => $this->message->id,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'status' => 'en_attente',
+            ]);
+
+            NotificationService::send(
+                $user,
+                'message_admin',
+                $this->message->subject,
+                $this->message->message,
+                $this->message
+            );
+        }
+
+        // 2) Copie par e-mail ensuite : le statut de chaque destinataire est mis à jour au fil des envois.
         $ok = 0;
         $fail = 0;
 
-        foreach (User::whereIn('id', $this->userIds)->get() as $user) {
+        foreach ($users as $user) {
             $status = 'envoye';
             $error = null;
 
@@ -59,21 +83,7 @@ class SendAdminBroadcastJob implements ShouldQueue
                 $fail++;
             }
 
-            AdminMessageRecipient::create([
-                'admin_message_id' => $this->message->id,
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'status' => $status,
-                'error' => $error,
-            ]);
-
-            NotificationService::send(
-                $user,
-                'message_admin',
-                $this->message->subject,
-                $this->message->message,
-                $this->message
-            );
+            $recipients[$user->id]->update(['status' => $status, 'error' => $error]);
         }
 
         $this->message->update(['success_count' => $ok, 'failure_count' => $fail]);

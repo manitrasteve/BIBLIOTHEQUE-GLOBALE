@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import '../css/app.css';
+// Capte l'événement d'installation (PWA) dès le chargement, avant l'affichage de React.
+import './lib/pwaInstall';
 
 // PWA : Service Worker (le navigateur ne l'expose qu'en HTTPS ou sur localhost).
 // Enregistré aussi avec le serveur Vite de dev : il ne met en cache que /build/assets,

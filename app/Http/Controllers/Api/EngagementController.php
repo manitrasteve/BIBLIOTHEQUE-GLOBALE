@@ -85,7 +85,10 @@ class EngagementController extends Controller
     // « Mes lectures » : un document par ligne, avec sa dernière consultation.
     public function myReadings(Request $request)
     {
+        // Documents encore publiés filtrés AVANT la pagination : sinon une page pouvait s'afficher vide
+        // (lectures archivées retirées après coup) alors que les pages suivantes contenaient des lectures.
         $rows = Consultation::where('user_id', $request->user()->id)
+            ->whereHas('document', fn ($d) => $d->where('status', 'publie'))
             ->selectRaw('document_id, MAX(consulted_at) as last_consulted_at, COUNT(*) as views')
             ->groupBy('document_id')
             ->orderByDesc('last_consulted_at')

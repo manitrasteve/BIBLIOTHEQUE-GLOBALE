@@ -60,6 +60,12 @@ class AdminMessageController extends Controller
             return response()->json(['message' => 'Sélectionnez au moins un destinataire actif.'], 422);
         }
 
+        // Message d'un bibliothécaire : l'administrateur en reçoit une copie dans sa boîte « Messages »
+        // (menu Profil), pour suivre ce qui est communiqué aux membres.
+        if ($request->user()->isLibrarian()) {
+            $users = $users->merge(User::where('role', 'administrateur')->where('is_active', true)->get())->unique('id')->values();
+        }
+
         $message = AdminMessage::create([
             'sender_id' => $request->user()->id,
             'subject' => trim($data['subject']),

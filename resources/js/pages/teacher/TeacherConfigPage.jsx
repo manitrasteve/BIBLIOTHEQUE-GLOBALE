@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { SlidersHorizontal, School, BookOpenCheck, Save, Info, ChevronRight, ArrowLeft } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/Toast";
-import { usePageRefresh } from "../../context/RefreshContext";
+import { usePageRefresh, usePauseAutoRefresh } from "../../context/RefreshContext";
 
 // Enseignant : page d'accueil de configuration (cartes) + gestion des niveaux assurés dans son centre.
 export default function TeacherConfigPage() {
@@ -29,6 +29,8 @@ export default function TeacherConfigPage() {
     const dirty = data
         ? [...selected].sort().join("|") !== [...(data.selected || [])].sort().join("|")
         : false;
+    // Classes cochées mais pas encore enregistrées : la mise à jour automatique ne doit pas les remplacer.
+    usePauseAutoRefresh(dirty);
 
     async function save() {
         setSaving(true);

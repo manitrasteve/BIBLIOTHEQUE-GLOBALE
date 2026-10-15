@@ -305,15 +305,15 @@ class DocumentController extends Controller
     {
         $query = Document::with(['authors:id,name', 'category:id,name', 'library:id,name']);
 
-        if ($status = $request->get('status')) {
+        if ($status = $this->textParam($request, 'status')) {
             $query->where('status', $status);
         }
-        if ($search = $request->get('q')) {
+        if ($search = $this->textParam($request, 'q')) {
             $query->where('title', 'like', "%{$search}%");
         }
         // Bibliothèque Numérique Globale : administrateur et bibliothécaire peuvent filtrer sur une bibliothèque précise.
         $request->user()->restrictToManagedLibrary($query);
-        if (($request->user()->isAdmin() || $request->user()->isLibrarian()) && $library = $request->get('library_id')) {
+        if (($request->user()->isAdmin() || $request->user()->isLibrarian()) && $library = $this->textParam($request, 'library_id')) {
             $query->where('library_id', $library);
         }
 
@@ -331,8 +331,8 @@ class DocumentController extends Controller
     {
         $user = $request->user();
         $base = fn () => $user->restrictToManagedLibrary(Document::query())
-            ->when($request->get('q'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
-            ->when(($user->isAdmin() || $user->isLibrarian()) ? $request->get('library_id') : null, fn ($q, $library) => $q->where('library_id', $library));
+            ->when($this->textParam($request, 'q'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
+            ->when(($user->isAdmin() || $user->isLibrarian()) ? $this->textParam($request, 'library_id') : null, fn ($q, $library) => $q->where('library_id', $library));
 
         $byStatus = $base()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Activity,
     LogIn,
@@ -12,9 +12,13 @@ import {
     UserCheck,
     UserX,
     LayoutTemplate,
+    SlidersHorizontal,
+    X,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { usePageRefresh } from "../context/RefreshContext";
+import { matchesSearch } from "../lib/search";
+import LocalTimeFilters, { EMPTY_TIME_FILTERS } from "../components/LocalTimeFilters";
 
 // Seules les actions réellement enregistrées par le système sont affichées.
 const ACTION_CONFIG = {
@@ -64,27 +68,64 @@ function formatDate(value) {
     return new Date(value).toLocaleString("fr-FR");
 }
 
+// Codes d'action dont le libellé affiché correspond à la recherche (« document consulté » → consultation_document) :
+// le serveur ne connaît que les codes, il les reçoit en plus du texte recherché.
+function actionsMatching(search) {
+    if (!search) return [];
+    return Object.entries(ACTION_CONFIG)
+        .filter(([, config]) => matchesSearch(config.label, search))
+        .map(([action]) => action);
+}
+
 export default function MyActivitiesPage() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
+    // Recherche (envoyée après une courte pause de frappe) et filtres, appliqués par le serveur sur toutes les pages.
+    const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [filters, setFilters] = useState(EMPTY_TIME_FILTERS);
+    const [showFilters, setShowFilters] = useState(false);
+
+    const activeFilterCount = Object.values(filters).filter(Boolean).length;
+    const term = debouncedSearch.trim();
+    const isFiltering = Boolean(term) || activeFilterCount > 0;
+
+    // Nouvelle recherche : retour à la première page (dans la même mise à jour : une seule requête).
+    useEffect(() => {
+        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+        return () => clearTimeout(t);
+    }, [search]);
+
+    // Seule la réponse de la dernière requête est affichée (frappe rapide, changements de filtres successifs).
+    const requestRef = useRef(0);
+    async function fetchActivities() {
+        const requestId = ++requestRef.current;
+        const res = await api.getActivityLogs({ page, mine: 1, search: term, actions: actionsMatching(term), ...filters });
+        if (requestId !== requestRef.current) return;
+        setResult(res);
+        setError(null);
+    }
 
     useEffect(() => {
-        let active = true;
-        setResult(null);
-        setError(null);
-        api.getActivityLogs({ page, mine: 1 })
-            .then((res) => active && setResult(res))
-            .catch(() => {
-                if (!active) return;
-                setError("Impossible de charger vos activités.");
-                setResult({ data: [] });
-            });
-        return () => {
-            active = false;
-        };
-    }, [page]);
-    usePageRefresh(() => api.getActivityLogs({ page, mine: 1 }).then((res) => { setResult(res); setError(null); }));
+        fetchActivities().catch(() => {
+            setError("Impossible de charger vos activités.");
+            setResult({ data: [] });
+        });
+    }, [page, debouncedSearch, filters]);
+    usePageRefresh(fetchActivities);
+
+    function setFilter(key, value) {
+        setFilters((current) => ({ ...current, [key]: value }));
+        setPage(1);
+    }
+
+    function resetFilters() {
+        setSearch("");
+        setDebouncedSearch("");
+        setFilters(EMPTY_TIME_FILTERS);
+        setPage(1);
+    }
 
     const rows = result?.data || [];
 
@@ -95,6 +136,47 @@ export default function MyActivitiesPage() {
                 <h2 className="font-display text-xl font-extrabold">Mes activités</h2>
             </div>
 
+            {/* Recherche + filtres */}
+            <div className="mb-5 space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative min-w-0 flex-1">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Rechercher une activité, un document…"
+                            aria-label="Rechercher dans mes activités"
+                            className="w-full rounded-xl border border-slate-200 bg-surface py-2.5 pl-9 pr-3 text-sm"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters((v) => !v)}
+                        aria-expanded={showFilters}
+                        className={`btn-secondary shrink-0 justify-center ${activeFilterCount ? "border-brass text-brass-deep" : ""}`}
+                    >
+                        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                        Filtres{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                    </button>
+                </div>
+
+                {showFilters && (
+                    <div className="modern-card grid gap-3 p-4 sm:grid-cols-3">
+                        <LocalTimeFilters value={filters} onChange={setFilter} />
+                    </div>
+                )}
+
+                {isFiltering && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
+                        <span>{result?.total != null ? `${result.total} activité${result.total > 1 ? "s" : ""} trouvée${result.total > 1 ? "s" : ""}` : "Recherche…"}</span>
+                        <button type="button" onClick={resetFilters} className="inline-flex items-center gap-1 font-semibold text-brass hover:text-brass-deep">
+                            <X className="h-4 w-4" aria-hidden="true" /> Réinitialiser
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {error && (
                 <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>
             )}
@@ -103,7 +185,7 @@ export default function MyActivitiesPage() {
                 <p className="text-slate-500">Chargement…</p>
             ) : rows.length === 0 ? (
                 <div className="modern-card p-10 text-center text-slate-500">
-                    Aucune activité enregistrée pour l'instant.
+                    {isFiltering ? "Aucune activité ne correspond à votre recherche ou à vos filtres." : "Aucune activité enregistrée pour l'instant."}
                 </div>
             ) : (
                 <ul className="space-y-3">

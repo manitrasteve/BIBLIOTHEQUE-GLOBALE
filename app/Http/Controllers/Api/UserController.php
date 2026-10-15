@@ -130,9 +130,10 @@ class UserController extends Controller
         return User::with('library:id,name')->whereIn('role', ['etudiant', 'enseignant', 'chercheur'])->orderByDesc('created_at');
     }
 
-    private function applySearch($query, ?string $search): void
+    private function applySearch($query, mixed $search): void
     {
-        if ($search = trim((string) $search)) {
+        // « ?search[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
+        if ($search = trim(is_scalar($search) ? (string) $search : '')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
             });
@@ -221,6 +222,12 @@ class UserController extends Controller
 
     public function reactivate(Request $request, User $user)
     {
+        // Déjà actif (deux onglets, double clic) : rien à faire — sinon le mot de passe que l'utilisateur
+        // vient de créer serait effacé et ses sessions fermées.
+        if ($user->is_active) {
+            return response()->json($user);
+        }
+
         // L'ancien hash est écrasé pour forcer le passage par le lien de création reçu par e-mail
         // (sinon l'utilisateur pourrait se reconnecter avec son mot de passe d'avant la désactivation).
         $user->update([

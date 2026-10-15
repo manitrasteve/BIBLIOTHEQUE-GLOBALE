@@ -16,9 +16,15 @@ import {
     Palette,
     LibraryBig,
     Home,
+    MonitorDown,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
+import { useInstallAction } from "./InstallApp";
+import { installPrefs } from "../lib/pwaInstall";
+
+// Badge « Nouveau » de la ligne « Installer l'application » : affiché jusqu'au premier clic.
+const INSTALL_SEEN_KEY = "bm_install_menu_seen";
 import { isWorkspacePath } from "../lib/layout";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
@@ -53,6 +59,8 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
     const inSettings = pathname.startsWith(SETTINGS_PATH);
     const [settingsOpen, setSettingsOpen] = useState(inSettings);
     const ref = useRef(null);
+    const { mode: installMode, install, dialog: installDialog } = useInstallAction();
+    const [installSeen, setInstallSeen] = useState(() => installPrefs.get(INSTALL_SEEN_KEY) === "1");
 
     // Un clic ouvre le sous-menu, un second clic le referme. Si une page des paramètres est
     // affichée, ce second clic la ferme aussi et ramène à la dernière page consultée avant.
@@ -165,6 +173,29 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
                         Profil
                     </Link>
 
+                    {/* Installer l'application : seulement quand le navigateur le permet (sinon masqué). */}
+                    {installMode && (
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                                setOpen(false);
+                                installPrefs.set(INSTALL_SEEN_KEY, "1");
+                                setInstallSeen(true);
+                                install();
+                            }}
+                            className="flex min-h-[44px] w-full items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-left font-semibold text-indigo-600 hover:bg-indigo-100"
+                        >
+                            <MonitorDown className="h-4 w-4 shrink-0" />
+                            Installer l'application
+                            {!installSeen && (
+                                <span className="ml-auto rounded bg-gold px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-umg-night">
+                                    NOUVEAU
+                                </span>
+                            )}
+                        </button>
+                    )}
+
                     {isAdmin && (
                         <>
                             <button
@@ -220,6 +251,7 @@ function ProfileMenu({ user, pathname, openLogoutModal, settingsReturnTo }) {
                     </button>
                 </div>
             )}
+            {installDialog}
         </div>
     );
 }

@@ -18,7 +18,7 @@ const TYPES = [
     ["autre", "Autre"],
 ];
 
-const initialForm = { type: "login", subject: "", description: "" };
+const initialForm = { type: "login", custom_type: "", subject: "", description: "" };
 
 const labelClass = "block text-sm font-semibold text-slate-700";
 const inputClass =
@@ -69,6 +69,7 @@ export default function ProblemReportPage() {
 
         const data = new FormData();
         data.append("type", form.type);
+        if (form.type === "autre") data.append("custom_type", form.custom_type.trim());
         data.append("subject", form.subject.trim());
         data.append("description", form.description.trim());
         if (file) data.append("screenshot", file);
@@ -117,6 +118,22 @@ export default function ProblemReportPage() {
                         ))}
                     </select>
                 </label>
+
+                {/* « Autre » : l'utilisateur précise lui-même le type de problème. */}
+                {form.type === "autre" && (
+                    <label className={labelClass}>
+                        Précisez le type de problème *
+                        <input
+                            required
+                            autoFocus
+                            maxLength={100}
+                            placeholder="Ex. : téléchargement, lenteur, traduction…"
+                            value={form.custom_type}
+                            onChange={(event) => update("custom_type", event.target.value)}
+                            className={inputClass}
+                        />
+                    </label>
+                )}
 
                 <label className={labelClass}>
                     Sujet *
