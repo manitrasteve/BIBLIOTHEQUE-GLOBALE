@@ -331,6 +331,12 @@ export const api = {
             body: data,
         }),
 
+    updatePreferences: (data) =>
+        request("/profile/preferences", {
+            method: "PATCH",
+            body: data,
+        }),
+
     deleteProfilePhoto: () =>
         request("/profile/photo", {
             method: "DELETE",

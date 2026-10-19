@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile', [ProfileController::class, 'update']);
     Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
+    Route::patch('/profile/preferences', [ProfileController::class, 'updatePreferences']);
     Route::get('/profile/reading-stats', [ProfileController::class, 'readingStats']);
     Route::post('/notifications/{appNotification}/unread', [AppNotificationController::class, 'markUnread']);
     Route::get('/dashboard/me', [DashboardController::class, 'me']);

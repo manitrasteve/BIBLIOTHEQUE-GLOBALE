@@ -82,6 +82,19 @@ class ProfileController extends Controller
         ]);
     }
 
+    // Préférences d'affichage (robot assistant flottant).
+    public function updatePreferences(Request $request)
+    {
+        $data = $request->validate([
+            'show_ai_robot' => ['sometimes', 'boolean'],
+            'ai_robot_position' => ['sometimes', 'in:left,right'],
+        ]);
+
+        $request->user()->update($data);
+
+        return response()->json($request->user()->only(['show_ai_robot', 'ai_robot_position']));
+    }
+
     public function deletePhoto(Request $request)
     {
         $user = $request->user();

@@ -797,3 +797,119 @@ summary:focus-visible,
         break-inside: avoid;
     }
 }
+
+/* ---------------------------------------------------------
+   Robot assistant flottant (FloatingAssistant.jsx)
+   Couleurs fixes : le robot est un objet, identique dans les deux thèmes.
+   À droite, il se place au-dessus du bouton « remonter » (ScrollProgressButton).
+--------------------------------------------------------- */
+.ai-robot {
+    position: fixed;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    /* Sous la barre latérale (50) et le voile du menu mobile (40). */
+    z-index: 39;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+.ai-robot--left { left: calc(1rem + env(safe-area-inset-left, 0px)); }
+/* Espaces connectés sur grand écran : à côté de la barre latérale fixe, pas dessous. */
+@media (min-width: 1024px) {
+    body:has(.connected-sidebar) .ai-robot--left { left: calc(var(--app-sidebar-width) + 1rem); }
+}
+.ai-robot--right {
+    right: calc(1rem + env(safe-area-inset-right, 0px));
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    flex-direction: row-reverse;
+}
+.ai-robot__button {
+    all: unset;
+    cursor: pointer;
+    width: 88px;
+    height: 90px;
+    border-radius: 24px;
+    transition: transform 0.25s ease;
+}
+.ai-robot__button:hover { transform: scale(1.07); }
+.ai-robot__button:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 4px; }
+.ai-robot--leaving .ai-robot__button { animation: ai-robot-leave 0.4s ease-in forwards; }
+@keyframes ai-robot-leave {
+    40% { transform: scale(1.15) translateY(-6px); }
+    100% { transform: scale(0.4) translateY(-40px); opacity: 0; }
+}
+.ai-robot__svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 14px rgb(17 17 111 / 0.25)); }
+
+.ai-robot__bubble {
+    position: relative;
+    max-width: 220px;
+    margin-bottom: 46px;
+    padding: 0.625rem 1.9rem 0.625rem 0.75rem;
+    border-radius: 14px;
+    background: #11116f;
+    border: 1px solid #11116f;
+    color: #ffffff;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    box-shadow: 0 10px 24px rgb(17 17 111 / 0.25);
+    animation: ai-robot-pop 0.35s ease-out both;
+}
+html.dark .ai-robot__bubble { background: #1c2050; border-color: #3a3f7a; }
+.ai-robot__who {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #5fd0ff;
+}
+.ai-robot__who::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #3ddc97; }
+.ai-robot__close {
+    all: unset;
+    cursor: pointer;
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    display: flex;
+    opacity: 0.75;
+}
+.ai-robot__close:hover { opacity: 1; }
+.ai-robot__close:focus-visible { outline: 2px solid var(--color-gold); border-radius: 4px; }
+@keyframes ai-robot-pop {
+    from { opacity: 0; transform: scale(0.9) translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Animations du robot */
+.ai-robot__float { animation: ai-robot-float 3.4s ease-in-out infinite; }
+@keyframes ai-robot-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.ai-robot__ripple { transform-box: fill-box; transform-origin: center; animation: ai-robot-ripple 2.2s ease-out infinite; }
+@keyframes ai-robot-ripple { from { transform: scale(1); opacity: 0.9; } to { transform: scale(1.9); opacity: 0; } }
+.ai-robot__eye { transform-box: fill-box; transform-origin: center; animation: ai-robot-blink 5s infinite; }
+@keyframes ai-robot-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.12); } }
+.ai-robot__core { animation: ai-robot-pulse 2.4s ease-in-out infinite; }
+@keyframes ai-robot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.ai-robot__arm { transform-box: view-box; transform-origin: 44px 80px; animation: ai-robot-sway 3.4s ease-in-out infinite; }
+@keyframes ai-robot-sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(5deg); } }
+.ai-robot__wave { transform-box: view-box; transform-origin: 84px 84px; animation: ai-robot-wave 3.6s ease-in-out infinite; }
+@keyframes ai-robot-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-6deg); } }
+.ai-robot__hand { transform-box: view-box; transform-origin: 104px 70px; animation: ai-robot-hand 1.2s ease-in-out infinite; }
+@keyframes ai-robot-hand { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(14deg); } }
+.ai-robot__button:hover .ai-robot__hand { animation-duration: 0.55s; }
+
+/* Mobile : robot plus petit, sans bulle pour ne pas masquer le contenu. */
+@media (max-width: 639px) {
+    .ai-robot__button { width: 66px; height: 68px; }
+    .ai-robot__bubble { display: none; }
+    .ai-robot--right { bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-robot__button, .ai-robot__bubble, .ai-robot__float, .ai-robot__ripple, .ai-robot__eye,
+    .ai-robot__core, .ai-robot__arm, .ai-robot__wave, .ai-robot__hand, .ai-robot--leaving .ai-robot__button {
+        animation: none;
+        transition: none;
+    }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -21,6 +21,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import SecurePdfViewer from "../components/SecurePdfViewer";
 import AiAssistant from "../components/AiAssistant";
+import { registerDocAssistant } from "../lib/docAssistant";
 import CitationDialog from "../components/CitationDialog";
 import SimilarDocuments from "../components/SimilarDocuments";
 import { SkeletonDocumentDetail } from "../components/Skeleton";
@@ -169,6 +170,7 @@ export default function DocumentDetailPage() {
     const [favorited, setFavorited] = useState(false);
     const [favoriteCount, setFavoriteCount] = useState(0);
     const [favoriteError, setFavoriteError] = useState(null);
+    const readerRef = useRef(null);
 
     useEffect(() => {
         api.getDocument(slug)
@@ -181,6 +183,22 @@ export default function DocumentDetailPage() {
                 setError("Ce document n'existe pas ou n'est plus disponible."),
             );
     }, [slug]);
+
+    // Robot assistant flottant : il ouvre l'onglet « Assistant IA » de cette fiche
+    // et se cache tant que cet onglet est affiché.
+    const docReadable = Boolean(user && doc?.can_view_content);
+    useEffect(() => {
+        if (!docReadable) return undefined;
+        return registerDocAssistant({
+            active: tab === "ai",
+            open: () => {
+                setTab("ai");
+                requestAnimationFrame(() =>
+                    readerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                );
+            },
+        });
+    }, [docReadable, tab]);
 
     async function toggleFavorite() {
         if (!user) return navigate("/connexion");
@@ -567,7 +585,7 @@ export default function DocumentDetailPage() {
                 ===================================================== */}
                 {canRead && (
                     <div className="w-full xl:flex-1 min-w-0 self-stretch xl:min-h-0">
-                        <div className="w-full h-full border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
+                        <div ref={readerRef} className="w-full h-full scroll-mt-4 border border-line bg-paper rounded-xl overflow-hidden flex flex-col">
                             {/* ONGLETS */}
                             <div className="flex gap-1 px-4 sm:px-5 border-b border-line flex-shrink-0">
                                 <div className="flex gap-1" role="tablist" aria-label="Lecture du document">

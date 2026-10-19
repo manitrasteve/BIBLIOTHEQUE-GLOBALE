@@ -32,6 +32,7 @@ class User extends Authenticatable
         'date_of_birth','photo_path','faculty','department','position','teaching_specialty','research_lab',
         'school','filiere','niveau_type','niveau_detail','specialty','diploma','workplace','researcher_field','profession','experience',
         'birth_place', 'cin_number', 'cin_issued_at', 'student_card_number',
+        'show_ai_robot', 'ai_robot_position',
     ];
 
     // Préfixe du matricule selon le rôle de l'utilisateur.
@@ -54,6 +55,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'show_ai_robot' => 'boolean',
         ];
     }
 

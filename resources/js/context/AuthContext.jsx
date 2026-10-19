@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 
 // Dernier profil connu (hors ligne) : uniquement ce qu'il faut pour afficher l'interface.
 const USER_CACHE_KEY = "bm_user_cache";
-const USER_CACHE_FIELDS = ["id", "uuid", "name", "role", "permissions", "photo_url", "library", "library_id", "is_active"];
+const USER_CACHE_FIELDS = ["id", "uuid", "name", "role", "permissions", "photo_url", "library", "library_id", "is_active", "show_ai_robot", "ai_robot_position"];
 
 function rememberUser(user) {
     try {

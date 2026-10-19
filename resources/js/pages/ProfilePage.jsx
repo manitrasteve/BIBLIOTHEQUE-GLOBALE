@@ -9,11 +9,106 @@ import {
     MapPin,
     Phone,
     ShieldCheck,
+    Sparkles,
     X,
 } from "lucide-react";
 
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+
+// Préférences d'affichage : robot assistant flottant (affiché ou non, et de quel côté).
+function AssistantPreferencesCard() {
+    const { user, setUser } = useAuth();
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
+
+    const enabled = user?.show_ai_robot !== false;
+    const position = user?.ai_robot_position === "left" ? "left" : "right";
+
+    async function save(changes) {
+        const previous = { show_ai_robot: enabled, ai_robot_position: position };
+        setError(null);
+        setSaving(true);
+        // Mise à jour immédiate : le robot apparaît ou disparaît sans attendre le serveur.
+        setUser((current) => ({ ...current, ...changes }));
+        try {
+            const saved = await api.updatePreferences(changes);
+            setUser((current) => ({ ...current, ...saved }));
+        } catch {
+            setUser((current) => ({ ...current, ...previous }));
+            setError("Préférence non enregistrée. Vérifiez votre connexion puis réessayez.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="modern-card mt-6 p-4 sm:p-5">
+            <h3 className="text-lg font-extrabold text-slate-900">Préférences</h3>
+            <p className="mt-1 text-sm text-slate-500">Personnalisez l'affichage de votre espace.</p>
+
+            <div className="mt-4 flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4">
+                <div className="flex gap-3">
+                    <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brass" aria-hidden="true" />
+                    <div>
+                        <p id="pref-robot-label" className="text-sm font-bold text-slate-900">Afficher le robot assistant</p>
+                        <p className="mt-0.5 text-sm text-slate-500">
+                            Un raccourci flottant vers votre assistant IA, dans un coin de l'écran.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    aria-labelledby="pref-robot-label"
+                    disabled={saving}
+                    onClick={() => save({ show_ai_robot: !enabled })}
+                    className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                        enabled ? "bg-indigo-600" : "bg-slate-300"
+                    }`}
+                >
+                    <span
+                        className={`inline-block h-[18px] w-[18px] rounded-full bg-[#ffffff] shadow transition-transform ${
+                            enabled ? "translate-x-[23px]" : "translate-x-[3px]"
+                        }`}
+                    />
+                </button>
+            </div>
+
+            {enabled && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
+                    <p id="pref-robot-side" className="text-sm font-bold text-slate-900">Position du robot</p>
+                    <div className="flex gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-labelledby="pref-robot-side">
+                        {[
+                            ["left", "À gauche"],
+                            ["right", "À droite"],
+                        ].map(([value, label]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                aria-pressed={position === value}
+                                disabled={saving}
+                                onClick={() => position !== value && save({ ai_robot_position: value })}
+                                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                                    position === value ? "bg-surface text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <p className="mt-3 text-sm text-red-700" role="alert">
+                    {error}
+                </p>
+            )}
+        </div>
+    );
+}
 
 const CENTERS = [
     "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",
@@ -482,6 +577,8 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            <AssistantPreferencesCard />
         </div>
     );
 }
