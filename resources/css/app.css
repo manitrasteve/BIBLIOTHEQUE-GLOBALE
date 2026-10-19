@@ -257,7 +257,9 @@ html.dark {
 
 :root {
     --app-sidebar-width: 15rem;
-    --app-header-height: 4.25rem;
+    /* Hauteur réelle de l'en-tête : 4,25rem de contenu + 1px de bordure basse (sans ce pixel, les pages des
+       espaces connectés dépassaient l'écran d'1px et la page entière défilait). */
+    --app-header-height: calc(4.25rem + 1px);
 }
 
 .connected-layout {
@@ -297,6 +299,10 @@ html.dark {
 .connected-sidebar::-webkit-scrollbar-track { background: transparent; }
 
 .connected-main {
+    /* Bloc de référence des éléments en position absolue (ex. champs fichier « sr-only ») : sans lui, ils se
+       plaçaient par rapport à .connected-layout, hors de cette zone défilante, et faisaient défiler la page
+       entière d'une bande vide sous le contenu. */
+    position: relative;
     display: flex;
     flex-direction: column;
     min-width: 0;
