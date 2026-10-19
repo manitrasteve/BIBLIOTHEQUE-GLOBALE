@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileUp, UploadCloud, FileText, Tag, FolderOpen, AlignLeft, BookOpenCheck, Send, FileCheck2, Plus, ArrowLeft } from "lucide-react";
+import { FileUp, UploadCloud, FileText, Tag, FolderOpen, AlignLeft, BookOpenCheck, Send, FileCheck2, Plus, ArrowLeft, ImageIcon, X } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
 import SortTh from "../../components/SortTh";
 import { sortRows } from "../../lib/sort";
+import RichTextEditor from "../../components/RichTextEditor";
 
 const TYPES = ["Polycopié", "Travaux dirigés", "Travaux pratiques", "Annales", "Cours", "Autre"];
 const OTHER = "__autre__";
 const EMPTY = { title: "", type: "Polycopié", typeOther: "", category: "", categoryOther: "", abstract: "", course_list_id: "" };
+// Limite du serveur (règle « cover » de TeacherSubmissionController).
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
+// Résumé de l'éditeur : « <p></p> » quand il est vide.
+const hasText = (html) => html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== "";
 
 // État d'un dépôt vu par l'enseignant.
 function submissionState(doc) {
@@ -58,6 +64,8 @@ export default function MySubmissionsPage() {
     const [options, setOptions] = useState({ categories: [], lists: [] });
     const [form, setForm] = useState(EMPTY);
     const [file, setFile] = useState(null);
+    const [cover, setCover] = useState(null);
+    const [coverPreview, setCoverPreview] = useState(null);
     const [sending, setSending] = useState(false);
     const [formError, setFormError] = useState(null);
     const [fileKey, setFileKey] = useState(0);
@@ -73,6 +81,27 @@ export default function MySubmissionsPage() {
             });
     }, []);
     usePageRefresh(load);
+
+    // Aperçu de la couverture choisie (URL locale libérée au changement).
+    useEffect(() => {
+        if (!cover) {
+            setCoverPreview(null);
+            return undefined;
+        }
+        const url = URL.createObjectURL(cover);
+        setCoverPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [cover]);
+
+    function pickCover(picked) {
+        if (!picked) return;
+        if (picked.size > MAX_COVER_BYTES) {
+            setFormError("La couverture dépasse 5 Mo. Choisissez une image plus légère.");
+            return;
+        }
+        setFormError(null);
+        setCover(picked);
+    }
 
     async function submit(e) {
         e.preventDefault();
@@ -91,13 +120,15 @@ export default function MySubmissionsPage() {
             body.append("title", form.title);
             body.append("type", type);
             body.append("category", category);
-            if (form.abstract !== "") body.append("abstract", form.abstract);
+            if (hasText(form.abstract)) body.append("abstract", form.abstract);
             if (form.course_list_id !== "") body.append("course_list_id", form.course_list_id);
             body.append("file", file);
+            if (cover) body.append("cover", cover);
             const doc = await api.createTeacherSubmission(body);
             setItems((current) => [doc, ...(current || [])]);
             setForm(EMPTY);
             setFile(null);
+            setCover(null);
             setFileKey((k) => k + 1);
             setShowForm(false);
             toast("Dépôt envoyé. Le Service Numérique va le vérifier.");
@@ -183,7 +214,36 @@ export default function MySubmissionsPage() {
 
                     <div>
                         <span className={labelRow}><AlignLeft className="h-4 w-4 text-brass" /> Résumé <span className="font-normal text-slate-500">(facultatif)</span></span>
-                        <textarea rows={3} value={form.abstract} onChange={(e) => setForm({ ...form, abstract: e.target.value })} placeholder="Quelques lignes pour décrire le contenu…" className={field} />
+                        <div className="mt-1.5">
+                            <RichTextEditor value={form.abstract} onChange={(html) => setForm((prev) => ({ ...prev, abstract: html }))} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <span className={labelRow}><ImageIcon className="h-4 w-4 text-brass" /> Photo de couverture <span className="font-normal text-slate-500">(facultatif)</span></span>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-4">
+                            {coverPreview ? (
+                                <img src={coverPreview} alt="Aperçu de la couverture" className="h-32 w-24 shrink-0 rounded-lg border border-line object-cover shadow-sm" />
+                            ) : (
+                                <span className="flex h-32 w-24 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-line text-slate-400">
+                                    <ImageIcon className="h-7 w-7" aria-hidden="true" />
+                                </span>
+                            )}
+                            <div className="min-w-0 space-y-2">
+                                <label className="btn-secondary cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-brass)]">
+                                    <ImageIcon className="h-4 w-4" /> {cover ? "Changer l’image" : "Choisir une image"}
+                                    <input key={fileKey} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pickCover(e.target.files?.[0]); e.target.value = ""; }} />
+                                </label>
+                                {cover && (
+                                    <button type="button" onClick={() => setCover(null)} className="flex items-center gap-1 text-xs font-semibold text-red-700">
+                                        <X className="h-3.5 w-3.5" /> Retirer la couverture
+                                    </button>
+                                )}
+                                <p className="text-xs text-slate-500">
+                                    {cover ? `${cover.name} · ${(cover.size / 1048576).toFixed(1)} Mo` : "JPG, PNG ou WebP, 5 Mo maximum. Sans image, le Service Numérique pourra en ajouter une."}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div>

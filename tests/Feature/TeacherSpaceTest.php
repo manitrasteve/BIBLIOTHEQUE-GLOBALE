@@ -273,3 +273,35 @@ test('un document non indexé donne un message clair', function () {
     $this->postJson('/api/documents/' . Document::factory()->create(['status' => 'publie'])->slug . '/revision-questions', ['type' => 'qcm', 'count' => 5])
         ->assertStatus(422)->assertJsonFragment(['message' => 'Ce document n’est pas encore indexé pour l’IA. Réessayez dans quelques minutes ou demandez au Service Numérique de le réindexer.']);
 });
+
+test('un dépôt peut porter une couverture et un résumé en texte enrichi', function () {
+    Storage::fake('local');
+    Storage::fake('public');
+    Library::factory()->create();
+    Sanctum::actingAs(teacher());
+    $abstract = '<p>Chapitre sur les <strong>limites</strong> :</p><ul><li>définition</li><li>exercices corrigés</li></ul>';
+
+    $id = $this->post('/api/teacher-submissions', [
+        'title' => 'Analyse : limites', 'type' => 'Cours', 'category' => 'Mathématiques',
+        'abstract' => $abstract,
+        'file' => UploadedFile::fake()->create('cours.pdf', 100, 'application/pdf'),
+        'cover' => UploadedFile::fake()->image('couverture.jpg', 600, 800),
+    ], ['Accept' => 'application/json'])->assertCreated()->json('id');
+
+    $document = Document::find($id);
+    expect($document->abstract)->toBe($abstract)
+        ->and($document->cover_path)->toStartWith('covers/');
+    Storage::disk('public')->assertExists($document->cover_path);
+
+    // Sans couverture : le dépôt reste possible ; un fichier qui n'est pas une image est refusé.
+    $this->post('/api/teacher-submissions', [
+        'title' => 'TD sans image', 'type' => 'Travaux dirigés', 'category' => 'Mathématiques',
+        'file' => UploadedFile::fake()->create('td.pdf', 100, 'application/pdf'),
+    ], ['Accept' => 'application/json'])->assertCreated()->assertJsonPath('cover_path', null);
+
+    $this->post('/api/teacher-submissions', [
+        'title' => 'Mauvaise image', 'type' => 'Cours', 'category' => 'Mathématiques',
+        'file' => UploadedFile::fake()->create('c.pdf', 100, 'application/pdf'),
+        'cover' => UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf'),
+    ], ['Accept' => 'application/json'])->assertStatus(422)->assertJsonValidationErrors('cover');
+});

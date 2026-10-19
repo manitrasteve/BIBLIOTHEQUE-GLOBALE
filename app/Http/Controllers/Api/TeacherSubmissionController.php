@@ -40,13 +40,16 @@ class TeacherSubmissionController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:100'],
-            'abstract' => ['nullable', 'string', 'max:5000'],
+            // Résumé en texte enrichi (HTML de l'éditeur) : nettoyé à l'affichage, comme pour le personnel.
+            'abstract' => ['nullable', 'string', 'max:20000'],
             'category' => ['required', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
             'library_id' => ['nullable', 'exists:libraries,id'],
             'niveau' => ['nullable', 'string', 'max:100'],
             'language' => ['nullable', 'string', 'max:50'],
             'course_list_id' => ['nullable', 'integer'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
+            // Couverture facultative : mêmes limites que le formulaire du Service Numérique (5 Mo).
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $courseListId = null;
@@ -70,6 +73,7 @@ class TeacherSubmissionController extends Controller
             'access_level' => 'authentifie',
             'status' => 'soumis',
             'file_path' => $request->file('file')->store('documents', 'local'),
+            'cover_path' => $request->hasFile('cover') ? $request->file('cover')->store('covers', 'public') : null,
             'created_by' => $teacher->id,
             'submission_course_list_id' => $courseListId,
         ]);
