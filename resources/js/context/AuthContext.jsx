@@ -39,6 +39,14 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+    // Jeton refusé (expiré, révoqué, compte désactivé) : vraie déconnexion.
+    function clearSession() {
+        localStorage.removeItem("bm_token");
+        forgetUser();
+        sessionMemory.clear();
+        setUser(null);
+    }
+
     useEffect(() => {
         const token = localStorage.getItem("bm_token");
 
@@ -53,12 +61,8 @@ export function AuthProvider({ children }) {
                 rememberUser(me);
             })
             .catch((error) => {
-                // Jeton refusé (expiré, révoqué, compte désactivé) : vraie déconnexion.
                 if (error?.status === 401 || error?.status === 403) {
-                    localStorage.removeItem("bm_token");
-                    forgetUser();
-                    sessionMemory.clear();
-                    setUser(null);
+                    clearSession();
                     return;
                 }
                 // Hors ligne ou serveur momentanément indisponible : la session est conservée avec le
@@ -80,7 +84,12 @@ export function AuthProvider({ children }) {
                     setUser(me);
                     rememberUser(me);
                 })
-                .catch(() => {});
+                // Compte désactivé ou mot de passe changé ailleurs pendant la session : sans cela,
+                // l'interface restait « connectée » et chaque page échouait jusqu'au rechargement.
+                // Hors ligne / serveur indisponible : la session est conservée.
+                .catch((error) => {
+                    if (error?.status === 401) clearSession();
+                });
         }
 
         document.addEventListener("visibilitychange", refreshUser);
@@ -107,11 +116,10 @@ export function AuthProvider({ children }) {
     async function logout() {
         try {
             await api.logout();
+        } catch {
+            // Jeton déjà révoqué ou serveur injoignable : la session locale est fermée quand même.
         } finally {
-            localStorage.removeItem("bm_token");
-            forgetUser();
-            sessionMemory.clear();
-            setUser(null);
+            clearSession();
             setIsLoggingOut(false);
         }
     }

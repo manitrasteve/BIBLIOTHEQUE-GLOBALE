@@ -23,8 +23,10 @@ Artisan::command('documents:publier-programmes', function () {
 \Illuminate\Support\Facades\Schedule::command('documents:publier-programmes')->everyMinute()->withoutOverlapping();
 
 // Digest hebdomadaire des membres (nouveautés + reprise de lecture), envoyé le lundi matin.
-Artisan::command('digest:hebdomadaire', function (\App\Services\WeeklyDigest $digest) {
-    $this->info($digest->sendAll() . ' digest(s) envoyé(s).');
+// Une seule fois par semaine (planificateur ou App\Support\DigestKicker) ; --force pour renvoyer.
+Artisan::command('digest:hebdomadaire {--force : Envoie même si le digest de la semaine est déjà parti}', function (\App\Services\WeeklyDigest $digest) {
+    $sent = $this->option('force') ? $digest->sendAll() : $digest->sendThisWeekOnce();
+    $this->info($sent === null ? 'Digest de cette semaine déjà envoyé (ou avant lundi 8 h).' : $sent . ' digest(s) envoyé(s).');
 })->purpose('Envoie le digest hebdomadaire aux membres actifs');
 
 \Illuminate\Support\Facades\Schedule::command('digest:hebdomadaire')

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Document;
 use App\Models\ReadingProgress;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -17,6 +19,39 @@ class WeeklyDigest
 {
     private const MEMBER_ROLES = ['etudiant', 'enseignant', 'chercheur'];
     private const MAX_NEW_DOCUMENTS = 6;
+
+    /**
+     * Envoi de la semaine en cours, une seule fois : la semaine commence le lundi à 8 h (heure locale),
+     * comme la tâche planifiée. Le planificateur et DigestKicker partagent ce verrou, sans double envoi.
+     *
+     * @return int|null  Nombre d'e-mails envoyés, ou null si trop tôt / déjà envoyé cette semaine.
+     */
+    public function sendThisWeekOnce(): ?int
+    {
+        if (! $this->isDue()) {
+            return null;
+        }
+
+        if (! Cache::add(self::weekKey(), true, now()->addDays(8))) {
+            return null;
+        }
+
+        return $this->sendAll();
+    }
+
+    /** Lundi 8 h passé et digest de la semaine pas encore envoyé (vérification légère, sans verrou). */
+    public function isDue(): bool
+    {
+        $local = now(config('app.display_timezone'));
+
+        return $local->gte($local->copy()->startOfWeek(Carbon::MONDAY)->setTime(8, 0))
+            && ! Cache::has(self::weekKey());
+    }
+
+    private static function weekKey(): string
+    {
+        return 'weekly-digest-sent:' . now(config('app.display_timezone'))->format('o-W');
+    }
 
     /**
      * Construit et envoie le digest à tous les membres éligibles.

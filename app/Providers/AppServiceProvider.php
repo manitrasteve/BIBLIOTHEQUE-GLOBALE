@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\DigestKicker;
 use App\Support\PublicationKicker;
 use App\Support\ReminderKicker;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
             $this->app->terminating(fn () => ReminderKicker::maybeRun());
             // Publication programmée des documents, sans planificateur (au plus 1 fois / minute).
             $this->app->terminating(fn () => PublicationKicker::maybeRun());
+            // Digest hebdomadaire des membres, sans planificateur (au plus 1 lancement / heure à partir du lundi 8 h).
+            $this->app->terminating(fn () => DigestKicker::maybeRun());
         }
 
         // Connexion : limite par couple e-mail + IP (anti force brute) sans bloquer tout un réseau

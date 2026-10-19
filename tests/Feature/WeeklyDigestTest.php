@@ -8,6 +8,7 @@ use App\Models\Library;
 use App\Models\ReadingProgress;
 use App\Models\User;
 use App\Services\WeeklyDigest;
+use Illuminate\Support\Carbon;
 use Symfony\Component\Mime\Email;
 
 // E-mails réellement rendus (transport « array » en test).
@@ -74,9 +75,36 @@ test('le staff et les comptes inactifs ne reçoivent pas le digest', function ()
 });
 
 test('la commande digest:hebdomadaire s\'exécute sans erreur', function () {
+    $this->travelTo(Carbon::parse('2026-10-20 10:00', 'Indian/Antananarivo')); // mardi
     Document::factory()->create(['status' => 'publie', 'published_at' => now()]);
     User::factory()->create(['role' => 'chercheur', 'is_active' => true, 'email' => 'cherch@test.fr']);
 
     $this->artisan('digest:hebdomadaire')->assertExitCode(0);
     expect(digestMailTo('cherch@test.fr'))->not->toBeNull();
+});
+
+test('un seul digest par semaine, à partir du lundi 8 h (heure locale), sauf --force', function () {
+    Document::factory()->create(['status' => 'publie', 'published_at' => Carbon::parse('2026-10-18 12:00')]);
+    User::factory()->create(['role' => 'etudiant', 'is_active' => true, 'email' => 'etu@test.fr']);
+    $digest = app(WeeklyDigest::class);
+
+    $this->travelTo(Carbon::parse('2026-10-19 07:59', 'Indian/Antananarivo')); // lundi, trop tôt
+    expect($digest->isDue())->toBeFalse();
+    expect($digest->sendThisWeekOnce())->toBeNull();
+
+    $this->travelTo(Carbon::parse('2026-10-19 08:00', 'Indian/Antananarivo'));
+    expect($digest->sendThisWeekOnce())->toBe(1);
+    expect($digest->isDue())->toBeFalse();
+
+    // Planificateur et lancement de secours le même jour : pas de second envoi.
+    $this->travelTo(Carbon::parse('2026-10-21 15:00', 'Indian/Antananarivo'));
+    $this->artisan('digest:hebdomadaire')->assertExitCode(0);
+    expect(digestMails())->toHaveCount(1);
+
+    $this->artisan('digest:hebdomadaire --force')->assertExitCode(0);
+    expect(digestMails())->toHaveCount(2);
+
+    // Semaine suivante : de nouveau dû.
+    $this->travelTo(Carbon::parse('2026-10-26 09:00', 'Indian/Antananarivo'));
+    expect($digest->isDue())->toBeTrue();
 });

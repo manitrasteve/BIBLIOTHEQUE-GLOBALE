@@ -84,7 +84,7 @@ export default function DashboardPage() {
                             value={data.month_consultations ?? 0}
                             label="Consultations ce mois"
                             delta={data.month_consultations_delta}
-                            to="/mes-consultations"
+                            to="/mes-lectures"
                         />
                         <StatTrend
                             icon={Sparkles}
