@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AccountRequest;
+use App\Models\ActivityLog;
 use App\Models\AiQuery;
 use App\Models\Consultation;
 use App\Models\Document;
@@ -87,6 +88,11 @@ class PlatformStatistics
             'request_statuses' => $this->requestStatuses($current),
             'top_documents' => $this->topDocuments($seriesStart, $seriesEnd),
             'establishments' => $this->establishments(),
+            // Carte d'affluence : nombre par jour de la semaine (0 = lundi … 6 = dimanche) et par heure locale (0 … 23).
+            'affluence' => [
+                'consultations' => $this->affluence($this->activityQuery(Consultation::query()), 'consulted_at', $seriesStart, $seriesEnd),
+                'connexions' => $this->affluence($this->activityQuery(ActivityLog::query()->where('action', 'connexion')), 'created_at', $seriesStart, $seriesEnd),
+            ],
         ];
     }
 
@@ -148,6 +154,22 @@ class PlatformStatistics
             ->pluck($column)
             ->filter()
             ->map(fn ($value) => Carbon::parse($value, 'UTC')->setTimezone($this->tz)->format('Y-m'));
+    }
+
+    /** Grille 7 × 24 : jour de la semaine × heure, à l'heure locale, sur la période. */
+    private function affluence($query, string $column, Carbon $from, Carbon $to): array
+    {
+        $grid = array_fill(0, 7, array_fill(0, 24, 0));
+
+        $query->whereBetween($column, [$from->copy()->utc(), $to->copy()->utc()])
+            ->pluck($column)
+            ->filter()
+            ->each(function ($value) use (&$grid) {
+                $local = Carbon::parse($value, 'UTC')->setTimezone($this->tz);
+                $grid[$local->dayOfWeekIso - 1][$local->hour]++;
+            });
+
+        return $grid;
     }
 
     private function utcRange(Carbon $month): array

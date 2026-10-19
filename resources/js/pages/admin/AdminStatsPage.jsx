@@ -21,6 +21,7 @@ import WelcomeBanner from "../../components/WelcomeBanner";
 import { useAuth } from "../../context/AuthContext";
 import MonthlyChart from "../../components/charts/MonthlyChart";
 import { HBarList, RoleShare, trend } from "../../components/charts/Breakdowns";
+import AffluenceHeatmap from "../../components/charts/AffluenceHeatmap";
 
 const PERIODS = [3, 6, 12];
 const fmt = (value) => new Intl.NumberFormat("fr-FR").format(value ?? 0);
@@ -51,6 +52,8 @@ export default function AdminStatsPage() {
     const [reportMonth, setReportMonth] = useState(currentMonth());
     const [stats, setStats] = useState(null);
     const [statsError, setStatsError] = useState(null);
+    // Carte d'affluence : consultations ou connexions.
+    const [affluenceMetric, setAffluenceMetric] = useState("consultations");
 
     useEffect(() => {
         api.getAdminDashboard()
@@ -312,6 +315,38 @@ export default function AdminStatsPage() {
                                 <HBarList items={stats.establishments.map((e) => ({ label: e.code, value: e.members }))} />
                             </section>
                         </div>
+
+                        {stats.affluence && (
+                            <section className="modern-card mt-4 min-w-0 p-5" aria-labelledby="affluence-titre">
+                                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h3 id="affluence-titre" className="font-bold text-ink">Affluence par jour et par heure</h3>
+                                        <p className="mt-1 text-sm text-ink-soft">Quand la bibliothèque est la plus utilisée : repérez les heures de pointe et les creux.</p>
+                                    </div>
+                                    <div role="group" aria-label="Mesure de l'affluence" className="flex gap-1 rounded-xl border border-line bg-surface p-1">
+                                        {[
+                                            ["consultations", "Consultations"],
+                                            ["connexions", "Connexions"],
+                                        ].map(([value, label]) => (
+                                            <button
+                                                key={value}
+                                                type="button"
+                                                aria-pressed={affluenceMetric === value}
+                                                onClick={() => setAffluenceMetric(value)}
+                                                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${affluenceMetric === value ? "bg-indigo-600 text-white" : "text-ink-soft hover:text-ink"}`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <AffluenceHeatmap
+                                    grid={stats.affluence[affluenceMetric]}
+                                    unit={affluenceMetric}
+                                    periodLabel={`${months} derniers mois`}
+                                />
+                            </section>
+                        )}
                     </>
                 )}
             </section>
