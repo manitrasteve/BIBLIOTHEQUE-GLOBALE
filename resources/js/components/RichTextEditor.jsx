@@ -40,8 +40,9 @@ export default function RichTextEditor({ value, onChange }) {
                 class: "rich-text rte-content min-h-[6rem] px-3 py-2 text-sm text-ink focus:outline-none",
             },
         },
+        // Éditeur vide : chaîne vide (et non « <p></p> »), pour ne pas enregistrer un résumé vide.
         onUpdate: ({ editor }) => {
-            if (!editor.isDestroyed) onChange(editor.getHTML());
+            if (!editor.isDestroyed) onChange(editor.isEmpty ? "" : editor.getHTML());
         },
     });
 
@@ -50,10 +51,11 @@ export default function RichTextEditor({ value, onChange }) {
     // getHTML() y lève « Cannot read properties of null (reading 'cached') » et casse la page.
     useEffect(() => {
         if (!editor || editor.isDestroyed) return;
-        const current = editor.getHTML();
+        const current = editor.isEmpty ? "" : editor.getHTML();
         const next = value || "";
         if (next !== current) {
-            editor.commands.setContent(next, false);
+            // Tiptap 3 : l'option est un objet (un simple `false` laissait passer l'événement de mise à jour).
+            editor.commands.setContent(next, { emitUpdate: false });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value, editor]);

@@ -64,7 +64,8 @@ Route::get('/documents/suggestions', [DocumentController::class, 'suggestions'])
 Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware('optional.auth');
 Route::get('/documents/{slug}/similar', [DocumentController::class, 'similar']);
 
-Route::post('/account-requests', [AccountRequestController::class, 'store']);
+// Limité : chaque demande notifie tout le personnel (sans limite, un script pouvait les inonder).
+Route::post('/account-requests', [AccountRequestController::class, 'store'])->middleware('throttle:10,1');
 // whereUuid : « /account-requests/export » (route authentifiée plus bas) n'est pas pris pour un identifiant.
 Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show'])->whereUuid('uuid');
 // Limité : chaque appel vérifie le jeton (bcrypt) contre toutes les demandes validées en attente.

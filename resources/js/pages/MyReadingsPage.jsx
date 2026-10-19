@@ -9,7 +9,8 @@ import EmptyState from "../components/EmptyState";
 
 function formatDate(value) {
     if (!value) return "";
-    return new Date(String(value).replace(" ", "T")).toLocaleString("fr-FR");
+    // Date ISO avec fuseau (UTC) : affichée à l'heure de l'appareil.
+    return new Date(value).toLocaleString("fr-FR");
 }
 
 // Dernière page connue : celle de la session en cours si le document vient d'être lu,

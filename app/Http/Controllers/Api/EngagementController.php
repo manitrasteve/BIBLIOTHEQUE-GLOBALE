@@ -116,7 +116,8 @@ class EngagementController extends Controller
                 'type' => $d->type,
                 'year' => $d->year,
                 'authors' => $d->authors->pluck('name'),
-                'last_consulted_at' => $row->last_consulted_at,
+                // Valeur brute de MAX() (sans fuseau) : renvoyée en ISO UTC, comme les autres dates de l'API.
+                'last_consulted_at' => $row->last_consulted_at ? \Illuminate\Support\Carbon::parse($row->last_consulted_at, 'UTC')->toIso8601String() : null,
                 'views' => (int) $row->views,
                 'last_page' => $p?->last_page,
                 'total_pages' => $p?->total_pages,

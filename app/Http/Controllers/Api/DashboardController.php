@@ -26,11 +26,15 @@ class DashboardController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        $today = now()->toDateString();
-        $thirtyDaysAgo = now()->subDays(29)->startOfDay();
+        // Jours et mois à l'heure de Madagascar (les dates sont stockées en UTC) : sans cela, une activité
+        // entre 0 h et 3 h était comptée la veille, et celles du 1er du mois avant 3 h le mois précédent.
+        $tz = config('app.display_timezone');
+        $local = now($tz);
+        $todayRange = [$local->copy()->startOfDay()->utc(), $local->copy()->endOfDay()->utc()];
+        $thirtyDaysAgo = $local->copy()->subDays(29)->startOfDay()->utc();
 
-        $monthStart = now()->startOfMonth();
-        $prevMonthStart = now()->subMonthNoOverflow()->startOfMonth();
+        $monthStart = $local->copy()->startOfMonth()->utc();
+        $prevMonthStart = $local->copy()->subMonthNoOverflow()->startOfMonth()->utc();
 
         // Borne haute exclusive (`<` $monthStart) : évite de compter deux fois une activité
         // enregistrée exactement à 00:00:00 le 1er du mois (whereBetween est inclusif).
@@ -51,12 +55,11 @@ class DashboardController extends Controller
         // Série sur 30 jours : groupée par date, pour la courbe d'activité (dates sans activité remplies à 0 côté client).
         $activityRaw = $user->consultations()
             ->where('consulted_at', '>=', $thirtyDaysAgo)
-            ->selectRaw('DATE(consulted_at) as day, COUNT(*) as count')
-            ->groupBy('day')
-            ->pluck('count', 'day');
+            ->pluck('consulted_at')
+            ->countBy(fn ($date) => \Illuminate\Support\Carbon::parse($date, 'UTC')->setTimezone($tz)->toDateString());
         $activity = [];
         for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->toDateString();
+            $date = $local->copy()->subDays($i)->toDateString();
             $activity[] = ['date' => $date, 'consultations' => (int) ($activityRaw[$date] ?? 0)];
         }
 
@@ -97,8 +100,8 @@ class DashboardController extends Controller
 
         return response()->json([
             // --- Compat ancienne version (ne pas retirer) -----------------
-            'today_consultations' => $user->consultations()->whereDate('consulted_at', $today)->count(),
-            'today_ai_queries' => $user->aiQueries()->whereDate('created_at', $today)->count(),
+            'today_consultations' => $user->consultations()->whereBetween('consulted_at', $todayRange)->count(),
+            'today_ai_queries' => $user->aiQueries()->whereBetween('created_at', $todayRange)->count(),
             'favorites' => $user->favorites()->count(),
             'unread_notifications' => $user->appNotifications()->unread()->count(),
 

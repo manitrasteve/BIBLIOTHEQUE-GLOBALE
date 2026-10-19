@@ -13,6 +13,16 @@ class Consultation extends Model
 
     protected $casts = ['consulted_at' => 'datetime'];
 
+    // Date fixée par l'application, en UTC comme toutes les autres. La valeur par défaut de la colonne
+    // (CURRENT_TIMESTAMP) suit le fuseau de la session MySQL (+03:00 sous XAMPP) : les consultations
+    // étaient décalées de 3 heures dans les statistiques.
+    protected static function booted(): void
+    {
+        static::creating(function (Consultation $consultation) {
+            $consultation->consulted_at ??= now();
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

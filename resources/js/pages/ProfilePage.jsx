@@ -139,11 +139,16 @@ export default function ProfilePage() {
         setEditing(true);
     }
 
+    // Les réponses de /profile ne contiennent pas les permissions (ni, après suppression de la photo, la
+    // bibliothèque) : on les fusionne avec l'utilisateur connecté au lieu de le remplacer, sinon un
+    // bibliothécaire perdait ses rubriques protégées jusqu'au rechargement.
+    const mergeUser = (updated) => setUser((current) => ({ ...current, ...updated }));
+
     async function saveProfile(e) {
         e.preventDefault(); setError(null); setMsg(null);
         try {
             const updated = await api.updateProfile(profileForm);
-            setUser(updated); setEditing(false); setMsg('Profil mis à jour avec succès.');
+            mergeUser(updated); setEditing(false); setMsg('Profil mis à jour avec succès.');
         } catch (e) { setError(e?.data?.message || Object.values(e?.data?.errors || {})[0]?.[0] || 'Impossible de modifier le profil.'); }
     }
 
@@ -152,13 +157,13 @@ export default function ProfilePage() {
         setPhotoBusy(true); setError(null);
         try {
             const fd = new FormData(); fd.append("email", user.email); fd.append("phone", user.phone || ""); fd.append("address", user.address || ""); fd.append("photo", file);
-            const updated = await api.updateProfile(fd); setUser(updated);
+            const updated = await api.updateProfile(fd); mergeUser(updated);
         } catch (e) { setError(e?.data?.message || "Impossible de modifier la photo."); } finally { setPhotoBusy(false); }
     }
 
     async function removePhoto() {
         setPhotoBusy(true);
-        try { const updated = await api.deleteProfilePhoto(); setUser(updated); } catch(e) { setError(e?.data?.message || "Impossible de supprimer la photo."); } finally { setPhotoBusy(false); }
+        try { const updated = await api.deleteProfilePhoto(); mergeUser(updated); } catch(e) { setError(e?.data?.message || "Impossible de supprimer la photo."); } finally { setPhotoBusy(false); }
     }
 
 
