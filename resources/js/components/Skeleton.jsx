@@ -35,3 +35,8 @@ export function SkeletonDocumentDetail() {
 export function SkeletonPermissions() {
     return <div role="status" aria-busy="true" aria-label="Chargement des permissions" className="grid gap-6 lg:grid-cols-[280px_1fr]"><div className="rounded-2xl border border-slate-200 bg-surface p-4"><Skeleton className="block h-10 w-full rounded-xl" /><SkeletonList count={4} className="mt-4" /></div><div className="rounded-2xl border border-slate-200 bg-surface p-4"><Skeleton className="block h-7 w-1/3" /><SkeletonText lines={2} className="mt-4" /><div className="mt-6 space-y-4">{Array.from({ length: 3 }, (_, index) => <div key={index} className="rounded-xl border border-slate-200 p-4"><Skeleton className="block h-4 w-1/4" /><SkeletonText lines={3} className="mt-4" /></div>)}</div></div></div>;
 }
+
+// Contenu d'une page pendant « Actualiser » (voir RefreshView) : en-tête de section, filtre et liste.
+export function SkeletonPage() {
+    return <div role="status" aria-busy="true" aria-label="Actualisation du contenu" className="space-y-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 space-y-2"><Skeleton className="block h-5 w-48" /><Skeleton className="block h-3 w-72 max-w-full" /></div><Skeleton className="block h-10 w-64 max-w-full rounded-lg" /></div><SkeletonList count={5} /></div>;
+}

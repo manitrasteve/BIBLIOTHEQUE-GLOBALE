@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import PageLoader from "./PageLoader";
 import RefreshButton from "./RefreshButton";
+import { RefreshContent, RefreshProgressBar } from "./RefreshView";
 import NavBadge, { useNavBadges } from "./NavBadge";
 import { RefreshProvider } from "../context/RefreshContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
@@ -134,9 +135,12 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
                         </button>
                     </div>
 
-                    <Suspense fallback={<PageLoader />}>
-                        <Outlet />
-                    </Suspense>
+                    <RefreshProgressBar />
+                    <RefreshContent>
+                        <Suspense fallback={<PageLoader />}>
+                            <Outlet />
+                        </Suspense>
+                    </RefreshContent>
                 </div>
             </section>
         </div>

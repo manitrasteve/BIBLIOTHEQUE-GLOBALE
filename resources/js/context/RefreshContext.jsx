@@ -10,6 +10,9 @@ const RefreshContext = createContext(null);
 const AUTO_REFRESH_MS = 15000;
 // Retour sur l'onglet : pas de nouvelle requête si la dernière mise à jour est toute récente.
 const MIN_GAP_ON_FOCUS_MS = 5000;
+// Actualisation manuelle : le squelette et la barre de progression restent visibles au moins ce temps,
+// pour que le rechargement se voie même quand la réponse est instantanée.
+const MIN_MANUAL_REFRESH_MS = 1000;
 
 // L'utilisateur est en train de saisir ou de lire quelque chose qu'un rechargement pourrait perturber.
 function userIsBusy() {
@@ -64,7 +67,10 @@ export function RefreshProvider({ children }) {
         busyRef.current = true;
         setRefreshing(true);
         try {
-            await loaderRef.current();
+            await Promise.all([
+                loaderRef.current(),
+                new Promise((resolve) => setTimeout(resolve, MIN_MANUAL_REFRESH_MS)),
+            ]);
             markUpdated();
             setRefreshCount((n) => n + 1);
         } finally {

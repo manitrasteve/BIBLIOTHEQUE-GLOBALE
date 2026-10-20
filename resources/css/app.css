@@ -520,6 +520,41 @@ button:active {
     .skeleton { animation: none; }
 }
 
+/* Barre de progression d'« Actualiser » (components/RefreshView.jsx) : trait bleu en haut de l'écran,
+   qui avance vers la droite pendant le chargement puis se termine et s'efface. */
+.refresh-progress {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 3px;
+    background: #2f7cf6;
+    transform-origin: left center;
+    pointer-events: none;
+}
+html.dark .refresh-progress {
+    background: #5b9bff;
+}
+.refresh-progress--run {
+    animation: refresh-progress-run 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.refresh-progress--done {
+    animation: refresh-progress-done 0.45s ease-out forwards;
+}
+@keyframes refresh-progress-run {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(0.85); }
+}
+@keyframes refresh-progress-done {
+    from { transform: scaleX(0.85); opacity: 1; }
+    60% { transform: scaleX(1); opacity: 1; }
+    to { transform: scaleX(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .refresh-progress--run, .refresh-progress--done { animation: none; transform: scaleX(1); }
+}
+
 /* Message bref (components/Toast.jsx) : glisse depuis le bas. */
 .toast-in {
     animation: toast-in 0.25s ease-out;
