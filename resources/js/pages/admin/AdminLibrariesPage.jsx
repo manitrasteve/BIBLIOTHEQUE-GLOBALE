@@ -219,10 +219,10 @@ export default function AdminLibrariesPage() {
                       <td className="px-4 py-3 text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</td>
                       {showActions && (
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-3">
+                          <div className="flex items-center justify-end gap-2">
                               {canView && <ViewButton onClick={() => setViewing(lib)} />}
-                              {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
-                              {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
+                              {canEdit && <button type="button" onClick={() => startEdit(lib)} title="Modifier" aria-label={`Modifier « ${lib.name} »`} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-brass hover:bg-slate-50 hover:text-brass-deep"><Pencil className="h-4 w-4" aria-hidden="true" /></button>}
+                              {isAdmin && <button type="button" onClick={() => remove(lib)} title="Supprimer" aria-label={`Supprimer « ${lib.name} »`} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-red-700 hover:border-red-200 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}
                             </div>
                         </td>
                       )}
@@ -239,10 +239,10 @@ export default function AdminLibrariesPage() {
                   <p className="mt-1 text-xs text-ink-soft break-words">{lib.address || '—'}</p>
                   <p className="mt-1 text-xs text-ink-soft">{lib.opening_days || '—'} · {lib.opening_hours || '—'}</p>
                   {showActions && (
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       {canView && <ViewButton onClick={() => setViewing(lib)} />}
-                      {canEdit && <button onClick={() => startEdit(lib)} className="text-sm text-brass"><Pencil className="mr-1 inline h-3.5 w-3.5" />Modifier</button>}
-                      {isAdmin && <button onClick={() => remove(lib)} className="text-sm text-red-700"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Supprimer</button>}
+                      {canEdit && <button type="button" onClick={() => startEdit(lib)} title="Modifier" aria-label={`Modifier « ${lib.name} »`} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-brass hover:bg-slate-50 hover:text-brass-deep"><Pencil className="h-4 w-4" aria-hidden="true" /></button>}
+                      {isAdmin && <button type="button" onClick={() => remove(lib)} title="Supprimer" aria-label={`Supprimer « ${lib.name} »`} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-red-700 hover:border-red-200 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}
                     </div>
                   )}
                 </div>

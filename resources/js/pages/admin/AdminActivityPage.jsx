@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { SkeletonList } from "../../components/Skeleton";
+import EmptyState from "../../components/EmptyState";
 
 // Pagination commune aux quatre vues (le serveur pagine : 30 entrées globales, 25 par vue détaillée).
 function Pagination({ meta, page, onChange }) {
@@ -555,9 +556,11 @@ export default function AdminActivityPage() {
             {logs === null ? (
                 <SkeletonList />
             ) : logs.length === 0 ? (
-                <p className="text-sm text-ink-soft">
-                    Aucune activité enregistrée pour ce filtre.
-                </p>
+                <EmptyState
+                    icon={History}
+                    title={actionFilter ? "Aucune activité enregistrée pour ce filtre." : "Aucune activité enregistrée."}
+                    description={actionFilter ? "Choisissez un autre type d'activité pour voir l'historique." : undefined}
+                />
             ) : (
                 <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-paper">
                     {logs.map((log) => {

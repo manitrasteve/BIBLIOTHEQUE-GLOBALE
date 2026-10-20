@@ -21,6 +21,7 @@ import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 import { ViewButton } from "../../components/DetailModal";
 import ProfileDetailModal from "../../components/ProfileDetailModal";
+import UserAvatar from "../../components/UserAvatar";
 import SortTh from "../../components/SortTh";
 import ActionsTh from "../../components/ActionsTh";
 import { GLOBAL_LIBRARY, ROLES, formatDateTime, userSections } from "../../lib/detailSections";
@@ -325,7 +326,7 @@ export default function AdminUsersPage() {
                         <thead className="bg-slate-50"><tr><SortTh label="Utilisateur" sortKey="name" sort={sort} setSort={setSort}/><SortTh label="Rôle" sortKey="role" sort={sort} setSort={setSort}/><th className="px-4 py-3 text-left">Bibliothèque</th><SortTh label="Statut" sortKey="status" sort={sort} setSort={setSort}/><ActionsTh /></tr></thead>
                         <tbody>{filteredUsers.length === 0 && <tr><td colSpan="5" className="p-5 text-center text-slate-500">Aucun résultat.</td></tr>}{filteredUsers.map((u) => (
                             <tr key={u.id} className="border-t border-slate-100">
-                                <td className="px-4 py-3"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
+                                <td className="px-4 py-3"><div className="flex items-center gap-3"><UserAvatar user={u} /><div className="min-w-0"><p className="font-semibold">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></div></div></td>
                                 <td className="px-4 py-3">{ROLES[u.role] || u.role}</td><td className="px-4 py-3">{GLOBAL_LIBRARY}</td>
                                 <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "Désactivé"}</span></td>
                                 <td className="px-4 py-3"><div className="flex justify-end gap-2"><ViewButton onClick={() => setViewing(u)} />{u.is_active ? <button onClick={() => setModal({type:"deactivate",user:u})} className="btn-secondary"><UserX className="h-4 w-4"/>Désactiver</button> : <button onClick={() => handleReactivate(u)} className="btn-secondary"><UserCheck className="h-4 w-4"/>Réactiver</button>}{!['bibliothecaire','administrateur'].includes(u.role) && <button onClick={() => setModal({type:"delete",user:u})} title="Supprimer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-700"><Trash2 className="h-4 w-4"/></button>}</div></td>
@@ -338,7 +339,7 @@ export default function AdminUsersPage() {
                     {filteredUsers.map((u) => (
                         <div key={u.id} className="rounded-2xl border border-slate-200 bg-surface p-4">
                             <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0"><p className="font-semibold break-words">{u.name}</p><p className="text-xs text-slate-500 break-words">{u.email}</p></div>
+                                <div className="flex min-w-0 items-center gap-3"><UserAvatar user={u} /><div className="min-w-0"><p className="font-semibold break-words">{u.name}</p><p className="text-xs text-slate-500 break-words">{u.email}</p></div></div>
                                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${u.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{u.is_active ? "Actif" : "Désactivé"}</span>
                             </div>
                             <p className="mt-2 text-xs text-slate-500">Rôle : {ROLES[u.role] || u.role}</p>
