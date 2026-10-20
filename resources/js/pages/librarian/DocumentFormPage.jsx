@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { UploadCloud, Image as ImageIcon, FileSpreadsheet, X } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, FileSpreadsheet, FileCheck2, X, Check, Plus, Search, Globe, Users, Lock } from "lucide-react";
 import { api } from "../../lib/api";
 import RichTextEditor from "../../components/RichTextEditor";
 import AiCoverGenerator from "../../components/AiCoverGenerator";
@@ -15,17 +15,90 @@ const TYPE_OPTIONS = ["Mémoire", "Livre", "Thèse", "Rapport", "Document", "Aut
 const NIVEAU_OPTIONS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 const CATEGORY_OPTIONS = ["Agronomie", "Droit", "Finance", "Informatique", "Lettres et sciences humaines", "Médecine", "Autre"];
 
-const inputClass = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm";
+const inputClass = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200";
+const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
 // Limites du serveur (règles « file » et « cover » de DocumentController).
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 const ACCESS_LEVELS = [
-    { value: "public", label: "Public (aucune connexion requise)" },
-    { value: "authentifie", label: "Authentifié (tout utilisateur connecté)" },
-    { value: "restreint", label: "Restreint (uniquement sa bibliothèque)" },
+    { value: "public", label: "Public", hint: "Aucune connexion requise", Icon: Globe },
+    { value: "authentifie", label: "Authentifié", hint: "Tout utilisateur connecté", Icon: Users },
+    { value: "restreint", label: "Restreint", hint: "Uniquement sa bibliothèque", Icon: Lock },
 ];
+
+const formatSize = (bytes) => `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} Mo`;
+
+function Panel({ title, children, className = "" }) {
+    return (
+        <section className={`space-y-3.5 rounded-xl border border-line bg-surface p-4 ${className}`}>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">{title}</h3>
+            {children}
+        </section>
+    );
+}
+
+/**
+ * Zone de dépôt d'un fichier (clic ou glisser-déposer). `accepts` filtre les fichiers
+ * déposés, que l'attribut `accept` de l'input ne contrôle pas.
+ */
+function FileDrop({ accept, accepts, file, onFile, required, maxBytes, Icon, emptyTitle, emptyHint, fromImport }) {
+    const [over, setOver] = useState(false);
+    const tooBig = file && file.size > maxBytes;
+
+    function handleDrop(e) {
+        e.preventDefault();
+        setOver(false);
+        const dropped = e.dataTransfer.files?.[0];
+        if (dropped && accepts(dropped)) onFile(dropped);
+    }
+
+    return (
+        <label
+            onDragOver={(e) => {
+                e.preventDefault();
+                setOver(true);
+            }}
+            onDragLeave={() => setOver(false)}
+            onDrop={handleDrop}
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors focus-within:ring-2 focus-within:ring-indigo-200 ${
+                file
+                    ? tooBig
+                        ? "border-solid border-rose-300 bg-rose-50"
+                        : "border-solid border-emerald-300 bg-emerald-50"
+                    : over
+                      ? "border-dashed border-indigo-400 bg-indigo-100"
+                      : "border-dashed border-line bg-paper hover:border-indigo-400"
+            }`}
+        >
+            <span
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
+                    file ? (tooBig ? "bg-surface text-rose-700" : "bg-surface text-emerald-700") : "bg-paper-dim text-indigo-600"
+                }`}
+            >
+                {file ? <FileCheck2 className="h-5 w-5" aria-hidden="true" /> : <Icon className="h-5 w-5" aria-hidden="true" />}
+            </span>
+            <span className="grid min-w-0 flex-1">
+                <span className="truncate text-sm font-semibold text-ink">{file ? file.name : emptyTitle}</span>
+                <span className={`text-xs ${tooBig ? "text-rose-700" : "text-ink-soft"}`}>
+                    {file
+                        ? tooBig
+                            ? `${formatSize(file.size)} : trop volumineux (${formatSize(maxBytes)} max)`
+                            : `${formatSize(file.size)}${fromImport ? " · associé depuis l'Excel" : ""} · cliquer pour changer`
+                        : emptyHint}
+                </span>
+            </span>
+            <input
+                type="file"
+                accept={accept}
+                required={required && !file}
+                onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+                className="sr-only"
+            />
+        </label>
+    );
+}
 
 const emptyForm = {
     title: "",
@@ -72,8 +145,11 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
     const [cover, setCover] = useState(importItem?.cover || null);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-    const [newAuthor, setNewAuthor] = useState("");
+    const [authorQuery, setAuthorQuery] = useState("");
+    const [activeOption, setActiveOption] = useState(0);
     const [authorError, setAuthorError] = useState(null);
+    const [coverPreview, setCoverPreview] = useState(null);
+    const [existingCoverUrl, setExistingCoverUrl] = useState(null);
     // Auteurs de la ligne Excel inconnus de la base : créés à l'enregistrement du document.
     const [pendingAuthors, setPendingAuthors] = useState(importItem?.newAuthors || []);
     const [typeOther, setTypeOther] = useState(() => {
@@ -115,6 +191,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                     access_level: doc.access_level,
                     author_ids: doc.authors?.map((a) => a.id) || [],
                 });
+                setExistingCoverUrl(doc.cover_path ? `/storage/${doc.cover_path}` : null);
                 // Document déjà existant avec un type/catégorie hors des options
                 // prédéfinies (ancienne saisie libre) : on garde sa valeur exacte
                 // via le champ "Autre" plutôt que de la perdre silencieusement.
@@ -123,6 +200,17 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
             }).catch((e) => setError(e.data?.message || "Impossible de charger ce document."));
         }
     }, [id]);
+
+    // Aperçu de la couverture choisie (fichier local ou image générée par l'IA).
+    useEffect(() => {
+        if (!cover) {
+            setCoverPreview(null);
+            return undefined;
+        }
+        const url = URL.createObjectURL(cover);
+        setCoverPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [cover]);
 
     function toggleAuthor(authorId) {
         setForm((prev) => ({
@@ -133,8 +221,8 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
         }));
     }
 
-    async function addAuthor() {
-        const name = newAuthor.trim();
+    async function addAuthor(rawName) {
+        const name = rawName.trim();
 
         if (!name) {
             setAuthorError("Saisissez le nom de l'auteur.");
@@ -157,7 +245,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                 author_ids: [...prev.author_ids, author.id],
             }));
 
-            setNewAuthor("");
+            setAuthorQuery("");
         } catch (err) {
             const errors = err?.data?.errors;
 
@@ -257,10 +345,49 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
         }
     }
 
+    // Recherche d'auteurs : suggestions parmi ceux qui ne sont pas encore choisis,
+    // et création d'un nouvel auteur quand le nom saisi n'existe pas.
+    const query = authorQuery.trim().toLowerCase();
+    const selectedAuthors = form.author_ids
+        .map((authorId) => authors.find((a) => a.id === authorId))
+        .filter(Boolean);
+    const nameExists =
+        authors.some((a) => String(a.name).trim().toLowerCase() === query) ||
+        pendingAuthors.some((n) => n.trim().toLowerCase() === query);
+    const authorOptions = query
+        ? [
+              ...authors
+                  .filter((a) => !form.author_ids.includes(a.id) && String(a.name).toLowerCase().includes(query))
+                  .slice(0, 6)
+                  .map((a) => ({ key: a.id, author: a })),
+              ...(nameExists ? [] : [{ key: "create", author: null }]),
+          ]
+        : [];
+
+    function chooseOption(option) {
+        if (option.author) {
+            toggleAuthor(option.author.id);
+            setAuthorQuery("");
+        } else {
+            addAuthor(authorQuery);
+        }
+        setActiveOption(0);
+    }
+
+    const checks = [
+        { label: "Titre", ok: form.title.trim() !== "" },
+        { label: "Type et catégorie", ok: form.type.trim() !== "" && form.category.trim() !== "" },
+        { label: "Bibliothèque et langue", ok: String(form.library_id) !== "" && form.language.trim() !== "" },
+        ...(isEditing ? [] : [{ label: "Fichier PDF", ok: Boolean(file) }]),
+    ];
+
+    const coverUrl = coverPreview || existingCoverUrl;
+    const coverMeta = [form.type, form.niveau, form.year].filter(Boolean).join(" · ");
+
     return (
         <div>
             {!isEditing && !importItem && (
-                <div className="mx-auto mb-3 flex w-full max-w-5xl justify-end">
+                <div className="mx-auto mb-3 flex w-full max-w-6xl justify-end">
                     <Link to={`${listPath}/importer`} className="btn-secondary">
                         <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
                         Importer des documents
@@ -269,413 +396,455 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
             )}
             <form
                 onSubmit={handleSubmit}
-                className="mx-auto w-full max-w-5xl space-y-2.5 rounded-xl border border-line bg-paper p-3.5"
+                className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
             >
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Titre *
-                        </label>
-                        <input
-                            required
-                            value={form.title}
-                            onChange={(e) =>
-                                setForm({ ...form, title: e.target.value })
-                            }
-                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Sous-titre
-                        </label>
-                        <input
-                            value={form.subtitle}
-                            onChange={(e) =>
-                                setForm({ ...form, subtitle: e.target.value })
-                            }
-                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Résumé
-                    </label>
-                    <RichTextEditor
-                        value={form.abstract}
-                        onChange={(html) =>
-                            setForm((prev) => ({ ...prev, abstract: html }))
-                        }
-                    />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-                    <div>
-                        <label htmlFor="doc-type" className="block text-sm text-ink-soft mb-1.5">
-                            Type *
-                        </label>
-                        <select
-                            id="doc-type"
-                            required
-                            value={typeOther ? "Autre" : form.type}
-                            onChange={(e) => {
-                                const v = e.target.value;
-                                setTypeOther(v === "Autre");
-                                setForm({ ...form, type: v === "Autre" ? "" : v });
-                            }}
-                            className={inputClass}
-                        >
-                            <option value="">—</option>
-                            {TYPE_OPTIONS.map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                            ))}
-                        </select>
-                        {typeOther && (
+                <div className="min-w-0 space-y-4">
+                    <Panel title="Informations">
+                        <div>
+                            <label htmlFor="doc-title" className={labelClass}>
+                                Titre <span className="text-brass">*</span>
+                            </label>
                             <input
+                                id="doc-title"
                                 required
-                                maxLength={100}
-                                autoFocus
-                                placeholder="Précisez le type"
-                                value={form.type}
-                                onChange={(e) =>
-                                    setForm({ ...form, type: e.target.value })
-                                }
-                                className={`${inputClass} mt-2`}
+                                value={form.title}
+                                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                                className={inputClass}
                             />
-                        )}
-                    </div>
-
-                    <div>
-                        <label htmlFor="doc-niveau" className="block text-sm text-ink-soft mb-1.5">
-                            Niveau
-                        </label>
-                        <select
-                            id="doc-niveau"
-                            value={form.niveau}
-                            onChange={(e) =>
-                                setForm({ ...form, niveau: e.target.value })
-                            }
-                            className={inputClass}
-                        >
-                            <option value="">—</option>
-                            {NIVEAU_OPTIONS.map((n) => (
-                                <option key={n} value={n}>{n}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label htmlFor="doc-category" className="block text-sm text-ink-soft mb-1.5">
-                            Catégorie *
-                        </label>
-                        <select
-                            id="doc-category"
-                            required
-                            value={categoryOther ? "Autre" : form.category}
-                            onChange={(e) => {
-                                const v = e.target.value;
-                                setCategoryOther(v === "Autre");
-                                setForm({ ...form, category: v === "Autre" ? "" : v });
-                            }}
-                            className={inputClass}
-                        >
-                            <option value="">—</option>
-                            {CATEGORY_OPTIONS.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
-                        {categoryOther && (
+                        </div>
+                        <div>
+                            <label htmlFor="doc-subtitle" className={labelClass}>
+                                Sous-titre
+                            </label>
                             <input
-                                required
-                                maxLength={255}
-                                autoFocus
-                                placeholder="Précisez la catégorie"
-                                value={form.category}
-                                onChange={(e) =>
-                                    setForm({ ...form, category: e.target.value })
-                                }
-                                className={`${inputClass} mt-2`}
+                                id="doc-subtitle"
+                                value={form.subtitle}
+                                onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+                                className={inputClass}
                             />
-                        )}
-                    </div>
+                        </div>
+                        <div>
+                            <span className={labelClass}>Résumé</span>
+                            <RichTextEditor
+                                value={form.abstract}
+                                onChange={(html) => setForm((prev) => ({ ...prev, abstract: html }))}
+                            />
+                        </div>
+                    </Panel>
 
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Bibliothèque *
-                        </label>
-                        <select
-                            required
-                            value={form.library_id}
-                            onChange={(e) =>
-                                setForm({ ...form, library_id: e.target.value })
-                            }
-                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
-                        >
-                            <option value="">—</option>
-                            {libraries.map((l) => (
-                                <option key={l.id} value={l.id}>
-                                    {l.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Année
-                        </label>
-                        <input
-                            value={form.year}
-                            onChange={(e) =>
-                                setForm({ ...form, year: e.target.value })
-                            }
-                            className={inputClass}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Éditeur
-                        </label>
-                        <input
-                            value={form.publisher}
-                            onChange={(e) =>
-                                setForm({ ...form, publisher: e.target.value })
-                            }
-                            className={inputClass}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            ISBN
-                        </label>
-                        <input
-                            value={form.isbn}
-                            onChange={(e) =>
-                                setForm({ ...form, isbn: e.target.value })
-                            }
-                            className={inputClass}
-                        />
-                    </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="doc-language" className="block text-sm text-ink-soft mb-1.5">
-                            Langue *
-                        </label>
-                        <input
-                            id="doc-language"
-                            required
-                            maxLength={50}
-                            value={form.language}
-                            onChange={(e) =>
-                                setForm({ ...form, language: e.target.value })
-                            }
-                            className={inputClass}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-ink-soft mb-1.5">
-                            Niveau d'accès *
-                        </label>
-                        <select
-                            value={form.access_level}
-                            onChange={(e) =>
-                                setForm({ ...form, access_level: e.target.value })
-                            }
-                            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
-                        >
-                            {ACCESS_LEVELS.map((a) => (
-                                <option key={a.value} value={a.value}>
-                                    {a.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm text-ink-soft mb-1.5">
-                        Auteur(s)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        {authors.map((a) => (
-                            <button
-                                type="button"
-                                key={a.id}
-                                onClick={() => toggleAuthor(a.id)}
-                                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                                    form.author_ids.includes(a.id)
-                                        ? "bg-ink text-paper border-ink"
-                                        : "border-line text-ink-soft hover:border-brass"
-                                }`}
-                            >
-                                {a.name}
-                            </button>
-                        ))}
-                        {pendingAuthors.map((name) => (
-                            <span
-                                key={name}
-                                title="Nouvel auteur : il sera créé à l'enregistrement du document"
-                                className="inline-flex items-center gap-1 rounded-full border border-dashed border-brass bg-indigo-50 px-3 py-1 text-sm text-ink"
-                            >
-                                Nouveau : {name}
-                                <button
-                                    type="button"
-                                    onClick={() => setPendingAuthors((prev) => prev.filter((n) => n !== name))}
-                                    className="rounded-full text-ink-soft hover:text-ink"
-                                    aria-label={`Retirer l'auteur ${name}`}
+                    <Panel title="Classement">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label htmlFor="doc-type" className={labelClass}>
+                                    Type <span className="text-brass">*</span>
+                                </label>
+                                <select
+                                    id="doc-type"
+                                    required
+                                    value={typeOther ? "Autre" : form.type}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        setTypeOther(v === "Autre");
+                                        setForm({ ...form, type: v === "Autre" ? "" : v });
+                                    }}
+                                    className={inputClass}
                                 >
-                                    <X className="h-3.5 w-3.5" aria-hidden="true" />
-                                </button>
-                            </span>
-                        ))}
-                    </div>
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <input
-                            value={newAuthor}
-                            onChange={(e) => setNewAuthor(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addAuthor();
-                                }
-                            }}
-                            placeholder="Nom d'un nouvel auteur"
-                            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm"
-                        />
-                        <button
-                            type="button"
-                            onClick={addAuthor}
-                            className="btn-secondary"
-                        >
-                            + Ajouter un auteur
-                        </button>
-                    </div>
-                    {authorError && (
-                        <p className="mt-2 text-sm text-rose-700">
-                            {authorError}
+                                    <option value="">—</option>
+                                    {TYPE_OPTIONS.map((t) => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </select>
+                                {typeOther && (
+                                    <input
+                                        required
+                                        maxLength={100}
+                                        autoFocus
+                                        placeholder="Précisez le type"
+                                        value={form.type}
+                                        onChange={(e) => setForm({ ...form, type: e.target.value })}
+                                        className={`${inputClass} mt-2`}
+                                    />
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="doc-niveau" className={labelClass}>
+                                    Niveau
+                                </label>
+                                <select
+                                    id="doc-niveau"
+                                    value={form.niveau}
+                                    onChange={(e) => setForm({ ...form, niveau: e.target.value })}
+                                    className={inputClass}
+                                >
+                                    <option value="">—</option>
+                                    {NIVEAU_OPTIONS.map((n) => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label htmlFor="doc-category" className={labelClass}>
+                                    Catégorie <span className="text-brass">*</span>
+                                </label>
+                                <select
+                                    id="doc-category"
+                                    required
+                                    value={categoryOther ? "Autre" : form.category}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        setCategoryOther(v === "Autre");
+                                        setForm({ ...form, category: v === "Autre" ? "" : v });
+                                    }}
+                                    className={inputClass}
+                                >
+                                    <option value="">—</option>
+                                    {CATEGORY_OPTIONS.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                                {categoryOther && (
+                                    <input
+                                        required
+                                        maxLength={255}
+                                        autoFocus
+                                        placeholder="Précisez la catégorie"
+                                        value={form.category}
+                                        onChange={(e) => setForm({ ...form, category: e.target.value })}
+                                        className={`${inputClass} mt-2`}
+                                    />
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="doc-library" className={labelClass}>
+                                    Bibliothèque <span className="text-brass">*</span>
+                                </label>
+                                <select
+                                    id="doc-library"
+                                    required
+                                    value={form.library_id}
+                                    onChange={(e) => setForm({ ...form, library_id: e.target.value })}
+                                    className={inputClass}
+                                >
+                                    <option value="">—</option>
+                                    {libraries.map((l) => (
+                                        <option key={l.id} value={l.id}>
+                                            {l.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </Panel>
+
+                    <Panel title="Édition">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <label htmlFor="doc-year" className={labelClass}>
+                                    Année
+                                </label>
+                                <input
+                                    id="doc-year"
+                                    inputMode="numeric"
+                                    value={form.year}
+                                    onChange={(e) => setForm({ ...form, year: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="doc-publisher" className={labelClass}>
+                                    Éditeur
+                                </label>
+                                <input
+                                    id="doc-publisher"
+                                    value={form.publisher}
+                                    onChange={(e) => setForm({ ...form, publisher: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="doc-isbn" className={labelClass}>
+                                    ISBN
+                                </label>
+                                <input
+                                    id="doc-isbn"
+                                    value={form.isbn}
+                                    onChange={(e) => setForm({ ...form, isbn: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="doc-language" className={labelClass}>
+                                    Langue <span className="text-brass">*</span>
+                                </label>
+                                <input
+                                    id="doc-language"
+                                    required
+                                    maxLength={50}
+                                    value={form.language}
+                                    onChange={(e) => setForm({ ...form, language: e.target.value })}
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+                    </Panel>
+
+                    <Panel title="Auteurs">
+                        <div className="relative">
+                            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-surface p-1.5 focus-within:ring-2 focus-within:ring-indigo-200">
+                                {selectedAuthors.map((a) => (
+                                    <span
+                                        key={a.id}
+                                        className="inline-flex items-center gap-1 rounded-full bg-indigo-600 py-1 pl-3 pr-1.5 text-sm text-white"
+                                    >
+                                        {a.name}
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleAuthor(a.id)}
+                                            className="rounded-full p-0.5 hover:bg-indigo-500"
+                                            aria-label={`Retirer l'auteur ${a.name}`}
+                                        >
+                                            <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                        </button>
+                                    </span>
+                                ))}
+                                {pendingAuthors.map((name) => (
+                                    <span
+                                        key={name}
+                                        title="Nouvel auteur : il sera créé à l'enregistrement du document"
+                                        className="inline-flex items-center gap-1 rounded-full border border-dashed border-brass bg-amber-50 py-1 pl-3 pr-1.5 text-sm text-ink"
+                                    >
+                                        Nouveau : {name}
+                                        <button
+                                            type="button"
+                                            onClick={() => setPendingAuthors((prev) => prev.filter((n) => n !== name))}
+                                            className="rounded-full p-0.5 text-ink-soft hover:text-ink"
+                                            aria-label={`Retirer l'auteur ${name}`}
+                                        >
+                                            <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                        </button>
+                                    </span>
+                                ))}
+                                <span className="flex min-w-48 flex-1 items-center gap-2 px-1.5">
+                                    <Search className="h-4 w-4 shrink-0 text-ink-soft" aria-hidden="true" />
+                                    <input
+                                        id="doc-authors"
+                                        role="combobox"
+                                        aria-expanded={authorOptions.length > 0}
+                                        aria-controls="doc-authors-options"
+                                        aria-label="Rechercher ou ajouter un auteur"
+                                        autoComplete="off"
+                                        value={authorQuery}
+                                        onChange={(e) => {
+                                            setAuthorQuery(e.target.value);
+                                            setActiveOption(0);
+                                            setAuthorError(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "ArrowDown" && authorOptions.length) {
+                                                e.preventDefault();
+                                                setActiveOption((i) => (i + 1) % authorOptions.length);
+                                            } else if (e.key === "ArrowUp" && authorOptions.length) {
+                                                e.preventDefault();
+                                                setActiveOption((i) => (i - 1 + authorOptions.length) % authorOptions.length);
+                                            } else if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                if (authorOptions[activeOption]) chooseOption(authorOptions[activeOption]);
+                                            } else if (e.key === "Escape") {
+                                                setAuthorQuery("");
+                                            }
+                                        }}
+                                        placeholder="Rechercher ou ajouter un auteur…"
+                                        className="min-w-0 flex-1 bg-transparent py-1 text-sm focus:outline-none"
+                                    />
+                                </span>
+                            </div>
+                            {authorOptions.length > 0 && (
+                                <ul
+                                    id="doc-authors-options"
+                                    role="listbox"
+                                    className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-line bg-surface text-sm"
+                                >
+                                    {authorOptions.map((option, i) => (
+                                        <li
+                                            key={option.key}
+                                            role="option"
+                                            aria-selected={i === activeOption}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                chooseOption(option);
+                                            }}
+                                            onMouseEnter={() => setActiveOption(i)}
+                                            className={`flex cursor-pointer items-center gap-2 border-t border-line px-3 py-2 first:border-t-0 ${
+                                                i === activeOption ? "bg-paper-dim" : ""
+                                            }`}
+                                        >
+                                            {option.author ? (
+                                                option.author.name
+                                            ) : (
+                                                <>
+                                                    <Plus className="h-4 w-4 text-brass" aria-hidden="true" />
+                                                    Créer l'auteur « {authorQuery.trim()} »
+                                                </>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <p className="text-xs text-ink-soft">
+                            Tapez un nom puis Entrée : s'il n'existe pas encore, l'auteur est créé.
                         </p>
-                    )}
+                        {authorError && <p className="text-sm text-rose-700">{authorError}</p>}
+                    </Panel>
+
+                    <Panel title="Niveau d'accès *">
+                        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Niveau d'accès">
+                            {ACCESS_LEVELS.map(({ value, label, hint, Icon }) => {
+                                const selected = form.access_level === value;
+                                return (
+                                    <label
+                                        key={value}
+                                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-indigo-200 ${
+                                            selected ? "border-indigo-400 bg-indigo-100" : "border-line hover:border-indigo-400"
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="access_level"
+                                            value={value}
+                                            checked={selected}
+                                            onChange={() => setForm({ ...form, access_level: value })}
+                                            className="sr-only"
+                                        />
+                                        <Icon className={`h-4 w-4 shrink-0 ${selected ? "text-indigo-400" : "text-ink-soft"}`} aria-hidden="true" />
+                                        <span className="grid min-w-0 flex-1">
+                                            <span className="text-sm font-semibold text-ink">{label}</span>
+                                            <span className="text-xs text-ink-soft">{hint}</span>
+                                        </span>
+                                        <span
+                                            className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 ${
+                                                selected ? "border-indigo-400" : "border-line"
+                                            }`}
+                                            aria-hidden="true"
+                                        >
+                                            {selected && <span className="h-2 w-2 rounded-full bg-indigo-400" />}
+                                        </span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </Panel>
                 </div>
 
-                {!isEditing && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label className="block text-sm text-ink-soft mb-1.5">
-                                Fichier PDF *
-                            </label>
-                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim px-3 py-3 cursor-pointer hover:border-brass transition-colors">
-                                <UploadCloud
-                                    className="h-5 w-5 flex-shrink-0 text-slate-400"
-                                    strokeWidth={1.5}
+                <aside className="min-w-0 space-y-4">
+                    <Panel title={isEditing ? "Remplacer le PDF (optionnel)" : "Fichier PDF *"}>
+                        <FileDrop
+                            accept="application/pdf"
+                            accepts={(f) => f.type === "application/pdf"}
+                            file={file}
+                            onFile={setFile}
+                            required={!isEditing}
+                            maxBytes={MAX_PDF_BYTES}
+                            Icon={UploadCloud}
+                            emptyTitle={isEditing ? "Garder le PDF actuel" : "Glissez le PDF ici"}
+                            emptyHint={isEditing ? "ou cliquez pour en choisir un autre · 50 Mo max" : "ou cliquez pour choisir · 50 Mo max"}
+                            fromImport={Boolean(importItem?.file) && file === importItem.file}
+                        />
+                    </Panel>
+
+                    <Panel title={isEditing ? "Couverture" : "Couverture (optionnel)"}>
+                        <div className="flex items-start gap-3">
+                            {coverUrl ? (
+                                <img
+                                    src={coverUrl}
+                                    alt="Aperçu de la couverture"
+                                    className="aspect-3/4 w-24 shrink-0 rounded-lg border border-line object-cover"
                                 />
-                                <span className="text-sm text-ink-soft">
-                                    {file
-                                        ? `${importItem ? "✓ " : ""}${file.name}`
-                                        : "PDF (obligatoire, 50 Mo max)"}
-                                </span>
-                                <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    required={!file}
-                                    onChange={(e) => setFile(e.target.files[0])}
-                                    className="sr-only"
-                                />
-                            </label>
-                        </div>
-                        <div>
-                            <label className="block text-sm text-ink-soft mb-1.5">
-                                Couverture (optionnel)
-                            </label>
-                            <label className="flex items-center gap-2 rounded-lg border border-dashed border-line bg-paper-dim px-3 py-3 cursor-pointer hover:border-brass transition-colors">
-                                <ImageIcon
-                                    className="h-5 w-5 flex-shrink-0 text-slate-400"
-                                    strokeWidth={1.5}
-                                />
-                                <span className="text-sm text-ink-soft">
-                                    {cover
-                                        ? `${importItem ? "✓ " : ""}${cover.name}`
-                                        : "Choisir une image"}
-                                </span>
-                                <input
-                                    type="file"
+                            ) : (
+                                <div
+                                    className="flex aspect-3/4 w-24 shrink-0 flex-col justify-end rounded-lg bg-indigo-600 p-2.5 text-white"
+                                    aria-label="Aperçu sans couverture"
+                                >
+                                    <span className="line-clamp-4 text-xs font-extrabold leading-snug">
+                                        {form.title.trim() || "Titre du document"}
+                                    </span>
+                                    {coverMeta && <span className="mt-1 text-[10px] text-on-primary-soft">{coverMeta}</span>}
+                                </div>
+                            )}
+                            <div className="min-w-0 flex-1 space-y-2">
+                                <FileDrop
                                     accept="image/*"
-                                    onChange={(e) =>
-                                        setCover(e.target.files[0])
-                                    }
-                                    className="sr-only"
+                                    accepts={(f) => f.type.startsWith("image/")}
+                                    file={cover}
+                                    onFile={setCover}
+                                    maxBytes={MAX_COVER_BYTES}
+                                    Icon={ImageIcon}
+                                    emptyTitle={isEditing ? "Remplacer l'image" : "Choisir une image"}
+                                    emptyHint="JPG, PNG ou WebP · 5 Mo max"
+                                    fromImport={Boolean(importItem?.cover) && cover === importItem.cover}
                                 />
-                            </label>
+                                {cover && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCover(null)}
+                                        className="text-sm font-semibold text-brass hover:text-brass-deep"
+                                    >
+                                        {isEditing ? "Annuler le remplacement" : "Retirer"}
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                        <AiCoverGenerator
+                            fields={{
+                                title: form.title,
+                                subtitle: form.subtitle,
+                                type: form.type,
+                                category: form.category,
+                                abstract: form.abstract,
+                                keywords: form.keywords,
+                            }}
+                            current={cover}
+                            onUse={setCover}
+                        />
+                    </Panel>
 
-                {isEditing && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label className="block text-sm text-ink-soft mb-1.5">
-                                Remplacer le PDF (optionnel)
-                            </label>
-                            <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) =>
-                                    setFile(e.target.files?.[0] || null)
-                                }
-                                className="w-full text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-ink-soft mb-1.5">
-                                Remplacer la couverture (optionnel)
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) =>
-                                    setCover(e.target.files?.[0] || null)
-                                }
-                                className="w-full text-sm"
-                            />
-                        </div>
-                    </div>
-                )}
+                    <Panel title={isEditing ? "Enregistrer" : "Avant de créer"} className="lg:sticky lg:top-4">
+                        <ul className="space-y-1.5 text-sm">
+                            {checks.map(({ label, ok }) => (
+                                <li key={label} className={`flex items-center gap-2 ${ok ? "text-ink" : "text-ink-soft"}`}>
+                                    <span
+                                        className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 ${
+                                            ok ? "border-emerald-600 bg-emerald-600 text-white" : "border-line"
+                                        }`}
+                                        aria-hidden="true"
+                                    >
+                                        {ok && <Check className="h-2.5 w-2.5" strokeWidth={4} />}
+                                    </span>
+                                    {label}
+                                    <span className="sr-only">{ok ? " : rempli" : " : à remplir"}</span>
+                                </li>
+                            ))}
+                        </ul>
 
-                <AiCoverGenerator
-                    fields={{
-                        title: form.title,
-                        subtitle: form.subtitle,
-                        type: form.type,
-                        category: form.category,
-                        abstract: form.abstract,
-                        keywords: form.keywords,
-                    }}
-                    current={cover}
-                    onUse={setCover}
-                />
+                        {error && <p className="text-sm text-red-700">{error}</p>}
 
-                {error && <p className="text-sm text-red-700">{error}</p>}
-
-                <div className="flex justify-center">
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        className="btn-primary disabled:opacity-50"
-                    >
-                        {submitting
-                            ? "Enregistrement…"
-                            : isEditing
-                              ? "Enregistrer les modifications"
-                              : "Créer le document (brouillon)"}
-                    </button>
-                </div>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="btn-primary w-full py-2.5! disabled:opacity-50"
+                        >
+                            {submitting
+                                ? "Enregistrement…"
+                                : isEditing
+                                  ? "Enregistrer les modifications"
+                                  : "Créer le document"}
+                        </button>
+                        {!isEditing && <p className="text-center text-xs text-ink-soft">Le document est créé en brouillon.</p>}
+                    </Panel>
+                </aside>
             </form>
         </div>
     );
