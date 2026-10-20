@@ -6,6 +6,7 @@ import { usePageRefresh } from "../context/RefreshContext";
 import { sessionMemory } from "../lib/sessionMemory";
 import { matchesSearch } from "../lib/search";
 import EmptyState from "../components/EmptyState";
+import { startTopProgress } from "../lib/topProgress";
 
 function formatDate(value) {
     if (!value) return "";
@@ -136,6 +137,7 @@ export default function MyReadingsPage() {
                                 </div>
                                 <Link
                                     to={`/documents/${row.slug}`}
+                                    onClick={startTopProgress}
                                     className="btn-primary shrink-0 justify-center"
                                 >
                                     <PlayCircle className="h-4 w-4" aria-hidden="true" />

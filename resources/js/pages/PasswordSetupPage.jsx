@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { api } from "../lib/api";
 import AuthField from "../components/AuthField";
+import { trackTopProgress } from "../lib/topProgress";
 
 export default function PasswordSetupPage() {
     const [params] = useSearchParams();
@@ -81,10 +82,10 @@ export default function PasswordSetupPage() {
         setSubmitting(true);
 
         try {
-            await api.setupPassword(token, {
+            await trackTopProgress(() => api.setupPassword(token, {
                 password,
                 password_confirmation: passwordConfirmation,
-            });
+            }));
 
             setMessage(
                 "Votre mot de passe a été créé. Votre compte est maintenant actif.",

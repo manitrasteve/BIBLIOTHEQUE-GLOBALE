@@ -25,6 +25,7 @@ import { registerDocAssistant } from "../lib/docAssistant";
 import CitationDialog from "../components/CitationDialog";
 import SimilarDocuments from "../components/SimilarDocuments";
 import { SkeletonDocumentDetail } from "../components/Skeleton";
+import { finishTopProgress } from "../lib/topProgress";
 import { TYPE_CONFIG, normalizeType } from "../components/DocumentCard";
 import { languageLabel } from "../lib/languages";
 import { COVER_SOFT_TEXT, coverColor } from "../lib/coverColor";
@@ -178,10 +179,14 @@ export default function DocumentDetailPage() {
                 setDoc(data);
                 setFavorited(Boolean(data.is_favorited));
                 setFavoriteCount(data.favorite_count || 0);
+                // Barre lancée par « Reprendre ma lecture » ou le catalogue : si le document est lisible, le
+                // lecteur la termine au premier dessin de la page ; sinon elle s'arrête ici.
+                if (!(user && data.can_view_content)) finishTopProgress();
             })
-            .catch(() =>
-                setError("Ce document n'existe pas ou n'est plus disponible."),
-            );
+            .catch(() => {
+                setError("Ce document n'existe pas ou n'est plus disponible.");
+                finishTopProgress(true);
+            });
     }, [slug]);
 
     // Robot assistant flottant : il ouvre l'onglet « Assistant IA » de cette fiche

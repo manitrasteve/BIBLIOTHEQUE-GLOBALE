@@ -7,6 +7,7 @@ import Pager from "../../components/Pager";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
+import { trackTopProgress } from "../../lib/topProgress";
 
 // Libellés des types (mêmes listes que FeedbackPage / ProblemReportPage).
 const FEEDBACK_TYPES = { general: "Opinion générale", suggestion: "Suggestion", bug: "Bug", document: "Problème document", ai: "Problème IA", autre: "Autre" };
@@ -72,16 +73,12 @@ function Inbox({ kind }) {
         const text = await confirm({ title: "Répondre", reasonLabel: "Votre réponse (envoyée à l’utilisateur)", reasonPlaceholder: "Écrivez votre réponse…", confirmLabel: "Envoyer" });
         if (!text) return;
         try {
-            if (isFeedback)
-                await api.replyFeedback(row.id, {
-                    reply: text,
-                    status: "traite",
-                });
-            else
-                await api.replyProblemReport(row.id, {
-                    reply: text,
-                    status: "traite",
-                });
+            // Barre bleue en haut de l'écran : la réponse s'affiche quand elle arrive au bout.
+            await trackTopProgress(() =>
+                isFeedback
+                    ? api.replyFeedback(row.id, { reply: text, status: "traite" })
+                    : api.replyProblemReport(row.id, { reply: text, status: "traite" }),
+            );
             setRows((x) =>
                 x.map((r) =>
                     r.id === row.id

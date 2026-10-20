@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Star } from "lucide-react";
 import { api } from "../lib/api";
+import { useTopProgress } from "../components/RefreshView";
 
 const labelClass = "block text-sm font-semibold text-slate-700";
 const inputClass =
@@ -21,6 +22,14 @@ export default function FeedbackPage() {
     const [sent, setSent] = useState(false);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    // Barre bleue en haut de l'écran pendant l'envoi ; le message de réussite s'affiche quand elle arrive au bout.
+    const { bar: progressBar, track } = useTopProgress();
+    const resultRef = useRef(null);
+
+    // Message de réussite ou d'erreur ramené à l'écran (le bouton est en bas du formulaire).
+    useEffect(() => {
+        if (sent || error) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, [sent, error]);
 
     function update(field, value) {
         setSent(false);
@@ -37,13 +46,16 @@ export default function FeedbackPage() {
         setSubmitting(true);
 
         try {
-            await api.createFeedback({
-                type: form.type,
-                ...(form.type === "autre" ? { custom_type: form.custom_type.trim() } : {}),
-                subject: form.subject.trim(),
-                message: form.message.trim(),
-                rating: Number(form.rating),
-            });
+            // Le message de réussite apparaît quand la barre est arrivée au bout.
+            await track(() =>
+                api.createFeedback({
+                    type: form.type,
+                    ...(form.type === "autre" ? { custom_type: form.custom_type.trim() } : {}),
+                    subject: form.subject.trim(),
+                    message: form.message.trim(),
+                    rating: Number(form.rating),
+                }),
+            );
 
             setForm(initialForm);
             setSent(true);
@@ -62,7 +74,8 @@ export default function FeedbackPage() {
 
     return (
         <div className="w-full">
-            <h2 className="mb-6 flex items-center gap-2 font-display text-xl font-extrabold">
+            {progressBar}
+            <h2 ref={resultRef} className="mb-6 flex scroll-mt-4 items-center gap-2 font-display text-xl font-extrabold">
                 <MessageSquare className="h-5 w-5 text-brass" />
                 Avis & Suggestions
             </h2>

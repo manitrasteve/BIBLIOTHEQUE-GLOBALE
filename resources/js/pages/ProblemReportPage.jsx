@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LifeBuoy } from "lucide-react";
 import { api } from "../lib/api";
+import { useTopProgress } from "../components/RefreshView";
 
 // Mêmes limites que le serveur (ProblemReportController::store).
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
@@ -32,6 +33,14 @@ export default function ProblemReportPage() {
     const [sent, setSent] = useState(false);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    // Barre bleue en haut de l'écran pendant l'envoi ; le message de réussite s'affiche quand elle arrive au bout.
+    const { bar: progressBar, track } = useTopProgress();
+    const resultRef = useRef(null);
+
+    // Message de réussite ou d'erreur ramené à l'écran (le bouton est en bas du formulaire).
+    useEffect(() => {
+        if (sent || error) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, [sent, error]);
 
     function update(field, value) {
         setSent(false);
@@ -75,7 +84,7 @@ export default function ProblemReportPage() {
         if (file) data.append("screenshot", file);
 
         try {
-            await api.createProblemReport(data);
+            await track(() => api.createProblemReport(data));
             setForm(initialForm);
             setFile(null);
             setFileKey((key) => key + 1);
@@ -90,7 +99,8 @@ export default function ProblemReportPage() {
 
     return (
         <div className="w-full">
-            <h2 className="mb-6 flex items-center gap-2 font-display text-xl font-extrabold">
+            {progressBar}
+            <h2 ref={resultRef} className="mb-6 flex scroll-mt-4 items-center gap-2 font-display text-xl font-extrabold">
                 <LifeBuoy className="h-5 w-5 text-brass" />
                 Signaler un problème
             </h2>

@@ -14,6 +14,7 @@ import RecommendedReadings from "../components/RecommendedReadings";
 import { usePageRefresh } from "../context/RefreshContext";
 import { useAuth } from "../context/AuthContext";
 import WelcomeBanner from "../components/WelcomeBanner";
+import { startTopProgress } from "../lib/topProgress";
 import StatTrend, { StatTrendSkeleton } from "../components/StatTrend";
 
 const ROLE_LABELS = {
@@ -56,7 +57,7 @@ export default function DashboardPage() {
                 }
                 primary={
                     resumeTarget
-                        ? { label: "Reprendre ma lecture", to: `/documents/${resumeTarget.slug}` }
+                        ? { label: "Reprendre ma lecture", to: `/documents/${resumeTarget.slug}`, onClick: startTopProgress }
                         : { label: "Parcourir le catalogue", to: "/recherche" }
                 }
                 secondary={{ label: "Mes lectures", to: "/mes-lectures" }}

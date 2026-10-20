@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
+import { finishTopProgress, startTopProgress } from "../lib/topProgress";
 import ReaderTextView, { buildTextBlocks } from "./ReaderTextView";
 import ReaderNotesPanel from "./ReaderNotesPanel";
 import * as pdfjsLib from "pdfjs-dist";
@@ -127,12 +128,17 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
         };
     }, [slug]);
 
+    // Barre bleue en haut de l'écran : du début du chargement jusqu'au premier dessin de la page.
+    const firstPaintRef = useRef(false);
+
     useEffect(() => {
         let cancelled = false;
 
         async function load() {
             setLoading(true);
             setError(null);
+            firstPaintRef.current = false;
+            startTopProgress();
             // Nouveau document : aucune recherche précédente ne doit subsister.
             textIndexRef.current = null;
             textPagesRef.current = null;
@@ -173,7 +179,10 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
                         : 1,
                 );
             } catch (e) {
-                if (!cancelled) setError(e.message);
+                if (!cancelled) {
+                    setError(e.message);
+                    finishTopProgress(true);
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -182,8 +191,18 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
         load();
         return () => {
             cancelled = true;
+            // Lecteur fermé avant la fin du chargement : la barre ne reste pas affichée.
+            if (!firstPaintRef.current) finishTopProgress();
         };
     }, [slug]);
+
+    // Mode Texte : pas de dessin de page, la barre se termine dès que le PDF est chargé.
+    useEffect(() => {
+        if (pdf && mode !== "pdf" && !firstPaintRef.current) {
+            firstPaintRef.current = true;
+            finishTopProgress();
+        }
+    }, [pdf, mode]);
 
     useEffect(() => {
         if (!pdf) return undefined;
@@ -243,6 +262,10 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
             renderTaskRef.current = task;
             try {
                 await task.promise;
+                if (!cancelled && !firstPaintRef.current) {
+                    firstPaintRef.current = true;
+                    finishTopProgress();
+                }
                 if (!cancelled) {
                     setPageViewport({
                         pageNum,

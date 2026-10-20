@@ -7,6 +7,7 @@ import Pager from "../../components/Pager";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { usePageRefresh } from "../../context/RefreshContext";
 import LocalTimeFilters, { EMPTY_TIME_FILTERS } from "../../components/LocalTimeFilters";
+import { trackTopProgress } from "../../lib/topProgress";
 
 // Limite du serveur (règle « message » d'AdminMessageController::store).
 const MAX_MESSAGE_LENGTH = 10000;
@@ -145,7 +146,7 @@ export default function AdminMessagesPage() {
         }
         setLoading(true); setNotice(null);
         try {
-            await api.sendAdminMessage(form);
+            await trackTopProgress(() => api.sendAdminMessage(form));
             setNotice({ type: "success", text: "Message envoyé avec succès." });
             setForm({ subject: "", message: "", send_to_all: true, recipient_ids: [] });
             setRecipientSearch("");

@@ -25,6 +25,7 @@ import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import Pager from "../../components/Pager";
 import { usePageRefresh } from "../../context/RefreshContext";
+import { trackTopProgress } from "../../lib/topProgress";
 
 const FILTERS = [
     "en_attente",
@@ -159,7 +160,7 @@ export default function AccountRequestsPage() {
         try {
             setError(null);
 
-            await api.verifyAccountRequest(id);
+            await trackTopProgress(() => api.verifyAccountRequest(id));
 
             await load();
         } catch (e) {
@@ -175,7 +176,7 @@ export default function AccountRequestsPage() {
         try {
             setError(null);
 
-            await api.validateAccountRequest(id);
+            await trackTopProgress(() => api.validateAccountRequest(id));
 
             await load();
         } catch (e) {
@@ -238,10 +239,10 @@ export default function AccountRequestsPage() {
             setError(null);
             setNotice(null);
             const response = bulk.action === "reject"
-                ? await api.rejectAllAccountRequests(target, reason)
+                ? await trackTopProgress(() => api.rejectAllAccountRequests(target, reason))
                 : bulk.action === "verify"
-                    ? await api.verifyAllAccountRequests(target)
-                    : await api.validateAllAccountRequests(target);
+                    ? await trackTopProgress(() => api.verifyAllAccountRequests(target))
+                    : await trackTopProgress(() => api.validateAllAccountRequests(target));
             setNotice(response.message);
             setBulk(null);
             await load();
@@ -260,7 +261,7 @@ export default function AccountRequestsPage() {
             setError(null);
             setNotice(null);
 
-            const response = await api.resendSetupLink(id);
+            const response = await trackTopProgress(() => api.resendSetupLink(id));
             setNotice(response.message);
 
             await load();
@@ -281,9 +282,9 @@ export default function AccountRequestsPage() {
             setError(null);
 
             if (user?.role === "administrateur") {
-                await api.adminRejectAccountRequest(id, reason);
+                await trackTopProgress(() => api.adminRejectAccountRequest(id, reason));
             } else {
-                await api.rejectAccountRequest(id, reason);
+                await trackTopProgress(() => api.rejectAccountRequest(id, reason));
             }
 
             await load();

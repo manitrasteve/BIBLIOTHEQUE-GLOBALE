@@ -527,7 +527,7 @@ button:active {
     top: env(safe-area-inset-top, 0px);
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 10000; /* au-dessus des fenêtres (déconnexion : z-index 9999) */
     height: 3px;
     background: #2f7cf6;
     transform-origin: left center;
@@ -535,6 +535,11 @@ button:active {
 }
 html.dark .refresh-progress {
     background: #5b9bff;
+}
+/* Envoi échoué : la barre se termine en rouge. */
+.refresh-progress--failed,
+html.dark .refresh-progress--failed {
+    background: #e11d48;
 }
 .refresh-progress--run {
     animation: refresh-progress-run 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;

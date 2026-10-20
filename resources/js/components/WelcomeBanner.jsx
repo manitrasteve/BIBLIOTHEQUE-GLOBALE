@@ -27,6 +27,7 @@ export default function WelcomeBanner({ eyebrow, title, description, primary, se
                         {primary && (
                             <Link
                                 to={primary.to}
+                                onClick={primary.onClick}
                                 className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-indigo-900 shadow-sm transition hover:bg-gold-soft"
                             >
                                 {primary.label}

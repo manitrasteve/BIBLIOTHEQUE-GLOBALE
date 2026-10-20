@@ -7,6 +7,7 @@ import { usePageRefresh } from "../../context/RefreshContext";
 import SortTh from "../../components/SortTh";
 import { sortRows } from "../../lib/sort";
 import RichTextEditor from "../../components/RichTextEditor";
+import { useTopProgress } from "../../components/RefreshView";
 
 const TYPES = ["Polycopié", "Travaux dirigés", "Travaux pratiques", "Annales", "Cours", "Autre"];
 const OTHER = "__autre__";
@@ -75,6 +76,8 @@ export default function MySubmissionsPage() {
     const [fileKey, setFileKey] = useState(0);
     const [showForm, setShowForm] = useState(false);
     const [dragging, setDragging] = useState(false);
+    // Barre bleue en haut de l’écran pendant l’envoi ; le dépôt est confirmé quand elle arrive au bout.
+    const { bar: progressBar, track } = useTopProgress();
     const [sort, setSort] = useState({ key: "created_at", dir: "desc" });
 
     const load = () => api.getTeacherSubmissions().then((d) => { setItems(d); setError(null); });
@@ -139,7 +142,7 @@ export default function MySubmissionsPage() {
             if (form.course_list_id !== "") body.append("course_list_id", form.course_list_id);
             body.append("file", file);
             if (cover) body.append("cover", cover);
-            const doc = await api.createTeacherSubmission(body);
+            const doc = await track(() => api.createTeacherSubmission(body));
             setItems((current) => [doc, ...(current || [])]);
             setForm(EMPTY);
             setFile(null);
@@ -167,6 +170,7 @@ export default function MySubmissionsPage() {
 
     return (
         <div>
+            {progressBar}
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
                     <UploadCloud className="h-5 w-5 text-brass" /> Mes dépôts

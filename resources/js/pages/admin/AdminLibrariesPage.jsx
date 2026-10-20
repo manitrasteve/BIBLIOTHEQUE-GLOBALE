@@ -15,6 +15,7 @@ import { librarySections } from '../../lib/detailSections';
 import StatCard, { StatCardSkeleton } from '../../components/StatCard';
 import RichTextEditor from '../../components/RichTextEditor';
 import { useConfirm } from "../../components/ConfirmDialog";
+import { trackTopProgress } from "../../lib/topProgress";
 
 function getLibraryVal(row, key) {
   if (key === 'hours') return `${row.opening_days || ''} ${row.opening_hours || ''}`;
@@ -139,9 +140,9 @@ export default function AdminLibrariesPage() {
       Object.entries(form).forEach(([key, value]) => body.append(key, value ?? ''));
       if (photo) body.append('photo', photo);
       if (editing) {
-        await api.updateLibrary(editing.id, body);
+        await trackTopProgress(() => api.updateLibrary(editing.id, body));
       } else {
-        await api.createLibrary(body);
+        await trackTopProgress(() => api.createLibrary(body));
       }
       startCreate();
       load();

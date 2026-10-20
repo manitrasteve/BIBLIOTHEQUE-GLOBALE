@@ -4,6 +4,7 @@ import { UploadCloud, Image as ImageIcon, FileSpreadsheet, FileCheck2, X, Check,
 import { api } from "../../lib/api";
 import RichTextEditor from "../../components/RichTextEditor";
 import AiCoverGenerator from "../../components/AiCoverGenerator";
+import { trackTopProgress } from "../../lib/topProgress";
 
 // Langue reste un champ libre. Les anciens documents contiennent des codes
 // (« memoire », « fr ») : on affiche leur libellé à la modification.
@@ -306,7 +307,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                 });
                 if (file) payload.append("file", file);
                 if (cover) payload.append("cover", cover);
-                await api.updateDocument(id, payload);
+                await trackTopProgress(() => api.updateDocument(id, payload));
                 navigate(listPath);
             } else {
                 if (!file) {
@@ -326,7 +327,7 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
                 payload.append("file", file);
                 if (cover) payload.append("cover", cover);
 
-                const created = await api.createDocument(payload);
+                const created = await trackTopProgress(() => api.createDocument(payload));
                 if (onImported) onImported(created);
                 else navigate(listPath);
             }

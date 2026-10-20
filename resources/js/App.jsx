@@ -11,6 +11,7 @@ import PermissionRoute from "./components/PermissionRoute";
 import LibrarianLayout from "./components/LibrarianLayout";
 import AdminLayout from "./components/AdminLayout";
 import PageLoader from "./components/PageLoader";
+import { GlobalTopProgress } from "./components/RefreshView";
 import PageErrorBoundary from "./components/PageErrorBoundary";
 import UserLayout from "./components/UserLayout";
 import ScrollProgressButton from "./components/ScrollProgressButton";
@@ -99,6 +100,7 @@ export default function App() {
                 <ConfirmProvider>
                 <div className="min-h-screen bg-paper text-ink font-sans flex flex-col dashboard-bg">
                     <a href="#contenu" className="skip-link print:hidden">Aller au contenu</a>
+                    <GlobalTopProgress />
                     <Header />
                     <main id="contenu" tabIndex={-1} className="flex-1 outline-none">
                         {/* Pages chargées à la demande : le visiteur ne télécharge pas les espaces admin / bibliothécaire. */}

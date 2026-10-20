@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Lock, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import AuthField from "../components/AuthField";
+import { finishTopProgress, startTopProgress } from "../lib/topProgress";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -16,8 +17,11 @@ export default function LoginPage() {
         e.preventDefault();
         setError(null);
         setLoading(true);
+        // Barre bleue en haut de l'écran : elle arrive au bout une fois la connexion acceptée (en rouge sinon).
+        startTopProgress();
         try {
             const connectedUser = await login(email, password);
+            finishTopProgress();
 
             if (connectedUser.role === "administrateur") {
                 navigate("/administrateur/statistiques", { replace: true });
@@ -27,6 +31,7 @@ export default function LoginPage() {
                 navigate("/tableau-de-bord", { replace: true });
             }
         } catch (err) {
+            finishTopProgress(true);
             setError(
                 err.status === 422
                     ? err.data?.errors?.email?.[0] || "Identifiants incorrects."

@@ -28,6 +28,7 @@ import { GLOBAL_LIBRARY, ROLES, formatDateTime, userSections } from "../../lib/d
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useToast } from "../../components/Toast";
 import { usePageRefresh } from "../../context/RefreshContext";
+import { trackTopProgress } from "../../lib/topProgress";
 
 // Filtre envoyé au serveur pour chaque carte de compteur (mêmes critères que les compteurs).
 const FILTER_PARAMS = {
@@ -215,7 +216,7 @@ export default function AdminUsersPage() {
     async function handleResendLink(user) {
         setResending(true);
         try {
-            const res = await api.resendUserSetupLink(user.id);
+            const res = await trackTopProgress(() => api.resendUserSetupLink(user.id));
             setNotice({ text: res.message, warning: false });
             setViewing(null);
         } catch (err) {

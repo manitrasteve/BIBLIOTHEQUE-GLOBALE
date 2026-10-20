@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { isAdult, isCompleteBirthDate } from "../lib/age";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { trackTopProgress } from "../lib/topProgress";
 
 const CENTERS = [
     "IOSTM", "IUGM", "ISSTM", "IUTAM", "ILCSS",
@@ -166,7 +167,7 @@ export default function CreateUserForm({
         setError("");
         setSaving(true);
         try {
-            const res = await submitUser(form);
+            const res = await trackTopProgress(() => submitUser(form));
             onCreated(res);
         } catch (err) {
             const errors = err?.data?.errors;

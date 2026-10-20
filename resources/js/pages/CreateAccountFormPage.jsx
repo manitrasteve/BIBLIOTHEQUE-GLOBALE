@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, CheckCircle2, ChevronRight, GraduationCap, ShieldCheck, UserRound, UserPlus } from "lucide-react";
 import { api } from "../lib/api";
 import { isAdult, isCompleteBirthDate } from "../lib/age";
+import { trackTopProgress } from "../lib/topProgress";
 
 const CENTERS = [
     "IOSTM",
@@ -136,11 +137,11 @@ export default function CreateAccountFormPage() {
         setLoading(true);
         setError(null);
         try {
-            const response = await api.createAccountRequest({
+            const response = await trackTopProgress(() => api.createAccountRequest({
                 ...form,
                 role: "etudiant",
                 niveau_type: "Université",
-            });
+            }));
             navigate(`/ticket/${response.request.uuid}`);
         } catch (requestError) {
             setError(requestError?.data?.message || Object.values(requestError?.data?.errors || {})[0]?.[0] || "La demande n'a pas pu être envoyée.");

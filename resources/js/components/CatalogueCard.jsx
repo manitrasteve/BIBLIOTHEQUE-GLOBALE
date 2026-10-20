@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Heart, Languages, CalendarDays } from 'lucide-react';
 import { TYPE_CONFIG, normalizeType } from './DocumentCard';
 import { languageLabel } from '../lib/languages';
+import { useAuth } from '../context/AuthContext';
+import { startTopProgress } from '../lib/topProgress';
 import { COVER_SOFT_TEXT, coverColor } from '../lib/coverColor';
 
 // Grille des cartes livre (catalogue, page d'accueil, Mes favoris).
@@ -125,12 +127,16 @@ function FavoriteButton({ document, onToggleFavorite, className = '' }) {
 // Carte du catalogue (page Catalogue uniquement) : « grid » = couverture de livre, « list » = ligne compacte.
 export default function CatalogueCard({ document, query = '', view = 'grid', onToggleFavorite }) {
   const { typeCfg, authors, language } = docInfo(document);
+  // Connecté : barre bleue en haut de l'écran jusqu'à l'affichage du document (fiche puis lecteur).
+  const { user } = useAuth();
+  const onOpen = user ? startTopProgress : undefined;
 
   if (view === 'list') {
     return (
       <div className="relative">
         <Link
           to={`/documents/${document.slug}`}
+          onClick={onOpen}
           className="group grid grid-cols-[3rem_1fr] items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-14 transition-colors hover:border-indigo-300 hover:bg-indigo-50 sm:grid-cols-[3.5rem_1fr_auto] sm:gap-4 sm:pr-16"
         >
           <Cover document={document} typeCfg={typeCfg} small />
@@ -158,7 +164,7 @@ export default function CatalogueCard({ document, query = '', view = 'grid', onT
 
   return (
     <div className="group relative flex h-full flex-col">
-      <Link to={`/documents/${document.slug}`} title={document.title} className="flex h-full flex-col rounded-xl">
+      <Link to={`/documents/${document.slug}`} onClick={onOpen} title={document.title} className="flex h-full flex-col rounded-xl">
         <div className="relative transition-transform duration-300 motion-safe:group-hover:-translate-y-1.5 motion-safe:group-hover:-rotate-1">
           <Cover document={document} typeCfg={typeCfg} />
           {document.cover_url && (

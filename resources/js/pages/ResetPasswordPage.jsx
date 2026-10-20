@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import AuthField from "../components/AuthField";
+import { trackTopProgress } from "../lib/topProgress";
 
 export default function ResetPasswordPage() {
     const [params] = useSearchParams();
@@ -40,12 +41,12 @@ export default function ResetPasswordPage() {
         setSubmitting(true);
 
         try {
-            await api.resetPassword({
+            await trackTopProgress(() => api.resetPassword({
                 email,
                 token,
                 password,
                 password_confirmation: confirm,
-            });
+            }));
 
             setOk(true);
 

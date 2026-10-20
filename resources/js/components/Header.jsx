@@ -47,6 +47,7 @@ function QuickSearchMenuItem({ onSelect }) {
 import { isWorkspacePath } from "../lib/layout";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
+import { finishTopProgress, startTopProgress } from "../lib/topProgress";
 
 // Libellés affichés sous le nom (valeurs réelles de users.role).
 const ROLE_LABELS = {
@@ -344,12 +345,15 @@ export default function Header() {
         if (isConfirmingLogout) return;
 
         setIsConfirmingLogout(true);
+        // Barre bleue en haut de l'écran pendant la déconnexion.
+        startTopProgress();
 
         // Afficher "Déconnexion..." pendant 1 seconde
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         try {
             await logout();
+            finishTopProgress();
 
             setMenuOpen(false);
 

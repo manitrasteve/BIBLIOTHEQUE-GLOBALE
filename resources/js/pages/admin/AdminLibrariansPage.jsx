@@ -8,6 +8,7 @@ import ProfileDetailModal from "../../components/ProfileDetailModal";
 import UserAvatar from "../../components/UserAvatar";
 import { ROLES, formatDateTime, userSections } from "../../lib/detailSections";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
+import { trackTopProgress } from "../../lib/topProgress";
 
 const initial = { last_name: "", first_name: "", email: "", phone: "", address: "", gender: "", cin_number: "", cin_issued_at: "" };
 
@@ -22,7 +23,7 @@ function Form({ onClose, onCreated }) {
         setBusy(true);
         setError(null);
         try {
-            const response = await api.createLibrarian(form);
+            const response = await trackTopProgress(() => api.createLibrarian(form));
             onCreated(response);
         } catch (requestError) {
             setError(requestError?.data?.message || Object.values(requestError?.data?.errors || {})[0]?.[0] || "Création impossible.");
@@ -119,7 +120,7 @@ export default function AdminLibrariansPage() {
         setError(null);
         setNotice(null);
         try {
-            const response = await api.resendLibrarianSetupLink(user.id);
+            const response = await trackTopProgress(() => api.resendLibrarianSetupLink(user.id));
             setNotice({ text: response.message, warning: false });
         } catch (requestError) {
             setError(requestError?.data?.message || "Envoi impossible.");
