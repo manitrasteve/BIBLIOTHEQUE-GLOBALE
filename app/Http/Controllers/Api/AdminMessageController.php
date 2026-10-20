@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendAdminBroadcastJob;
 use App\Models\AdminMessage;
 use App\Models\User;
+use App\Support\LocalTimeFilter;
 use App\Support\QueueKicker;
 use Illuminate\Http\Request;
 
@@ -15,12 +16,25 @@ class AdminMessageController extends Controller
     {
         $this->ensureSender($request);
 
-        $messages = AdminMessage::withCount('recipients')
+        // Recherche (objet, texte) et filtres date / jour de la semaine / heure d'envoi, à l'heure locale.
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            ...LocalTimeFilter::rules(),
+        ]);
+
+        $query = AdminMessage::withCount('recipients')
             ->with('sender:id,name,role')
             ->where('sender_id', $request->user()->id)
-            ->whereNull('deleted_by_sender_at')
-            ->latest()
-            ->paginate(20);
+            ->whereNull('deleted_by_sender_at');
+
+        if (filled($filters['search'] ?? null)) {
+            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], trim($filters['search'])) . '%';
+            $query->where(fn ($q) => $q->where('subject', 'like', $like)->orWhere('message', 'like', $like));
+        }
+
+        LocalTimeFilter::apply($query, $filters);
+
+        $messages = $query->latest()->orderByDesc('id')->paginate(20);
 
         return response()->json($messages);
     }

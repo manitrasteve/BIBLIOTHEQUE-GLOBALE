@@ -813,7 +813,10 @@ export const api = {
     // Messages administrateur
     // ---------------------------------------------------------
 
-    getAdminMessages: (page = 1) => request(`/admin-messages?page=${page}`),
+    getAdminMessages: (page = 1, filters = {}) => {
+        const query = new URLSearchParams({ page, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== "" && v != null)) });
+        return request(`/admin-messages?${query}`);
+    },
 
     getMessageRecipients: () => request("/admin-messages/recipients"),
 
