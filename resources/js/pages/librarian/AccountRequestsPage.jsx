@@ -619,7 +619,7 @@ export default function AccountRequestsPage() {
                         </div>
                     )}
                     {visibleRows.map((r) => (
-                        <div key={r.id} className={`rounded-2xl border p-4 ${selected.has(r.id) ? "border-brass bg-indigo-50" : "border-slate-200 bg-surface"}`}>
+                        <div key={r.id} className={`rounded-2xl border p-4 ${selected.has(r.id) ? "border-indigo-400 bg-indigo-100" : "border-slate-200 bg-surface"}`}>
                             <div className="flex items-start justify-between gap-2">
                                 {isSelectable(r) && (
                                     <input

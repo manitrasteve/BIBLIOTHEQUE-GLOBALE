@@ -236,7 +236,7 @@ export default function CreateUserForm({
                             {roles.map((r) => (
                                 <label
                                     key={r.value}
-                                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 font-semibold ${form.role === r.value ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200"}`}
+                                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 font-semibold ${form.role === r.value ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200"}`}
                                 >
                                     <input
                                         type="radio"

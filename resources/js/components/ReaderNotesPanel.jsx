@@ -132,7 +132,7 @@ export default function ReaderNotesPanel({ slug, pageNum, notes, setNotes, onGoT
                 {notes.map((note) => (
                     <li
                         key={note.id}
-                        className={`rounded-lg border p-3 ${note.page === pageNum ? "border-brass bg-indigo-50" : "border-slate-200"}`}
+                        className={`rounded-lg border p-3 ${note.page === pageNum ? "border-indigo-400 bg-indigo-100" : "border-slate-200"}`}
                     >
                         <div className="flex items-center gap-2">
                             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${NOTE_COLORS[note.color]?.dot || NOTE_COLORS.jaune.dot}`} aria-hidden="true" />

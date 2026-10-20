@@ -93,7 +93,7 @@ export default function TeacherConfigPage() {
                                         <label
                                             key={level}
                                             className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 text-sm font-semibold transition-colors ${
-                                                on ? "border-brass bg-indigo-50 text-brass-deep" : "border-line hover:bg-slate-50"
+                                                on ? "border-indigo-400 bg-indigo-100 text-ink" : "border-line hover:bg-slate-50"
                                             }`}
                                         >
                                             <input type="checkbox" checked={on} onChange={() => toggle(level)} className="h-4 w-4" />

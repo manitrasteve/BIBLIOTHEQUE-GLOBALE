@@ -122,7 +122,7 @@ export default function MessagesPage() {
                         type="button"
                         onClick={() => setShowFilters((v) => !v)}
                         aria-expanded={showFilters}
-                        className={`btn-secondary shrink-0 justify-center ${activeFilterCount ? "border-brass text-brass-deep" : ""}`}
+                        className={`btn-secondary shrink-0 justify-center ${activeFilterCount ? "border-indigo-400 text-ink" : ""}`}
                     >
                         <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
                         Filtres{activeFilterCount ? ` (${activeFilterCount})` : ""}

@@ -225,7 +225,7 @@ export default function RevisionQuestionsPage() {
                 <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Type de questions">
                     {TYPES.map((t) => (
                         <button key={t.key} type="button" role="radio" aria-checked={form.type === t.key} onClick={() => setForm({ ...form, type: t.key })}
-                            className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold ${form.type === t.key ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
+                            className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold ${form.type === t.key ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
                             {t.label}
                         </button>
                     ))}

@@ -668,7 +668,7 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
                         onClick={() => setNotesOpen((open) => !open)}
                         aria-pressed={notesOpen}
                         className={`relative flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${
-                            notesOpen ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:bg-slate-100"
+                            notesOpen ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200 text-slate-600 hover:bg-slate-100"
                         }`}
                         title="Mes notes sur ce document"
                     >

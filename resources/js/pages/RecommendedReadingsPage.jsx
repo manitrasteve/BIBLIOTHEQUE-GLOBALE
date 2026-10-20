@@ -107,12 +107,12 @@ export default function RecommendedReadingsPage() {
                     {/* Filtre par enseignant : on sait toujours qui a envoyé quoi. */}
                     <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Filtrer par enseignant">
                         <button type="button" onClick={() => setTeacherId("")} aria-pressed={!teacherId}
-                            className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold ${!teacherId ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
+                            className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold ${!teacherId ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
                             Tous les enseignants ({teachers.length})
                         </button>
                         {teachers.map((t) => (
                             <button key={t.id} type="button" onClick={() => setTeacherId(String(t.id))} aria-pressed={teacherId === String(t.id)}
-                                className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3.5 text-sm font-semibold ${teacherId === String(t.id) ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
+                                className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3.5 text-sm font-semibold ${teacherId === String(t.id) ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200 text-slate-600 hover:border-brass"}`}>
                                 <TeacherAvatar teacher={t} size="h-6 w-6 text-[10px]" />
                                 {t.name}
                                 {t.toRead > 0 && <span className="rounded-full bg-amber-600 px-1.5 text-[11px] font-extrabold text-white">{t.toRead}</span>}

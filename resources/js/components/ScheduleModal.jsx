@@ -102,7 +102,7 @@ export default function ScheduleModal({ document, onCancel, onConfirm }) {
                             key={choice.label}
                             type="button"
                             onClick={() => setValue(toLocalInput(choice.date))}
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${value === toLocalInput(choice.date) ? "border-brass bg-indigo-50 text-brass-deep" : "border-slate-200 text-slate-600 hover:border-brass"}`}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${value === toLocalInput(choice.date) ? "border-indigo-400 bg-indigo-100 text-ink" : "border-slate-200 text-slate-600 hover:border-brass"}`}
                         >
                             {choice.label}
                         </button>

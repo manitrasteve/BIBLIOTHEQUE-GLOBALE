@@ -38,7 +38,7 @@ export default function StatCard({
     return (
         <Wrapper
             {...wrapperProps}
-            className={`group flex h-full w-full items-start justify-between gap-4 rounded-xl border bg-surface p-4 text-left ${active ? "border-brass ring-2 ring-brass/30" : "border-slate-200"} ${clickable ? "cursor-pointer transition hover:border-indigo-300" : ""}`}
+            className={`group flex h-full w-full items-start justify-between gap-4 rounded-xl border bg-surface p-4 text-left ${active ? "border-indigo-400 ring-2 ring-indigo-300" : "border-slate-200"} ${clickable ? "cursor-pointer transition hover:border-indigo-300" : ""}`}
         >
             <div className="min-w-0">
                 <p

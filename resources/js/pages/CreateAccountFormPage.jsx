@@ -76,7 +76,7 @@ function Choice({ name, value, checked, onChange, children, className = "" }) {
     return (
         <label
             className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm transition-colors ${
-                checked ? "border-brass bg-indigo-50 font-semibold text-ink" : "border-slate-200 text-ink-soft hover:border-brass"
+                checked ? "border-indigo-400 bg-indigo-100 font-semibold text-ink" : "border-slate-200 text-ink-soft hover:border-brass"
             } ${className}`}
         >
             <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="accent-[#1a1a8c]" />
