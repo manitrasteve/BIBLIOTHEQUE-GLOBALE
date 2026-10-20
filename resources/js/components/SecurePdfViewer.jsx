@@ -18,8 +18,11 @@ import { sessionMemory } from "../lib/sessionMemory";
 import { finishTopProgress, startTopProgress } from "../lib/topProgress";
 import ReaderTextView, { buildTextBlocks } from "./ReaderTextView";
 import ReaderNotesPanel from "./ReaderNotesPanel";
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+// Version « legacy » de pdf.js : elle ajoute les fonctions JavaScript récentes absentes des navigateurs
+// plus anciens (ex. Uint8Array.toHex, Chrome < 140, Safari < 18.2). Sans elle, ces navigateurs, fréquents
+// sur téléphone, prenaient certains PDF valides pour des fichiers endommagés.
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfjsWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -163,7 +166,9 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
                 }
                 const buffer = await r.arrayBuffer();
                 // Fichier corrompu ou qui n'est pas un vrai PDF : message lisible plutôt que l'erreur technique de pdf.js.
-                const doc = await pdfjsLib.getDocument({ data: buffer }).promise.catch(() => {
+                const doc = await pdfjsLib.getDocument({ data: buffer }).promise.catch((pdfError) => {
+                    // Cause réelle gardée dans la console (fichier abîmé, worker pdf.js indisponible…).
+                    console.error("pdf.js :", pdfError);
                     throw new Error(
                         "Ce fichier PDF est endommagé ou illisible. Signalez-le au Service Numérique pour qu'il soit remplacé.",
                     );

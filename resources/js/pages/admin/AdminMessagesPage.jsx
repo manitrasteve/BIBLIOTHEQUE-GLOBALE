@@ -103,17 +103,20 @@ export default function AdminMessagesPage() {
 
     // Seule la réponse de la dernière requête est affichée (frappe rapide, filtres changés à la suite).
     const requestRef = useRef(0);
-    async function fetchData() {
+    async function fetchHistory() {
         const requestId = ++requestRef.current;
-        const [recipients, messages] = await Promise.all([
-            api.getMessageRecipients(),
-            api.getAdminMessages(page, { search: debouncedSearch.trim(), ...filters }),
-        ]);
+        const messages = await api.getAdminMessages(page, { search: debouncedSearch.trim(), ...filters });
         if (requestId !== requestRef.current) return;
-        setUsers(recipients || []);
         setHistory(messages.data || []);
         setMeta(messages);
     }
+
+    // Destinataires : chargés à l'ouverture et à l'actualisation, pas à chaque recherche dans l'historique.
+    async function fetchRecipients() {
+        setUsers((await api.getMessageRecipients()) || []);
+    }
+
+    const fetchData = () => Promise.all([fetchRecipients(), fetchHistory()]);
 
     function setFilter(key, value) {
         setFilters((current) => ({ ...current, [key]: value }));
@@ -129,12 +132,15 @@ export default function AdminMessagesPage() {
 
     async function load() {
         try {
-            await fetchData();
+            await fetchHistory();
         } catch (e) {
             setNotice({ type: "error", text: e?.data?.message || "Impossible de charger la messagerie." });
         }
     }
 
+    useEffect(() => {
+        fetchRecipients().catch((e) => setNotice({ type: "error", text: e?.data?.message || "Impossible de charger les destinataires." }));
+    }, []);
     useEffect(() => { load(); }, [page, debouncedSearch, filters]);
     usePageRefresh(fetchData);
 
