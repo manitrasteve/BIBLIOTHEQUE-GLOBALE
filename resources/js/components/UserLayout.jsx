@@ -47,8 +47,8 @@ const COMMON_END = ["notifications", "messages", "feedback", "report"];
 // Ordre des modules par rôle. Les autres rôles gardent la navigation de base.
 const NAV_BY_ROLE = {
     etudiant: ["dashboard", "catalogue", "recommended", ...LIBRARY, ...COMMON_END],
-    // Enseignant : ses outils de cours juste après le catalogue.
-    enseignant: ["dashboard", "catalogue", "classes", "submissions", "questions", ...LIBRARY, ...COMMON_END],
+    // Enseignant : ses outils de cours juste après le catalogue ; « Paramètre de configuration » tout en bas.
+    enseignant: ["dashboard", "catalogue", "submissions", "questions", ...LIBRARY, ...COMMON_END, "classes"],
     // Chercheur : ses outils de recherche juste après le catalogue.
     chercheur: ["dashboard", "catalogue", "researchSpace", "watch", ...LIBRARY, ...COMMON_END],
     // Administrateur / Service Numérique consultant « Mon profil » (espace membre) :
