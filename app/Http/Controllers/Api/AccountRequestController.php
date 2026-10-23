@@ -872,6 +872,8 @@ class AccountRequestController extends Controller
             $this->queueMail(static function () use ($provisioner, $result, $accountRequest, $admin) {
                 try {
                     $provisioner->sendSetupMail($result['user'], $accountRequest, $result['token'], 'Votre compte a été validé - création du mot de passe');
+                    // Le SMS renvoie vers l'e-mail : seulement s'il est bien parti.
+                    $provisioner->sendActivationSms($result['user']);
                 } catch (\Throwable $e) {
                     report($e);
                     // Envoi en arrière-plan : l'administrateur est prévenu, sinon l'échec passerait inaperçu.
@@ -1525,6 +1527,11 @@ class AccountRequestController extends Controller
                 'mail_sent' => false,
             ], 201);
         }
+
+        // SMS « consultez votre e-mail » en arrière-plan : l'appel au fournisseur ne ralentit pas le bouton.
+        $provisioner = $this->provisioner;
+        $user = $result['user'];
+        $this->queueMail(static fn () => $provisioner->sendActivationSms($user));
 
         return response()->json([
             'message' =>

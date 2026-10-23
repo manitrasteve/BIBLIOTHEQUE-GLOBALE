@@ -109,6 +109,30 @@ class AccountProvisioner
         );
     }
 
+    /**
+     * SMS « compte activé, consultez votre e-mail », à envoyer seulement après l'e-mail du lien.
+     * Sans numéro valide, rien n'est envoyé ; un échec est journalisé sans bloquer (l'e-mail est déjà parti).
+     */
+    public function sendActivationSms(User $user): void
+    {
+        if (SmsService::normalizeMadagascar($user->phone) === null) {
+            return;
+        }
+
+        $greeting = $user->first_name ? "Bonjour {$user->first_name}, v" : 'V';
+        // Bibliothécaire : compte créé inactif, activé quand il définit son mot de passe.
+        $state = $user->is_active ? 'est activé' : 'a été créé';
+
+        try {
+            app(SmsService::class)->send(
+                $user->phone,
+                config('app.name')." : {$greeting}otre compte {$state}. Consultez votre e-mail {$user->email} pour créer votre mot de passe."
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     /** E-mail d'information sur une demande (vérifiée, rejetée…). Un échec est journalisé sans bloquer le traitement. */
     public function notifyRequester(AccountRequest $request, string $view, string $subject): void
     {

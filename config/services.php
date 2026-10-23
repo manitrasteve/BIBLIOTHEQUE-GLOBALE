@@ -81,6 +81,18 @@ return [
         'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
     ],
 
+    // SMS aux membres (« votre compte est activé, consultez votre e-mail »). Voir App\Services\SmsService.
+    // SMS_DRIVER : log (écrit dans storage/logs, par défaut) | mapi (envoi réel) | off.
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        // Identifiants du compte https://messaging.mapi.mg (connexion → jeton de 15 min).
+        'mapi' => [
+            'url' => env('MAPI_API_URL', 'https://messaging.mapi.mg/api'),
+            'username' => env('MAPI_USERNAME'),
+            'password' => env('MAPI_PASSWORD'),
+        ],
+    ],
+
     // « Générer une couverture par IA » (formulaire des documents) : génération d'images gratuite ;
     // une couverture dessinée par le serveur est proposée si le service échoue.
     // Sans jeton : accès anonyme (limité, filigrane). Jeton gratuit sur https://enter.pollinations.ai :

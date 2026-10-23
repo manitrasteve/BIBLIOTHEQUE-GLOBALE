@@ -7,7 +7,9 @@ use App\Models\AccountRequest;
 use App\Models\MemberRegistry;
 use App\Models\User;
 use App\Rules\AvailableEmail;
+use App\Services\AccountProvisioner;
 use App\Services\ActivityLogService;
+use App\Support\QueueKicker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -72,6 +74,12 @@ class LibrarianManagementController extends Controller
         ]);
 
         $mailSent = $this->sendSetupLink($user, $matricule);
+
+        // SMS « consultez votre e-mail » en arrière-plan, seulement si l'e-mail est parti.
+        if ($mailSent) {
+            $provisioner = app(AccountProvisioner::class);
+            QueueKicker::dispatch(static fn () => $provisioner->sendActivationSms($user));
+        }
 
         ActivityLogService::log($request->user()->id, 'creation_bibliothecaire', $user->name, $user);
 

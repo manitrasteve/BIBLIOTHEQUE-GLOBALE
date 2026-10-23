@@ -33,3 +33,18 @@ Artisan::command('digest:hebdomadaire {--force : Envoie même si le digest de la
     ->weeklyOn(1, '08:00')
     ->timezone(config('app.display_timezone', 'Indian/Antananarivo'))
     ->withoutOverlapping();
+
+// Test des SMS (Mapi) : envoie un SMS au numéro donné avec le pilote configuré (SMS_DRIVER).
+Artisan::command('sms:test {telephone : Numéro malgache, ex. 0341234567}', function (\App\Services\SmsService $sms) {
+    try {
+        $sms->send($this->argument('telephone'), config('app.name').' : SMS de test. Si vous le recevez, l\'envoi fonctionne.');
+    } catch (\Throwable $e) {
+        $this->error('Échec : '.$e->getMessage());
+
+        return 1;
+    }
+
+    $this->info(config('services.sms.driver') === 'mapi'
+        ? 'SMS envoyé via Mapi.'
+        : 'Pilote « '.config('services.sms.driver').' » : aucun SMS réel (voir storage/logs/laravel.log). Mettez SMS_DRIVER=mapi dans .env.');
+})->purpose('Envoie un SMS de test pour vérifier la configuration Mapi');
