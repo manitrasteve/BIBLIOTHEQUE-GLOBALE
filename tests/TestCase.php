@@ -10,6 +10,14 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Aucun appel réseau réel pendant les tests (SMS Mapi payants, Gemini…) : un appel non simulé échoue.
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+    }
+
     /**
      * Creates the application.
      */

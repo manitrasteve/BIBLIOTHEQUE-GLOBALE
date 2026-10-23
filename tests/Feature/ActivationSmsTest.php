@@ -112,3 +112,9 @@ it('envoie aussi le SMS à un bibliothécaire créé par l\'administrateur', fun
         && str_contains(multipartField($request, 'Message'), 'a été créé')
         && str_contains(multipartField($request, 'Message'), 'biblio.sms@example.test'));
 });
+
+it('les tests n\'envoient jamais de vrais SMS, même si .env active Mapi', function () {
+    // phpunit.xml force le pilote « log » : sans lui, chaque test qui crée un compte consommait des crédits Mapi.
+    expect(env('SMS_DRIVER'))->toBe('log')
+        ->and(env('MAPI_PASSWORD'))->toBeEmpty();
+});

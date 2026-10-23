@@ -29,6 +29,10 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Jamais de vrais SMS pendant les tests, même si .env active Mapi (crédits consommés sinon). -->
+        <env name="SMS_DRIVER" value="log" force="true"/>
+        <env name="MAPI_USERNAME" value="" force="true"/>
+        <env name="MAPI_PASSWORD" value="" force="true"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
