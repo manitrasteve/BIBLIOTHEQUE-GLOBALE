@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CheckCircle2, AlertCircle, Ban } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, CheckCircle2, AlertCircle, Ban } from "lucide-react";
 import { api } from "../lib/api";
 import AuthField from "../components/AuthField";
 
@@ -63,6 +64,15 @@ export default function ForgotPasswordPage() {
                 onSubmit={submit}
                 className="modern-card space-y-5 p-5 sm:p-7"
             >
+                {/* On arrive ici depuis la connexion : retour explicite (et non « page précédente », qui
+                    pourrait quitter le site si la page a été ouverte directement). */}
+                <Link
+                    to="/connexion"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700"
+                >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour à la connexion
+                </Link>
+
                 <h1 className="font-display text-2xl font-extrabold">
                     Mot de passe oublié ?
                 </h1>
