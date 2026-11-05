@@ -31,7 +31,21 @@ class AppNotificationController extends Controller
          ->orderByDesc('id')
          ->paginate(20);
 
-     $items->getCollection()->transform(function ($notification) use ($request) {
+     // Documents et messages liés à la page chargés en une requête chacun (et non un find() par notification).
+     $page = $items->getCollection();
+     $documentIds = $page->filter(fn ($n) => in_array($n->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)
+             || in_array(ltrim((string) $n->related_type, '\\'), ['document', Document::class], true))
+         ->pluck('related_id')->filter()->unique()->values();
+     $documents = $documentIds->isEmpty() ? collect()
+         : Document::withTrashed()->whereIn('id', $documentIds)->get(['id', 'slug', 'deleted_at'])->keyBy('id');
+     $messageIds = $page->filter(fn ($n) => ltrim((string) $n->related_type, '\\') === 'App\\Models\\AdminMessage')
+         ->pluck('related_id')->filter()->unique()->values();
+     $recipientIds = $messageIds->isEmpty() ? collect()
+         : AdminMessageRecipient::whereIn('admin_message_id', $messageIds)->where('user_id', $request->user()->id)
+             ->orderBy('id')->get(['id', 'admin_message_id'])->unique('admin_message_id')->pluck('id', 'admin_message_id');
+     $canSeeTrash = null;
+
+     $items->getCollection()->transform(function ($notification) use ($request, $documents, $recipientIds, &$canSeeTrash) {
          $notification->related_url = null;
 
          $type = ltrim((string) $notification->related_type, '\\');
@@ -48,10 +62,10 @@ class AppNotificationController extends Controller
              $notification->related_url = '/mes-depots';
          } elseif (in_array($notification->type, ['document_ajoute', 'document_modifie', 'document_archive', 'document_supprime'], true)) {
              // Personnel : le document peut être brouillon, archivé ou en Corbeille (page publique indisponible).
-             $notification->related_url = $this->staffDocumentUrl($request->user(), $notification->related_id);
+             $notification->related_url = $this->staffDocumentUrl($request->user(), $documents->get($notification->related_id), $canSeeTrash);
          } elseif ($type === 'document' || $type === Document::class) {
-             $document = Document::find($notification->related_id);
-             if ($document) {
+             $document = $documents->get($notification->related_id);
+             if ($document && !$document->trashed()) {
                  $notification->related_url = '/documents/' . $document->slug;
              }
          } elseif ($type === 'App\\Models\\SiteUpdate') {
@@ -70,9 +84,7 @@ class AppNotificationController extends Controller
              // Message reçu (envoi groupé) : boîte de réception /messages, accessible à tous les rôles
              // et ouverte sur ce message. L'ancien lien /bibliothecaire/messages (page d'ENVOI du
              // personnel) était refusé aux étudiants, enseignants et chercheurs.
-             $recipientId = AdminMessageRecipient::where('admin_message_id', $notification->related_id)
-                 ->where('user_id', $request->user()->id)
-                 ->value('id');
+             $recipientId = $recipientIds->get($notification->related_id);
              $notification->related_url = '/messages' . ($recipientId ? "?message={$recipientId}" : '');
          } elseif ($type === 'App\\Models\\StaffMessage' || $notification->type === 'message_discussion') {
              $notification->related_url = $request->user()->isAdmin() ? '/administrateur/discussions' : '/bibliothecaire/discussions';
@@ -83,17 +95,19 @@ class AppNotificationController extends Controller
 
      return response()->json($items);
  }
- private function staffDocumentUrl($user, $documentId): string
+ private function staffDocumentUrl($user, ?Document $document, ?bool &$canSeeTrash): string
  {
      $base = $user->isAdmin() ? '/administrateur' : '/bibliothecaire';
-     $document = Document::withTrashed()->find($documentId);
 
      if (!$document) {
          return "{$base}/documents"; // supprimé définitivement : retour à la liste
      }
 
      if ($document->trashed()) {
-         return $user->isAdmin() || $user->hasPermission('voir_corbeille') ? "{$base}/corbeille" : "{$base}/documents";
+         // Permission vérifiée une seule fois par page de notifications.
+         $canSeeTrash ??= $user->isAdmin() || $user->hasPermission('voir_corbeille');
+
+         return $canSeeTrash ? "{$base}/corbeille" : "{$base}/documents";
      }
 
      return "{$base}/documents/{$document->id}/modifier";

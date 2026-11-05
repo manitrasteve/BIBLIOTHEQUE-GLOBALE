@@ -69,7 +69,16 @@ class EngagementController extends Controller
         // Le bibliothécaire ne voit que les documents (et totaux) de sa bibliothèque.
         $me=$request->user();
         $ofMyLibrary=fn($q)=>$me->isAdmin()?$q:$q->whereHas('document',fn($d)=>$me->restrictToManagedLibrary($d));
-        $docs=$me->restrictToManagedLibrary(Document::where('status','publie'))->withCount(['consultations','favorites','aiQueries'])->orderByDesc('consultations_count')->limit(20)->get(['id','slug','title','type','year']);
+        // Classement : consultations comptées une fois par document (sous-requête groupée jointe), et non
+        // trois sous-requêtes corrélées par document publié ; favoris / questions IA comptés ensuite pour les 20 retenus.
+        $consultationCounts=Consultation::query()->toBase()->selectRaw('document_id, COUNT(*) as aggregate')->groupBy('document_id');
+        $docs=$me->restrictToManagedLibrary(Document::where('documents.status','publie'), 'documents.library_id')
+            ->leftJoinSub($consultationCounts,'consultation_counts','consultation_counts.document_id','=','documents.id')
+            ->select(['documents.id','documents.slug','documents.title','documents.type','documents.year'])
+            ->selectRaw('COALESCE(consultation_counts.aggregate, 0) as consultations_count')
+            ->orderByDesc('consultations_count')->limit(20)->get();
+        $docs->loadCount(['favorites','aiQueries']);
+        $docs->each(fn($d)=>$d->consultations_count=(int)$d->consultations_count);
         return response()->json(['documents'=>$docs,'totals'=>[
             'consultations'=>$ofMyLibrary(Consultation::query())->count(),'favorites'=>$ofMyLibrary(Favorite::query())->count(),'ai_queries'=>$ofMyLibrary(AiQuery::query())->count()
         ]]);

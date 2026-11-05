@@ -61,17 +61,23 @@ class NavBadgeController extends Controller
             ->where(fn ($q) => $q->whereNull('created_user_id')->orWhereHas('createdUser'))
             ->count();
 
-        $badges['drafts'] = $user->restrictToManagedLibrary(Document::where('status', 'brouillon'))->count();
-        // Dépôts d'enseignants à vérifier (publier, programmer ou refuser).
-        $badges['submissions'] = $user->restrictToManagedLibrary(Document::where('status', 'soumis'))->count();
+        // Brouillons et dépôts d'enseignants à vérifier (publier, programmer ou refuser) : une seule requête groupée.
+        $byStatus = $user->restrictToManagedLibrary(Document::whereIn('status', ['brouillon', 'soumis']))
+            ->toBase()->selectRaw('status, COUNT(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
+        $badges['drafts'] = (int) ($byStatus['brouillon'] ?? 0);
+        $badges['submissions'] = (int) ($byStatus['soumis'] ?? 0);
 
-        if ($user->hasPermission('voir_avis_utilisateurs')) {
+        // Permissions lues une seule fois (au lieu d'une requête par hasPermission()).
+        $permissions = $user->isAdmin() ? null : $user->permissions()->pluck('name')->flip();
+        $can = fn (string $permission) => $permissions === null || $permissions->has($permission);
+
+        if ($can('voir_avis_utilisateurs')) {
             $badges['feedbacks'] = Feedback::where('status', 'nouveau')->count();
         }
-        if ($user->hasPermission('voir_signalements')) {
+        if ($can('voir_signalements')) {
             $badges['reports'] = ProblemReport::where('status', 'nouveau')->count();
         }
-        if ($user->hasPermission('voir_corbeille')) {
+        if ($can('voir_corbeille')) {
             $badges['trash'] = $user->restrictToManagedLibrary(User::onlyTrashed())->count()
                 + $user->restrictToManagedLibrary(Document::onlyTrashed())->count();
         }

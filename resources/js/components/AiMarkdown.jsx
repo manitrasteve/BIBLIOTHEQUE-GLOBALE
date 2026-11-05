@@ -1,8 +1,17 @@
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
+
+// KaTeX chargé à la demande (voir aiMathPlugins.js) : une seule fois pour toute la session.
+let mathPlugins = null;
+let mathLoading = null;
+function loadMath() {
+    mathLoading ??= import("./aiMathPlugins").then((m) => (mathPlugins = m));
+    return mathLoading;
+}
+
+// Formule probable : $…$, $$…$$, \( … \) ou \[ … \].
+const MATH_HINT = /\$[^$\n]+\$|\$\$|\\\(|\\\[/;
 
 // Rendu sûr (pas de HTML brut) des réponses de l'assistant :
 // Markdown + tableaux + formules LaTeX ($...$ et $$...$$).
@@ -52,11 +61,25 @@ function safeUrl(url, key) {
 }
 
 export default function AiMarkdown({ children }) {
+    const needsMath = MATH_HINT.test(String(children ?? ""));
+    const [math, setMath] = useState(mathPlugins);
+
+    useEffect(() => {
+        if (!needsMath || math) return;
+        let active = true;
+        loadMath().then((m) => active && setMath(m)).catch(() => {});
+        return () => {
+            active = false;
+        };
+    }, [needsMath, math]);
+
+    const useMath = needsMath && math;
+
     return (
         <div className="ai-md break-words text-sm leading-relaxed">
             <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
+                remarkPlugins={useMath ? [remarkGfm, math.remarkMath] : [remarkGfm]}
+                rehypePlugins={useMath ? [math.rehypeKatex] : []}
                 components={components}
                 urlTransform={safeUrl}
             >

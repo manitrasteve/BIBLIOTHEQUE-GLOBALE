@@ -21,7 +21,8 @@ class NotificationService
 
     public static function sendToRole(string $role, string $type, string $title, ?string $message = null, ?object $related = null): void
     {
-        User::where('role', $role)->get()->each(
+        // Par lots (lazyById) : jamais tous les comptes du rôle chargés en mémoire d'un coup.
+        User::where('role', $role)->lazyById()->each(
             fn (User $u) => self::send($u, $type, $title, $message, $related)
         );
     }

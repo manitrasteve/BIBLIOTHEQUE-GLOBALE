@@ -38,19 +38,30 @@ class DashboardController extends Controller
 
         // Borne haute exclusive (`<` $monthStart) : évite de compter deux fois une activité
         // enregistrée exactement à 00:00:00 le 1er du mois (whereBetween est inclusif).
-        $monthConsultations = $user->consultations()->where('consulted_at', '>=', $monthStart)->count();
-        $prevMonthConsultations = $user->consultations()
-            ->where('consulted_at', '>=', $prevMonthStart)
-            ->where('consulted_at', '<', $monthStart)
-            ->count();
+        // Compteurs du jour, du mois et du mois précédent : une requête agrégée par table (au lieu d'une par chiffre).
+        $periodCounts = function ($relation, string $column) use ($todayRange, $monthStart, $prevMonthStart) {
+            $row = $relation->toBase()
+                ->where($column, '>=', $prevMonthStart)
+                ->selectRaw(
+                    "SUM(CASE WHEN {$column} >= ? THEN 1 ELSE 0 END) as month_count, "
+                    . "SUM(CASE WHEN {$column} < ? THEN 1 ELSE 0 END) as prev_count, "
+                    . "SUM(CASE WHEN {$column} >= ? AND {$column} <= ? THEN 1 ELSE 0 END) as today_count",
+                    [$monthStart, $monthStart, $todayRange[0], $todayRange[1]]
+                )
+                ->first();
 
-        $monthAiQueries = $user->aiQueries()->where('created_at', '>=', $monthStart)->count();
-        $prevMonthAiQueries = $user->aiQueries()
-            ->where('created_at', '>=', $prevMonthStart)
-            ->where('created_at', '<', $monthStart)
-            ->count();
+            return [(int) ($row->month_count ?? 0), (int) ($row->prev_count ?? 0), (int) ($row->today_count ?? 0)];
+        };
 
-        $monthNewFavorites = $user->favorites()->where('created_at', '>=', $monthStart)->count();
+        // Borne haute exclusive (`<` $monthStart) : évite de compter deux fois une activité
+        // enregistrée exactement à 00:00:00 le 1er du mois (whereBetween est inclusif).
+        [$monthConsultations, $prevMonthConsultations, $todayConsultations] = $periodCounts($user->consultations(), 'consulted_at');
+        [$monthAiQueries, $prevMonthAiQueries, $todayAiQueries] = $periodCounts($user->aiQueries(), 'created_at');
+
+        $favoriteCounts = $user->favorites()->toBase()
+            ->selectRaw('COUNT(*) as total, SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as month_count', [$monthStart])
+            ->first();
+        $monthNewFavorites = (int) ($favoriteCounts->month_count ?? 0);
 
         // Série sur 30 jours : groupée par date, pour la courbe d'activité (dates sans activité remplies à 0 côté client).
         $activityRaw = $user->consultations()
@@ -100,9 +111,9 @@ class DashboardController extends Controller
 
         return response()->json([
             // --- Compat ancienne version (ne pas retirer) -----------------
-            'today_consultations' => $user->consultations()->whereBetween('consulted_at', $todayRange)->count(),
-            'today_ai_queries' => $user->aiQueries()->whereBetween('created_at', $todayRange)->count(),
-            'favorites' => $user->favorites()->count(),
+            'today_consultations' => $todayConsultations,
+            'today_ai_queries' => $todayAiQueries,
+            'favorites' => (int) ($favoriteCounts->total ?? 0),
             'unread_notifications' => $user->appNotifications()->unread()->count(),
 
             // --- Chiffres du mois + variation -----------------------------

@@ -92,9 +92,14 @@ class ProfileController extends Controller
             ->get()
             ->map(fn ($row) => ['name' => $row->name, 'documents' => (int) $row->documents]);
 
+        // Documents distincts et total des consultations en une seule requête.
+        $consulted = $user->consultations()->toBase()
+            ->selectRaw('COUNT(DISTINCT document_id) as documents, COUNT(*) as total')
+            ->first();
+
         return response()->json([
-            'documents_read' => $user->consultations()->distinct()->count('document_id'),
-            'consultations' => $user->consultations()->count(),
+            'documents_read' => (int) ($consulted->documents ?? 0),
+            'consultations' => (int) ($consulted->total ?? 0),
             'pages_reached' => (int) \App\Models\ReadingProgress::where('user_id', $user->id)->sum('last_page'),
             'notes' => \App\Models\DocumentNote::where('user_id', $user->id)->count(),
             'favorites' => $user->favorites()->count(),

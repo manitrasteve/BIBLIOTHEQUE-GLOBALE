@@ -151,8 +151,25 @@ class CourseListController extends Controller
             return response()->json(['audience_count' => $total, 'hidden' => true, 'items' => []]);
         }
 
-        $items = $courseList->items()->with('document:id,title,slug')->get()->map(function (CourseListItem $item) use ($studentIds, $total) {
-            [$done, $started] = $this->readingCounts($item->document_id, $studentIds->all());
+        $items = $courseList->items()->with('document:id,title,slug')->get();
+
+        // Progressions et consultations de toute la classe, pour tous les documents, en deux requêtes
+        // (et non trois par document de la bibliographie).
+        $documentIds = $items->pluck('document_id')->unique()->values()->all();
+        $progressByDocument = $documentIds ? ReadingProgress::query()->toBase()
+            ->whereIn('document_id', $documentIds)->whereIn('user_id', $studentIds->all())
+            ->get(['document_id', 'user_id', 'completed_at'])->groupBy('document_id') : collect();
+        $consultedByDocument = $documentIds ? Consultation::query()->toBase()
+            ->whereIn('document_id', $documentIds)->whereIn('user_id', $studentIds->all())
+            ->distinct()->get(['document_id', 'user_id'])->groupBy('document_id') : collect();
+
+        $items = $items->map(function (CourseListItem $item) use ($total, $progressByDocument, $consultedByDocument) {
+            $progress = collect($progressByDocument->get($item->document_id, []));
+            $done = $progress->whereNotNull('completed_at')->pluck('user_id');
+            $opened = $progress->pluck('user_id')
+                ->merge(collect($consultedByDocument->get($item->document_id, []))->pluck('user_id'))
+                ->unique();
+            [$done, $started] = [$done->count(), $opened->diff($done)->count()];
 
             return [
                 'item_id' => $item->id,
@@ -270,15 +287,6 @@ class CourseListController extends Controller
         $list->load(['items.document:id,title,slug,type,status']);
 
         return [...$list->toArray(), 'audience_count' => $list->audience()->count()];
-    }
-
-    /** [lus en entier, commencés] parmi les étudiants donnés ; « commencé » inclut une simple ouverture. */
-    private function readingCounts(int $documentId, array $studentIds): array
-    {
-        $done = ReadingProgress::where('document_id', $documentId)->whereIn('user_id', $studentIds)->whereNotNull('completed_at')->pluck('user_id');
-        $opened = collect($this->openedBy($documentId, $studentIds));
-
-        return [$done->count(), $opened->diff($done)->count()];
     }
 
     /** Étudiants (parmi ceux donnés) ayant ouvert le document : progression enregistrée ou consultation. */

@@ -12,6 +12,19 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                // React et le routeur changent rarement : un fichier à part reste en cache du navigateur
+                // d'une mise à jour du site à l'autre (seul le code de l'application est retéléchargé).
+                manualChunks(id) {
+                    if (/node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) {
+                        return "vendor-react";
+                    }
+                },
+            },
+        },
+    },
     server: {
         host: "0.0.0.0",
         hmr: {

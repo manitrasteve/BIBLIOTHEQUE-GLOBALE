@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -19,8 +19,17 @@ import {
 import DOMPurify from "dompurify";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import SecurePdfViewer from "../components/SecurePdfViewer";
-import AiAssistant from "../components/AiAssistant";
+// Chargés à la demande : pdf.js pèse ~1 Mo ; la fiche (titre, résumé, actions) s'affiche sans l'attendre.
+const SecurePdfViewer = lazy(() => import("../components/SecurePdfViewer"));
+const AiAssistant = lazy(() => import("../components/AiAssistant"));
+
+function PanelLoader() {
+    return (
+        <div className="flex min-h-[16rem] items-center justify-center text-sm text-slate-500" role="status">
+            Chargement…
+        </div>
+    );
+}
 import { registerDocAssistant } from "../lib/docAssistant";
 import CitationDialog from "../components/CitationDialog";
 import SimilarDocuments from "../components/SimilarDocuments";
@@ -650,16 +659,18 @@ export default function DocumentDetailPage() {
 
                             {/* CONTENU PDF / IA */}
                             <div className="p-3 sm:p-4 flex-1 min-h-0">
-                                {tab === "details" ? (
-                                    <SecurePdfViewer
-                                        slug={doc.slug}
-                                        readerName={user?.name}
-                                        libraryName={doc.library}
-                                        initialPage={resumePage}
-                                    />
-                                ) : (
-                                    <AiAssistant slug={doc.slug} />
-                                )}
+                                <Suspense fallback={<PanelLoader />}>
+                                    {tab === "details" ? (
+                                        <SecurePdfViewer
+                                            slug={doc.slug}
+                                            readerName={user?.name}
+                                            libraryName={doc.library}
+                                            initialPage={resumePage}
+                                        />
+                                    ) : (
+                                        <AiAssistant slug={doc.slug} />
+                                    )}
+                                </Suspense>
                             </div>
                         </div>
                     </div>

@@ -48,16 +48,21 @@ class PlatformStatistics
         }
 
         $requests = $this->dates($this->requestsQuery(), 'created_at', $seriesStart->copy()->subMonth(), $seriesEnd);
-        $consultations = $this->dates($this->activityQuery(Consultation::query()), 'consulted_at', $seriesStart->copy()->subMonth(), $seriesEnd);
+        // Consultations lues une seule fois : séries mensuelles (depuis le mois précédant la série) et carte d'affluence.
+        $consultationTimes = $this->localTimes($this->activityQuery(Consultation::query()), 'consulted_at', $seriesStart->copy()->subMonth(), $seriesEnd);
+        $consultations = $consultationTimes->map(fn (\DateTimeImmutable $t) => $t->format('Y-m'));
         $aiQueries = $this->dates($this->activityQuery(AiQuery::query()), 'created_at', $seriesStart->copy()->subMonth(), $seriesEnd);
 
-        $byMonth = fn (Collection $dates) => array_map(
-            fn ($key) => $dates->filter(fn ($d) => $d === $key)->count(),
-            array_keys($labels)
-        );
-        $count = fn (Collection $dates, Carbon $month) => $dates->filter(fn ($d) => $d === $month->format('Y-m'))->count();
+        // Comptage par mois fait une seule fois par série (et non un filtre complet par mois affiché).
+        $byMonth = function (Collection $dates) use ($labels) {
+            $counts = $dates->countBy();
+
+            return array_map(fn ($key) => (int) ($counts[$key] ?? 0), array_keys($labels));
+        };
+        $count = fn (Collection $dates, Carbon $month) => (int) $dates->countBy()->get($month->format('Y-m'), 0);
 
         $members = $this->membersQuery()->where('is_active', true);
+        $membersByRole = (clone $members)->toBase()->selectRaw('role, COUNT(*) as aggregate')->groupBy('role')->pluck('aggregate', 'role');
 
         return [
             'month' => $current->format('Y-m'),
@@ -83,15 +88,15 @@ class PlatformStatistics
                 'ai_queries' => $byMonth($aiQueries),
             ],
             'roles' => collect(self::MEMBER_ROLES)
-                ->mapWithKeys(fn ($role) => [$role => (clone $members)->where('role', $role)->count()])
+                ->mapWithKeys(fn ($role) => [$role => (int) ($membersByRole[$role] ?? 0)])
                 ->all(),
             'request_statuses' => $this->requestStatuses($current),
             'top_documents' => $this->topDocuments($seriesStart, $seriesEnd),
             'establishments' => $this->establishments(),
             // Carte d'affluence : nombre par jour de la semaine (0 = lundi … 6 = dimanche) et par heure locale (0 … 23).
             'affluence' => [
-                'consultations' => $this->affluence($this->activityQuery(Consultation::query()), 'consulted_at', $seriesStart, $seriesEnd),
-                'connexions' => $this->affluence($this->activityQuery(ActivityLog::query()->where('action', 'connexion')), 'created_at', $seriesStart, $seriesEnd),
+                'consultations' => $this->affluenceGrid($consultationTimes->filter(fn (\DateTimeImmutable $t) => $t >= $seriesStart)),
+                'connexions' => $this->affluenceGrid($this->localTimes($this->activityQuery(ActivityLog::query()->where('action', 'connexion')), 'created_at', $seriesStart, $seriesEnd)),
             ],
         ];
     }
@@ -147,27 +152,39 @@ class PlatformStatistics
 
     // ---------- Calculs ----------
 
+    /**
+     * Instants de la colonne sur la période, à l'heure locale. Valeurs brutes (toBase) converties avec
+     * DateTimeImmutable : ni modèle Eloquent ni objet Carbon par ligne (des milliers de lignes par appel).
+     */
+    private function localTimes($query, string $column, Carbon $from, Carbon $to): Collection
+    {
+        $utc = new \DateTimeZone('UTC');
+        $local = new \DateTimeZone($this->tz);
+
+        return $query->whereBetween($column, [$from->copy()->utc(), $to->copy()->utc()])
+            ->toBase()
+            ->pluck($column)
+            ->filter()
+            ->map(fn ($value) => ($value instanceof \DateTimeInterface
+                ? \DateTimeImmutable::createFromInterface($value)
+                : new \DateTimeImmutable((string) $value, $utc))->setTimezone($local))
+            ->values();
+    }
+
     /** Dates de la colonne sur la période, converties en mois « AAAA-MM » à l'heure locale. */
     private function dates($query, string $column, Carbon $from, Carbon $to): Collection
     {
-        return $query->whereBetween($column, [$from->copy()->utc(), $to->copy()->utc()])
-            ->pluck($column)
-            ->filter()
-            ->map(fn ($value) => Carbon::parse($value, 'UTC')->setTimezone($this->tz)->format('Y-m'));
+        return $this->localTimes($query, $column, $from, $to)->map(fn (\DateTimeImmutable $t) => $t->format('Y-m'));
     }
 
-    /** Grille 7 × 24 : jour de la semaine × heure, à l'heure locale, sur la période. */
-    private function affluence($query, string $column, Carbon $from, Carbon $to): array
+    /** Grille 7 × 24 : jour de la semaine (ISO, lundi = 0) × heure locale. */
+    private function affluenceGrid(Collection $times): array
     {
         $grid = array_fill(0, 7, array_fill(0, 24, 0));
 
-        $query->whereBetween($column, [$from->copy()->utc(), $to->copy()->utc()])
-            ->pluck($column)
-            ->filter()
-            ->each(function ($value) use (&$grid) {
-                $local = Carbon::parse($value, 'UTC')->setTimezone($this->tz);
-                $grid[$local->dayOfWeekIso - 1][$local->hour]++;
-            });
+        foreach ($times as $local) {
+            $grid[(int) $local->format('N') - 1][(int) $local->format('G')]++;
+        }
 
         return $grid;
     }
@@ -198,8 +215,11 @@ class PlatformStatistics
     {
         $rows = $this->requestsQuery()
             ->whereBetween('created_at', $this->utcRange($month))
-            ->pluck('status')
-            ->countBy();
+            ->toBase()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($n) => (int) $n);
 
         return [
             'received' => (int) $rows->sum(),
@@ -214,12 +234,18 @@ class PlatformStatistics
     /** Les 5 documents les plus consultés sur la période des séries. */
     private function topDocuments(Carbon $from, Carbon $to): array
     {
+        // Regroupement en SQL (et non toutes les consultations de la période chargées en PHP).
+        // Égalité : le document consulté en premier passe devant (ordre de l'ancien countBy()->sortDesc()).
         $counts = $this->activityQuery(Consultation::query())
             ->whereBetween('consulted_at', [$from->copy()->utc(), $to->copy()->utc()])
-            ->pluck('document_id')
-            ->countBy()
-            ->sortDesc()
-            ->take(5);
+            ->toBase()
+            ->selectRaw('document_id, COUNT(*) as views, MIN(id) as first_id')
+            ->groupBy('document_id')
+            ->orderByDesc('views')
+            ->orderBy('first_id')
+            ->limit(5)
+            ->pluck('views', 'document_id')
+            ->map(fn ($views) => (int) $views);
 
         $titles = Document::withTrashed()->whereIn('id', $counts->keys())->pluck('title', 'id');
 
@@ -231,13 +257,25 @@ class PlatformStatistics
     /** Membres actifs par établissement (code court), du plus grand au plus petit. */
     private function establishments(): array
     {
-        return $this->membersQuery()
+        // Comptage par libellé en SQL ; plusieurs libellés pouvant donner le même code, on additionne ensuite
+        // par code (égalité : ordre de première apparition, comme l'ancien countBy()->sortDesc()).
+        $codes = [];
+        $this->membersQuery()
             ->where('is_active', true)
-            ->pluck('school')
-            ->map(fn ($school) => $school ? AccountRequestRules::establishmentCode($school) : null)
-            ->countBy(fn ($code) => $code ?? 'Non renseigné')
-            ->sortDesc()
-            ->map(fn ($members, $code) => ['code' => $code, 'members' => $members])
+            ->toBase()
+            ->selectRaw('school, COUNT(*) as aggregate, MIN(id) as first_id')
+            ->groupBy('school')
+            ->get()
+            ->each(function ($row) use (&$codes) {
+                $code = ($row->school ? AccountRequestRules::establishmentCode($row->school) : null) ?? 'Non renseigné';
+                $codes[$code] ??= ['members' => 0, 'first_id' => PHP_INT_MAX];
+                $codes[$code]['members'] += (int) $row->aggregate;
+                $codes[$code]['first_id'] = min($codes[$code]['first_id'], (int) $row->first_id);
+            });
+
+        return collect($codes)
+            ->sortBy([['members', 'desc'], ['first_id', 'asc']])
+            ->map(fn ($c, $code) => ['code' => $code, 'members' => $c['members']])
             ->values()
             ->all();
     }
