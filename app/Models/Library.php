@@ -28,7 +28,15 @@ class Library extends Model
     {
         static::creating(function (Library $library) {
             $library->uuid ??= (string) \Illuminate\Support\Str::uuid();
-            $library->slug ??= \Illuminate\Support\Str::slug($library->name);
+            // Slug unique : deux bibliothèques peuvent porter le même nom (ou l'ancien nom d'une autre).
+            if (!$library->slug) {
+                $base = \Illuminate\Support\Str::limit(\Illuminate\Support\Str::slug($library->name), 240, '') ?: 'bibliotheque';
+                $slug = $base;
+                for ($i = 2; static::where('slug', $slug)->exists(); $i++) {
+                    $slug = "{$base}-{$i}";
+                }
+                $library->slug = $slug;
+            }
         });
     }
 

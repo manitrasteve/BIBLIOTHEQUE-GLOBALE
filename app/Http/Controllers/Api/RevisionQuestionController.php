@@ -134,9 +134,16 @@ PROMPT;
             $item = ['question' => trim((string) $q['question']), 'page' => $page, 'explanation' => isset($q['explanation']) ? trim((string) $q['explanation']) : null];
 
             if ($type === 'qcm') {
-                $choices = array_values(array_filter(array_map(fn ($c) => trim((string) $c), (array) ($q['choices'] ?? [])), 'strlen'));
-                $answer = $this->choiceIndex($q['answer'] ?? null, $choices);
-                if (count($choices) < 2 || $answer === null || $answer < 0 || $answer >= count($choices)) {
+                // L'index de la bonne réponse se lit sur la liste reçue, AVANT de retirer les choix vides :
+                // sinon ["A","","C","D"] avec answer 2 désignait « D » au lieu de « C ».
+                $raw = array_values(array_map(fn ($c) => trim((string) $c), (array) ($q['choices'] ?? [])));
+                $rawAnswer = $this->choiceIndex($q['answer'] ?? null, $raw);
+                if ($rawAnswer === null || $rawAnswer < 0 || $rawAnswer >= count($raw) || $raw[$rawAnswer] === '') {
+                    continue;
+                }
+                $choices = array_values(array_filter($raw, 'strlen'));
+                $answer = count(array_filter(array_slice($raw, 0, $rawAnswer), 'strlen'));
+                if (count($choices) < 2) {
                     continue;
                 }
                 $item += ['choices' => $choices, 'answer' => $answer];

@@ -151,6 +151,12 @@ test('actualités du site : publication par l’administrateur, lecture publique
         'image' => UploadedFile::fake()->image('a.png'),
     ])->assertCreated()->json();
 
+    // Les notifications partent en tâche de fond (une par compte actif).
+    Queue::assertPushed(\App\Jobs\NotifySiteUpdateJob::class, function ($job) {
+        $job->handle();
+
+        return true;
+    });
     expect($member->appNotifications()->where('type', 'mise_a_jour_site')->exists())->toBeTrue();
 
     $this->app['auth']->forgetGuards();

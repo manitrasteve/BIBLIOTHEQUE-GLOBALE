@@ -29,12 +29,25 @@ class ReadingController extends Controller
             'total_pages' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
 
-        $progress = ReadingProgress::firstOrNew(['user_id' => $request->user()->id, 'document_id' => $document->id]);
-        $progress->fill([
-            'last_page' => min($data['page'], $data['total_pages'] ?? $data['page']),
-            'total_pages' => $data['total_pages'] ?? $progress->total_pages,
-        ]);
-        $progress->save(); // completed_at : voir ReadingProgress::booted()
+        $save = function () use ($request, $document, $data) {
+            $progress = ReadingProgress::firstOrNew(['user_id' => $request->user()->id, 'document_id' => $document->id]);
+            // Le nombre de pages déjà connu borne aussi la page, quand la requête ne le renvoie pas.
+            $total = $data['total_pages'] ?? $progress->total_pages;
+            $progress->fill([
+                'last_page' => min($data['page'], $total ?? $data['page']),
+                'total_pages' => $total,
+            ]);
+            $progress->save(); // completed_at : voir ReadingProgress::booted()
+
+            return $progress;
+        };
+
+        try {
+            $progress = $save();
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            // Deux enregistrements simultanés à la première ouverture : le second met à jour la ligne créée.
+            $progress = $save();
+        }
 
         return response()->json($progress->only(['last_page', 'total_pages', 'completed_at', 'updated_at']));
     }

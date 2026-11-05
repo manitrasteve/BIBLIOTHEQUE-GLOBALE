@@ -18,12 +18,24 @@ class DocumentPublisher
     public static function publish(Document $document, ?int $userId): void
     {
         $previousStatus = $document->status;
-        $document->update([
-            'status' => 'publie',
-            'published_at' => now(),
-            'scheduled_at' => null,
-            'scheduled_by' => null,
-        ]);
+
+        // Mise à jour conditionnelle, comme publishDue() : si la publication programmée (ou un second
+        // clic) l'a publié entre-temps, on ne le republie pas et on ne renotifie personne.
+        $updated = Document::whereKey($document->id)
+            ->where('status', '!=', 'publie')
+            ->update([
+                'status' => 'publie',
+                'published_at' => now(),
+                'scheduled_at' => null,
+                'scheduled_by' => null,
+                'updated_at' => now(),
+            ]);
+
+        $document->refresh();
+
+        if ($updated === 0) {
+            return;
+        }
 
         self::afterPublish($document, $userId, $previousStatus);
     }

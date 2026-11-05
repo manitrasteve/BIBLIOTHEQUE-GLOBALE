@@ -34,7 +34,8 @@ class AiQueryController extends Controller
             // Contexte facultatif : tours précédents et page ouverte dans le lecteur.
             'history' => ['sometimes', 'array', 'max:8'],
             'history.*.question' => ['required_with:history', 'string', 'max:1000'],
-            'history.*.answer' => ['required_with:history', 'string', 'max:20000'],
+            // Une image générée renvoie une réponse texte vide : ce tour doit rester accepté dans l'historique.
+            'history.*.answer' => ['present', 'nullable', 'string', 'max:20000'],
             'current_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000'],
         ]);
     }

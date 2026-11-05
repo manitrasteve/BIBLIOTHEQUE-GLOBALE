@@ -43,10 +43,10 @@ class StaffDiscussionController extends Controller
         $user = $request->user();
 
         if ($user->role === 'bibliothecaire') {
-            $admin = User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->first();
-            abort_unless($admin, 404, 'Aucun administrateur n’est disponible.');
+            $adminId = $this->librarianInterlocutorId($user);
+            abort_unless($adminId, 404, 'Aucun administrateur n’est disponible.');
             $conversation = StaffConversation::firstOrCreate([
-                'admin_id' => $admin->id,
+                'admin_id' => $adminId,
                 'librarian_id' => $user->id,
             ]);
         } else {
@@ -90,11 +90,11 @@ class StaffDiscussionController extends Controller
             ], 403);
         }
 
-        // Côté bibliothécaire : même administrateur que myConversation (le premier actif), sinon
-        // la conversation se dédoublait (ou échouait en 500 sans administrateur).
+        // Côté bibliothécaire : même interlocuteur que myConversation (l'administrateur qui lui a écrit
+        // en dernier, sinon le premier actif), pour ne pas dédoubler la conversation.
         $adminId = $admin->role === 'administrateur'
             ? $admin->id
-            : User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->value('id');
+            : $this->librarianInterlocutorId($admin);
         abort_unless($adminId, 404, 'Aucun administrateur n’est disponible.');
 
         $conversation = StaffConversation::firstOrCreate([
@@ -125,8 +125,15 @@ class StaffDiscussionController extends Controller
             ], 403);
         }
 
+        // Le bibliothécaire voit un fil unique : les messages de TOUS les administrateurs (chaque
+        // administrateur a sa propre conversation avec lui). Sans cela, les messages d'un second
+        // administrateur restaient invisibles et non lus pour toujours.
+        $conversationIds = $user->role === 'bibliothecaire'
+            ? StaffConversation::where('librarian_id', $user->id)->pluck('id')->all()
+            : [$conversation->id];
+
         $messages = StaffMessage::query()
-            ->where('conversation_id', $conversation->id)
+            ->whereIn('conversation_id', $conversationIds)
             ->where(function ($query) use ($user) {
                 $query->where(function ($inner) use ($user) {
                     $inner->where('sender_id', $user->id)
@@ -146,7 +153,7 @@ class StaffDiscussionController extends Controller
         /*
          * Tous les messages reçus non lus deviennent lus.
          */
-        StaffMessage::where('conversation_id', $conversation->id)
+        StaffMessage::whereIn('conversation_id', $conversationIds)
             ->where('recipient_id', $user->id)
             ->whereNull('read_at')
             ->update([
@@ -191,7 +198,8 @@ class StaffDiscussionController extends Controller
          * invisible depuis « ma conversation », si un autre administrateur actif existe.
          */
         if ($sender->role === 'bibliothecaire') {
-            $recipient = User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->first();
+            // Réponse à l'administrateur qui lui a écrit en dernier (sinon le premier actif).
+            $recipient = User::find($this->librarianInterlocutorId($sender));
             abort_unless($recipient, 404, 'Aucun administrateur n’est disponible.');
         } else {
             $recipient = User::findOrFail($data['recipient_id']);
@@ -350,6 +358,22 @@ class StaffDiscussionController extends Controller
         return response()->json([
             'message' => 'Historique des discussions supprimé.',
         ]);
+    }
+
+    /**
+     * Administrateur auquel s'adresse un bibliothécaire : celui qui lui a écrit en dernier (s'il est
+     * toujours actif), sinon le premier administrateur actif.
+     */
+    private function librarianInterlocutorId(User $librarian): ?int
+    {
+        $lastWriter = StaffMessage::query()
+            ->where('recipient_id', $librarian->id)
+            ->whereHas('sender', fn ($q) => $q->where('role', 'administrateur')->where('is_active', true))
+            ->latest('id')
+            ->value('sender_id');
+
+        return $lastWriter
+            ?? User::where('role', 'administrateur')->where('is_active', true)->orderBy('id')->value('id');
     }
 
     /**

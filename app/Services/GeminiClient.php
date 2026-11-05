@@ -411,9 +411,17 @@ public function batchEmbed(array $texts): array
     {
         $last = null;
 
-        foreach ($this->modelChain($options['model'] ?? null) as $model) {
+        // Modèle qui a produit les tours précédents (boucle d'outils) : on le réessaie en premier.
+        $historyModel = $options['history_model'] ?? null;
+        unset($options['history_model']);
+
+        foreach ($this->modelChain($options['model'] ?? $historyModel) as $model) {
+            // Les signatures de réflexion sont propres au modèle qui les a émises : envoyées à un modèle de
+            // repli, elles faisaient échouer la requête (HTTP 400, non retentée).
+            $payload = $historyModel && $model !== $historyModel ? self::neutralizeThoughtSignatures($contents) : $contents;
+
             try {
-                $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $contents, $options);
+                $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $payload, $options);
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
                 $this->markDown($model);
@@ -457,6 +465,23 @@ public function batchEmbed(array $texts): array
         }
 
         throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
+    }
+
+    /**
+     * Remplace les signatures de réflexion d'un historique par la valeur neutre acceptée par l'API
+     * (« skip_thought_signature_validator »), pour le transmettre à un autre modèle.
+     */
+    private static function neutralizeThoughtSignatures(array $contents): array
+    {
+        foreach ($contents as $c => $content) {
+            foreach (($content['parts'] ?? []) as $p => $part) {
+                if (is_array($part) && array_key_exists('thoughtSignature', $part)) {
+                    $contents[$c]['parts'][$p]['thoughtSignature'] = 'skip_thought_signature_validator';
+                }
+            }
+        }
+
+        return $contents;
     }
 
     /**

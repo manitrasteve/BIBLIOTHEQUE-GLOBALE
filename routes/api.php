@@ -154,8 +154,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Étudiant : lectures recommandées par les enseignants de sa classe.
     Route::get('/my-course-lists', [CourseListController::class, 'forStudent']);
 
-    Route::post('/feedbacks', [FeedbackController::class, 'store']);
-    Route::post('/problem-reports', [ProblemReportController::class, 'store']);
+    // Limités : chaque envoi notifie tous les administrateurs (et un signalement peut joindre une capture).
+    Route::post('/feedbacks', [FeedbackController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/problem-reports', [ProblemReportController::class, 'store'])->middleware('throttle:10,1');
 
 
 

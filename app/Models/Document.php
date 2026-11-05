@@ -30,7 +30,9 @@ class Document extends Model
     {
         static::creating(function (Document $document) {
             $document->uuid ??= (string) \Illuminate\Support\Str::uuid();
-            $document->slug ??= \Illuminate\Support\Str::slug($document->title) . '-' . \Illuminate\Support\Str::random(6);
+            // Tronqué : un titre de 255 caractères dépasserait la colonne slug (255) une fois le suffixe ajouté.
+            $document->slug ??= (\Illuminate\Support\Str::limit(\Illuminate\Support\Str::slug($document->title), 240, '') ?: 'document')
+                . '-' . \Illuminate\Support\Str::random(6);
         });
 
         // Suppression définitive (Corbeille) : le PDF et la couverture ne restent pas orphelins sur le disque.

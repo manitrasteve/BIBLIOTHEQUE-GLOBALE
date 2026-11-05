@@ -72,6 +72,10 @@ class ManagementAssistantService
                     $options['tool_config'] = ['functionCallingConfig' => ['mode' => 'NONE']];
                 }
 
+                if ($step > 0 && $model) {
+                    $options['history_model'] = $model; // signatures de réflexion émises par ce modèle
+                }
+
                 $reply = $this->gemini->generateWithTools($contents, $options);
                 $model = $reply['model'];
 

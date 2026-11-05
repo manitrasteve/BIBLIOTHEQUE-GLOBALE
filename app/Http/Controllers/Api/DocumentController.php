@@ -574,7 +574,8 @@ class DocumentController extends Controller
         $previousDate = $document->scheduled_at;
         $document->update([
             'status' => 'programme',
-            'scheduled_at' => Carbon::parse($data['scheduled_at']),
+            // Converti en UTC : une heure envoyée avec un décalage (+03:00) serait sinon stockée telle quelle.
+            'scheduled_at' => Carbon::parse($data['scheduled_at'])->utc(),
             'scheduled_by' => $request->user()->id,
         ]);
 

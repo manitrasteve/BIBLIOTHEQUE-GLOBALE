@@ -15,7 +15,12 @@ class EngagementController extends Controller
     {
         $document=Document::where('slug',$slug)->where('status','publie')->firstOrFail();
         $favorite=Favorite::where('user_id',$request->user()->id)->where('document_id',$document->id)->first();
-        if($favorite){ $favorite->delete(); $favorited=false; } else { Favorite::create(['user_id'=>$request->user()->id,'document_id'=>$document->id]); $favorited=true; }
+        if($favorite){ $favorite->delete(); $favorited=false; } else {
+            // Double clic : la seconde requête trouve le favori déjà créé (index unique) au lieu d'une erreur 500.
+            try { Favorite::create(['user_id'=>$request->user()->id,'document_id'=>$document->id]); }
+            catch (\Illuminate\Database\UniqueConstraintViolationException) {}
+            $favorited=true;
+        }
         ActivityLogService::log($request->user()->id,$favorited?'ajout_favori':'retrait_favori',$document->title,$document);
         return response()->json(['favorited'=>$favorited,'favorite_count'=>$document->favorites()->count()]);
     }

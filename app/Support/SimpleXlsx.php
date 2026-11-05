@@ -38,18 +38,25 @@ class SimpleXlsx
             $zip->close();
         }
 
+        // Les attributs r (« A1 », numéro de ligne) sont facultatifs dans la norme : sans eux, la position
+        // se déduit de l'ordre de lecture (ligne suivante, colonne suivante).
         $rows = [];
+        $previousRow = 0;
         foreach ($xml->sheetData->row ?? [] as $row) {
             $rowNumber = (int) $row['r'];
+            $column = -1;
             foreach ($row->c as $cell) {
                 $ref = (string) $cell['r'];
-                $column = self::columnIndex(preg_replace('/\d+/', '', $ref));
+                $letters = preg_replace('/[^A-Za-z]+/', '', $ref);
+                $column = $letters !== '' ? self::columnIndex($letters) : $column + 1;
                 $rowNumber = $rowNumber ?: (int) preg_replace('/\D+/', '', $ref);
                 $value = self::cellValue($cell, $sharedStrings);
+                $rowNumber = $rowNumber ?: $previousRow + 1;
                 if ($value !== '') {
                     $rows[$rowNumber][$column] = $value;
                 }
             }
+            $previousRow = $rowNumber ?: $previousRow + 1;
         }
 
         ksort($rows);
