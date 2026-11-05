@@ -38,6 +38,28 @@ class AccountRequestController extends Controller
     }
 
     /**
+     * Une demande en cours dont le délai est dépassé passe « expirée » et ne peut plus être traitée.
+     * Le passage automatique ne se faisait qu'à l'ouverture de la liste : sans ce contrôle, une demande
+     * expirée pouvait encore être vérifiée (et son délai relancé) ou validée.
+     */
+    private function rejectIfExpired(AccountRequest $accountRequest): ?\Illuminate\Http\JsonResponse
+    {
+        if (
+            !in_array($accountRequest->status, ['en_attente', 'verifiee', 'en_attente_validation'], true)
+            || !$accountRequest->expires_at
+            || !now()->greaterThan($accountRequest->expires_at)
+        ) {
+            return null;
+        }
+
+        $accountRequest->update(['status' => 'expiree']);
+
+        return response()->json([
+            'message' => 'Le délai de cette demande est dépassé : elle a expiré. La personne doit refaire une demande de compte.',
+        ], 422);
+    }
+
+    /**
      * Liste des demandes de création de compte.
      */
     public function index(Request $request)
@@ -443,13 +465,19 @@ class AccountRequestController extends Controller
 
         $this->authorizeRequestLibrary($user, $accountRequest);
 
+        if ($expired = $this->rejectIfExpired($accountRequest)) {
+            return $expired;
+        }
+
         if (!in_array($accountRequest->status, ['en_attente', 'verifiee'], true)) {
             return response()->json(['message' => 'Ce ticket ne peut plus être traité.'], 422);
         }
 
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255', new AvailableEmail()],
-            'role' => ['required', Rule::in(['etudiant', 'enseignant', 'chercheur'])],
+            // Le rôle est celui de la demande : le personnel ne peut pas promouvoir un demandeur
+            // (par exemple un étudiant en enseignant) en créant son compte.
+            'role' => ['required', Rule::in([$accountRequest->role])],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
@@ -473,6 +501,7 @@ class AccountRequestController extends Controller
                 'niveau_detail' => $accountRequest->niveau_detail,
                 'library_id' => $accountRequest->library_id,
                 'is_active' => false,
+                'password_set_at' => now(),
             ]);
 
             $this->provisioner->registerMember($createdUser, [
@@ -607,6 +636,10 @@ class AccountRequestController extends Controller
         }
 
         $this->authorizeRequestLibrary($user, $accountRequest);
+
+        if ($expired = $this->rejectIfExpired($accountRequest)) {
+            return $expired;
+        }
 
         if ($accountRequest->status !== 'en_attente') {
             return response()->json([
@@ -780,6 +813,10 @@ class AccountRequestController extends Controller
             ]);
         }
 
+        if ($expired = $this->rejectIfExpired($accountRequest)) {
+            return $expired;
+        }
+
         // L'administrateur valide directement une demande « non validée » (sans étape de vérification) ;
         // un bibliothécaire ne valide qu'une demande déjà vérifiée.
         $validatable = $admin->isAdmin() ? ['en_attente', 'verifiee'] : ['verifiee'];
@@ -811,6 +848,14 @@ class AccountRequestController extends Controller
             return response()->json(['message' => User::emailUnavailableMessage($accountRequest->email)], 422);
         }
 
+        // Un compte actif utilise déjà cette adresse : la demande ne doit jamais s'y rattacher (le lien
+        // de création réécrirait son mot de passe et le réactiverait, quel que soit son rôle).
+        if (User::where('email', $accountRequest->email)->exists()) {
+            return response()->json([
+                'message' => 'Un compte utilise déjà l’adresse e-mail de cette demande. Rejetez la demande ou demandez une autre adresse.',
+            ], 422);
+        }
+
         $result = DB::transaction(function () use ($accountRequest, $admin) {
             $accountRequest = AccountRequest::whereKey($accountRequest->id)
                 ->lockForUpdate()
@@ -827,8 +872,7 @@ class AccountRequestController extends Controller
                 ];
             }
 
-            $user = User::where('email', $accountRequest->email)->first()
-                ?? $this->provisioner->createUserFromRequest($accountRequest, User::generateNumeroCompte($accountRequest->role));
+            $user = $this->provisioner->createUserFromRequest($accountRequest, User::generateNumeroCompte($accountRequest->role));
 
             $this->provisioner->registerMember($user, $accountRequest->only([
                 'role', 'last_name', 'first_name', 'email', 'phone', 'address', 'gender',
@@ -1117,6 +1161,11 @@ class AccountRequestController extends Controller
             'setup_expires_at' => null,
         ]);
 
+        // Mot de passe défini : un lien « mot de passe oublié » encore valide ne doit plus pouvoir le
+        // réécrire, et les sessions ouvertes auparavant sont fermées (comme resetPassword).
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+        $user->tokens()->delete();
+
         return response()->json([
             'message' => 'Votre mot de passe a été créé. Votre compte est maintenant actif.',
         ]);
@@ -1269,6 +1318,20 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
+        // Un nouveau lien redéfinit le mot de passe et réactive le compte (setupPassword) : il ne doit
+        // jamais servir à rouvrir un compte désactivé, ni à écraser un mot de passe déjà créé.
+        if (!$createdUser->is_active) {
+            return response()->json([
+                'message' => 'Ce compte est désactivé : réactivez-le d’abord depuis la gestion des utilisateurs.',
+            ], 422);
+        }
+
+        if ($createdUser->password_set_at !== null) {
+            return response()->json([
+                'message' => 'Cet utilisateur a déjà créé son mot de passe.',
+            ], 422);
+        }
+
         [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
         $accountRequest->update([
@@ -1279,7 +1342,7 @@ class AccountRequestController extends Controller
         // Envoi immédiat (et non en file) : un seul e-mail, demandé explicitement ; l'administrateur
         // doit savoir s'il est réellement parti, pour ne pas croire à tort que le lien a été reçu.
         try {
-            $this->provisioner->sendSetupMail($createdUser, $accountRequest, $token, 'Création de votre mot de passe', 'new_link', $accountRequest->email);
+            $this->provisioner->sendSetupMail($createdUser, $accountRequest, $token, 'Création de votre mot de passe', 'new_link', $createdUser->email);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Renvoi du lien de création du mot de passe impossible.', [
                 'account_request_id' => $accountRequest->id,

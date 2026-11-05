@@ -36,6 +36,7 @@ test('le numéro de ticket s\'incrémente correctement sur une même année', fu
 test('un bibliothécaire peut créer le compte à partir d\'un ticket valide', function () {
     $library = Library::factory()->create();
     $librarian = User::factory()->create(['role' => 'bibliothecaire', 'is_active' => true, 'library_id' => $library->id]);
+    $librarian->permissions()->attach(\App\Models\Permission::where('name', 'ajouter_utilisateur')->firstOrFail()->id);
     $accountRequest = AccountRequest::factory()->create(['library_id' => $library->id]);
 
     $response = $this->actingAs($librarian, 'sanctum')->postJson(

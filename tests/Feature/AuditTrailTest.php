@@ -236,7 +236,7 @@ test('désactivation, réactivation et suppression d\'un compte indiquent la bib
 
 test('la création d\'un compte à partir d\'un ticket puis sa validation sont enregistrées', function () {
     $library = Library::factory()->create();
-    $librarian = auditLibrarian($library);
+    $librarian = auditLibrarian($library, ['ajouter_utilisateur']);
     $admin = auditAdmin();
 
     $ticket = AccountRequest::factory()->create(['library_id' => $library->id]);

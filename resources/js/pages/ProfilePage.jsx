@@ -142,13 +142,15 @@ export default function ProfilePage() {
     // Les réponses de /profile ne contiennent pas les permissions (ni, après suppression de la photo, la
     // bibliothèque) : on les fusionne avec l'utilisateur connecté au lieu de le remplacer, sinon un
     // bibliothécaire perdait ses rubriques protégées jusqu'au rechargement.
+    const [emailPassword, setEmailPassword] = useState('');
     const mergeUser = (updated) => setUser((current) => ({ ...current, ...updated }));
 
     async function saveProfile(e) {
         e.preventDefault(); setError(null); setMsg(null);
         try {
-            const updated = await api.updateProfile(profileForm);
-            mergeUser(updated); setEditing(false); setMsg('Profil mis à jour avec succès.');
+            const emailChanged = String(profileForm.email || '').trim().toLowerCase() !== String(user?.email || '').trim().toLowerCase();
+            const updated = await api.updateProfile(emailChanged ? { ...profileForm, current_password: emailPassword } : profileForm);
+            mergeUser(updated); setEditing(false); setEmailPassword(''); setMsg('Profil mis à jour avec succès.');
         } catch (e) { setError(e?.data?.message || Object.values(e?.data?.errors || {})[0]?.[0] || 'Impossible de modifier le profil.'); }
     }
 
@@ -247,6 +249,10 @@ export default function ProfilePage() {
                             return <label key={key} className="block"><span className="mb-1 block text-xs font-bold text-slate-500">{labels[key]||key}</span>{control}</label>;
                         })}
                     </div>
+                    {/* Changer d'adresse e-mail exige le mot de passe actuel (protection contre la prise de compte). */}
+                    {String(profileForm.email || '').trim().toLowerCase() !== String(user?.email || '').trim().toLowerCase() && (
+                        <label className="mt-4 block md:max-w-sm"><span className="mb-1 block text-xs font-bold text-slate-500">Mot de passe actuel (requis pour changer d'adresse e-mail)</span><input type="password" autoComplete="current-password" required value={emailPassword} onChange={e=>setEmailPassword(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"/></label>
+                    )}
                     <div className="mt-5 flex justify-end"><button type="submit" className="btn-primary">Enregistrer les modifications</button></div>
                 </form>
             )}

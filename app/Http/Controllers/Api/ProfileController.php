@@ -29,8 +29,24 @@ class ProfileController extends Controller
             'position'=>['nullable','string','max:255'], 'teaching_specialty'=>['nullable','string','max:255'],
             'specialty'=>['nullable','string','max:255'], 'diploma'=>['nullable','string','max:255'],
             'workplace'=>['nullable','string','max:255'], 'researcher_field'=>['nullable','string','max:255'],
+            'research_lab'=>['nullable','string','max:255'],
             'profession'=>['nullable','string','max:255'], 'experience'=>['nullable','string','max:2000'],
         ]);
+
+        // Changer l'adresse e-mail, c'est changer l'adresse qui reçoit les liens de mot de passe : sans
+        // ce contrôle, un jeton volé ou une session restée ouverte suffisait à prendre le compte.
+        $emailChanged = strcasecmp($data['email'], (string) $user->email) !== 0;
+        if ($emailChanged) {
+            $request->validate(
+                ['current_password' => ['required', 'string']],
+                ['current_password.required' => 'Saisissez votre mot de passe actuel pour changer d’adresse e-mail.']
+            );
+            if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'current_password' => 'Le mot de passe actuel est incorrect.',
+                ]);
+            }
+        }
         unset($data['photo']);
         if ($request->hasFile('photo')) {
             if ($user->photo_path) Storage::disk('public')->delete($user->photo_path);
@@ -44,7 +60,13 @@ class ProfileController extends Controller
             && filled($data['school'])
             && $data['school'] !== $user->school;
 
+        $oldEmail = $user->email;
         $user->update($data);
+
+        if ($emailChanged) {
+            // Un lien de réinitialisation envoyé à l'ancienne adresse ne doit plus servir.
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
+        }
 
         if ($schoolChanged) {
             \App\Models\TeacherClass::where('user_id', $user->id)->update(['school' => $data['school']]);

@@ -82,6 +82,8 @@ class AuthController extends Controller
 
         $request->user()->update([
             'password' => Hash::make($data['password']),
+            // Sinon un « mot de passe oublié » ultérieur recevait la durée d'un lien de création (72 h).
+            'password_set_at' => $request->user()->password_set_at ?? now(),
         ]);
 
         // Les autres sessions (autre appareil, jeton volé) sont fermées ; la session courante reste ouverte.
@@ -253,6 +255,12 @@ class AuthController extends Controller
         DB::table('password_reset_tokens')
             ->where('email', $row->email)
             ->delete();
+
+        // Le mot de passe est défini : un lien de création encore valide (demande de compte) ne doit plus
+        // pouvoir le réécrire.
+        AccountRequest::where('created_user_id', $user->id)
+            ->whereNotNull('setup_token_hash')
+            ->update(['setup_token_hash' => null, 'setup_expires_at' => null]);
 
         return response()->json([
             'message' => 'Votre mot de passe a été réinitialisé avec succès.',

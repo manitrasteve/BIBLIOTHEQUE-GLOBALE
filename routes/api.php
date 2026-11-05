@@ -231,11 +231,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/account-requests', [AccountRequestController::class, 'index']);
         Route::get('/account-requests/export', [AccountRequestController::class, 'export']);
-        Route::post('/account-requests/{accountRequest}/create-account', [AccountRequestController::class, 'createAccount']);
+        Route::post('/account-requests/{accountRequest}/create-account', [AccountRequestController::class, 'createAccount'])->middleware('permission:ajouter_utilisateur');
         Route::post('/account-requests/{accountRequest}/verify', [AccountRequestController::class, 'verify']);
         Route::post('/account-requests/{accountRequest}/reject', [AccountRequestController::class, 'reject']);
         Route::post('/account-requests/{accountRequest}/validate', [AccountRequestController::class, 'validateRequest'])->middleware('permission:valider_demande_compte');
-        Route::post('/account-requests/{accountRequest}/resend-setup-link', [AccountRequestController::class, 'sendSetupMail']);
+        Route::post('/account-requests/{accountRequest}/resend-setup-link', [AccountRequestController::class, 'sendSetupMail'])->middleware('permission:ajouter_utilisateur');
 
     });
 
