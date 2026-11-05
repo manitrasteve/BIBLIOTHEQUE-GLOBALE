@@ -119,6 +119,24 @@ const emptyForm = {
     author_ids: [],
 };
 
+// Fusionne des listes d'auteurs sans doublon (par id), triées par nom.
+function mergeAuthors(base, extra) {
+    const map = new Map();
+    [...(base || []), ...(extra || [])].forEach((a) => a?.id != null && map.set(a.id, a));
+    return [...map.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), "fr"));
+}
+
+// Auteur existant de même nom (casse ignorée), cherché côté serveur : la liste locale est limitée à 500.
+async function findAuthorByName(name) {
+    const wanted = name.trim().toLowerCase();
+    try {
+        const res = await api.getAuthors({ search: name.trim(), per_page: 100 });
+        return (res.data || []).find((a) => String(a.name).trim().toLowerCase() === wanted) || null;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Formulaire « Ajouter / Modifier un document ».
  *
@@ -166,12 +184,15 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
         api.getLibraries()
             .then(setLibraries)
             .catch(() => {});
+        // Liste limitée à 500 auteurs : fusionnée (et non remplacée) pour garder les auteurs
+        // déjà liés au document, qui peuvent se trouver au-delà de cette limite.
         api.getAuthors({ per_page: 500 })
-            .then((res) => setAuthors(res.data))
+            .then((res) => setAuthors((prev) => mergeAuthors(res.data || [], prev)))
             .catch(() => {});
 
         if (isEditing) {
             api.getManagedDocument(id).then((doc) => {
+                if (doc.authors?.length) setAuthors((prev) => mergeAuthors(prev, doc.authors));
                 const type = LEGACY_TYPE_LABELS[doc.type] || doc.type || "";
                 const category = doc.category?.name || "";
 
@@ -233,17 +254,20 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
         setAuthorError(null);
 
         try {
-            const author = await api.createAuthor({ name });
+            let author;
+            try {
+                author = await api.createAuthor({ name });
+            } catch (err) {
+                // Nom déjà pris (auteur absent de la liste locale, limitée à 500) : on reprend l'existant.
+                author = err?.status === 422 ? await findAuthorByName(name) : null;
+                if (!author) throw err;
+            }
 
-            setAuthors((prev) =>
-                [...prev, author].sort((a, b) =>
-                    String(a.name).localeCompare(String(b.name), "fr"),
-                ),
-            );
+            setAuthors((prev) => mergeAuthors(prev, [author]));
 
             setForm((prev) => ({
                 ...prev,
-                author_ids: [...prev.author_ids, author.id],
+                author_ids: [...new Set([...prev.author_ids, author.id])],
             }));
 
             setAuthorQuery("");
@@ -267,13 +291,12 @@ export default function DocumentFormPage({ importItem = null, onImported = null 
             try {
                 author = await api.createAuthor({ name });
             } catch (err) {
-                // Nom déjà pris entre-temps : on reprend l'auteur existant.
-                const list = (await api.getAuthors({ per_page: 500 })).data;
-                author = list.find((a) => a.name.trim().toLowerCase() === name.trim().toLowerCase());
+                // Nom déjà pris entre-temps : on reprend l'auteur existant (recherche par nom côté serveur).
+                author = await findAuthorByName(name);
                 if (!author) throw err;
             }
             ids.push(author.id);
-            setAuthors((prev) => (prev.some((a) => a.id === author.id) ? prev : [...prev, author]));
+            setAuthors((prev) => mergeAuthors(prev, [author]));
             setPendingAuthors((prev) => prev.filter((n) => n !== name));
             setForm((prev) => ({ ...prev, author_ids: [...new Set([...prev.author_ids, author.id])] }));
         }

@@ -4,6 +4,17 @@ function getToken() {
     return localStorage.getItem("bm_token");
 }
 
+// 401 alors qu'un jeton a été envoyé : session expirée ou révoquée. On retire le jeton et on prévient
+// l'AuthProvider (« auth:expired ») qui ferme la session ; les routes protégées renvoient alors à la connexion.
+// Requêtes sans jeton (connexion, pages publiques) : un 401 n'est qu'une erreur ordinaire.
+// Jeton remplacé entre-temps (nouvelle connexion) : la réponse périmée ne touche pas à la nouvelle session.
+function handleUnauthorized(status, sentToken) {
+    if (status !== 401 || !sentToken) return;
+    if (getToken() !== sentToken) return;
+    localStorage.removeItem("bm_token");
+    window.dispatchEvent(new Event("auth:expired"));
+}
+
 // Lecteur SSE générique (POST) : onDelta reçoit chaque fragment « delta » au fil de l'eau,
 // retourne le payload de l'événement « done ». Partagé par les assistants (lecture et gestion).
 async function streamSse(path, body, { onDelta } = {}) {
@@ -19,6 +30,7 @@ async function streamSse(path, body, { onDelta } = {}) {
     });
 
     if (!response.ok || !response.body) {
+        handleUnauthorized(response.status, token);
         let data = null;
         try {
             data = await response.json();
@@ -93,10 +105,8 @@ async function request(
         finalHeaders["Content-Type"] = "application/json";
     }
 
-    if (auth) {
-        const token = getToken();
-        if (token) finalHeaders.Authorization = `Bearer ${token}`;
-    }
+    const sentToken = auth ? getToken() : null;
+    if (sentToken) finalHeaders.Authorization = `Bearer ${sentToken}`;
 
     const response = await fetch(`${API_URL}${path}`, {
         method,
@@ -116,6 +126,7 @@ async function request(
     const data = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
+        handleUnauthorized(response.status, sentToken);
         const error = new Error(data?.message || "Une erreur est survenue.");
         error.status = response.status;
         error.data = data;
@@ -128,10 +139,12 @@ async function request(
 // Téléchargement d'un fichier protégé (export Excel…) : nom proposé par le serveur s'il en donne un.
 async function downloadFile(path, params, fallbackName) {
     const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== "")).toString();
+    const token = getToken();
     const response = await fetch(`${API_URL}${path}${query ? `?${query}` : ""}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
+        handleUnauthorized(response.status, token);
         const error = new Error("Téléchargement impossible.");
         error.status = response.status;
         throw error;
@@ -375,6 +388,7 @@ export const api = {
         });
 
         if (!response.ok || !response.body) {
+            handleUnauthorized(response.status, token);
             let data = null;
             try {
                 data = await response.json();
@@ -538,10 +552,12 @@ export const api = {
 
     // Importation par Excel : modèle à télécharger (fichier binaire) et vérification d'un lot.
     downloadDocumentImportTemplate: async () => {
+        const token = getToken();
         const response = await fetch(`${API_URL}/document-imports/template`, {
-            headers: { Authorization: `Bearer ${getToken()}` },
+            headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
+            handleUnauthorized(response.status, token);
             const error = new Error("Téléchargement du modèle impossible.");
             error.status = response.status;
             throw error;

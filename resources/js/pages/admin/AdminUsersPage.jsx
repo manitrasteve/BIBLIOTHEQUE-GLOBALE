@@ -138,13 +138,17 @@ export default function AdminUsersPage() {
     // Carte de compteur sélectionnée (clé de FILTER_PARAMS) et zone de la liste vers laquelle on descend.
     const [filter, setFilter] = useState("total");
     const listRef = useRef(null);
+    const latestRequest = useRef(0);
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     // `rethrow` : l'échec remonte aussi au bouton « Actualiser ».
     function load(page = meta?.current_page || 1, { rethrow = false } = {}) {
+        // Seule la réponse à la dernière requête est affichée (frappes rapides dans la recherche).
+        const requestId = ++latestRequest.current;
         setError(null);
         return api.getUsers({ page, ...FILTER_PARAMS[filter], ...(searchTerm ? { search: searchTerm } : {}) })
             .then((r) => {
+                if (requestId !== latestRequest.current) return;
                 // Dernier utilisateur d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1, { rethrow });
                 setUsers(r.data || []);
@@ -152,6 +156,7 @@ export default function AdminUsersPage() {
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
             .catch((requestError) => {
+                if (requestId !== latestRequest.current) return;
                 setError(requestError?.data?.message || "Impossible de charger les utilisateurs.");
                 if (rethrow) throw requestError;
             });

@@ -47,6 +47,13 @@ export function AuthProvider({ children }) {
         setUser(null);
     }
 
+    // Toute requête refusée en 401 avec un jeton (voir lib/api.js) : la session est fermée,
+    // ProtectedRoute renvoie alors vers la page de connexion.
+    useEffect(() => {
+        window.addEventListener("auth:expired", clearSession);
+        return () => window.removeEventListener("auth:expired", clearSession);
+    }, []);
+
     useEffect(() => {
         const token = localStorage.getItem("bm_token");
 

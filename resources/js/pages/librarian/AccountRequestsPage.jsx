@@ -109,12 +109,15 @@ export default function AccountRequestsPage() {
 
     // Le serveur pagine (20 par page) : on garde la page courante pour qu'une action ne renvoie pas au début.
     const [meta, setMeta] = useState(null);
+    const latestRequest = useRef(0);
 
     // « Total » : toutes les catégories affichées en cartes.
     const statusParam = filter === "total" ? filters.join(",") : filter;
 
     // `refresh` (bouton « Actualiser ») : la liste reste affichée pendant le rechargement et l'échec remonte au bouton.
     async function load(page = meta?.current_page || 1, { refresh = false } = {}) {
+        // Seule la réponse à la dernière requête est affichée (frappes rapides dans la recherche).
+        const requestId = ++latestRequest.current;
         try {
             setError(null);
             if (!refresh) setRows(null);
@@ -126,6 +129,8 @@ export default function AccountRequestsPage() {
                 page,
             });
 
+            if (requestId !== latestRequest.current) return;
+
             // Dernier élément d'une page retiré (rejet, validation) : on revient à la page précédente.
             if (!(response.data || []).length && page > 1) {
                 return load(page - 1, { refresh });
@@ -135,6 +140,7 @@ export default function AccountRequestsPage() {
             setCounts(response.counts || null);
             setMeta({ current_page: response.current_page, last_page: response.last_page, total: response.total });
         } catch (e) {
+            if (requestId !== latestRequest.current) return;
             setError(e.data?.message || "Impossible de charger les demandes.");
             if (refresh) throw e;
             setRows([]);

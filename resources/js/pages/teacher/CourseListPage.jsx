@@ -16,7 +16,11 @@ const TABS = [
 ];
 
 const formatDate = (value) => (value ? new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "");
-const today = () => new Date().toISOString().slice(0, 10);
+// Date locale (et non UTC) : toISOString décalait d'un jour autour de minuit selon le fuseau.
+const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 // Catalogue publié, affiché d'emblée (les plus récents) et filtré par la recherche, pour ajouter un document.
 function AddDocument({ list, onAdded }) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, MessageCircle, Send, Trash2, UserRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
@@ -18,13 +18,24 @@ export default function StaffDiscussionPage() {
     const [error, setError] = useState(null);
     const isAdmin = user?.role === "administrateur";
 
+    const [sending, setSending] = useState(false);
+    // Identifiant de la dernière demande : les réponses d'une conversation précédente sont ignorées.
+    const latestRequest = useRef(0);
+
     async function loadConversation(id) {
+        const requestId = ++latestRequest.current;
+        // Changement de conversation : on vide l'affichage pour ne jamais écrire au mauvais destinataire.
+        setConversation(null);
+        setMessages([]);
         try {
             const response = isAdmin ? await api.getStaffConversation(id) : await api.getMyStaffConversation();
-            setConversation(response.conversation);
+            if (requestId !== latestRequest.current) return;
             const result = await api.getStaffMessages(response.conversation.id);
+            if (requestId !== latestRequest.current) return;
+            setConversation(response.conversation);
             setMessages(result.messages || []);
-        } catch (e) { setError(e?.data?.message || "Impossible de charger la discussion."); }
+            setError(null);
+        } catch (e) { if (requestId === latestRequest.current) setError(e?.data?.message || "Impossible de charger la discussion."); }
     }
 
     useEffect(() => {
@@ -43,19 +54,27 @@ export default function StaffDiscussionPage() {
     // Actualisation : nouveaux messages de la discussion ouverte (et liste des bibliothécaires côté administrateur).
     usePageRefresh(async () => {
         if (isAdmin) setLibrarians((await api.getStaffLibrarians()).librarians || []);
-        if (conversation) setMessages((await api.getStaffMessages(conversation.id)).messages || []);
+        if (conversation) {
+            const requestId = latestRequest.current;
+            const result = await api.getStaffMessages(conversation.id);
+            if (requestId === latestRequest.current) setMessages(result.messages || []);
+        }
         setError(null);
     });
 
     async function send(e) {
         e.preventDefault();
-        if (!text.trim() || !conversation) return;
+        if (!text.trim() || !conversation || sending) return;
         const recipientId = isAdmin ? conversation.librarian_id : conversation.admin_id;
+        const requestId = latestRequest.current;
+        setSending(true);
         try {
             const result = await api.sendStaffMessage({ recipient_id: recipientId, message: text.trim() });
+            if (requestId !== latestRequest.current) return;
             setMessages((list) => [...list, result.data]);
             setText("");
-        } catch (e) { setError(e?.data?.message || "Envoi impossible."); }
+        } catch (e) { if (requestId === latestRequest.current) setError(e?.data?.message || "Envoi impossible."); }
+        finally { setSending(false); }
     }
 
     async function remove(id) {
@@ -96,7 +115,7 @@ export default function StaffDiscussionPage() {
                     {messages.length === 0 && <p className="py-16 text-center text-sm text-slate-500">Aucun message. Commencez la discussion.</p>}
                     {messages.map((m) => { const mine = Number(m.sender_id) === Number(user.id); return <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`group max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-indigo-600 text-white" : "bg-surface text-slate-800 border border-slate-200"}`}><p className="whitespace-pre-wrap text-sm leading-6">{m.message}</p><div className={`mt-1 flex items-center justify-between gap-4 text-[10px] ${mine ? "text-on-primary-soft" : "text-slate-400"}`}><span>{new Date(m.created_at).toLocaleString("fr-FR")}</span><button onClick={() => remove(m.id)} title="Supprimer" className="opacity-70 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>; })}
                 </div>
-                <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-surface p-3"><textarea value={text} onChange={(e) => setText(e.target.value)} rows="2" placeholder="Écrire un message…" className="min-w-0 flex-1 rounded-xl" /><button className="btn-primary self-end"><Send className="h-4 w-4" /> Envoyer</button></form>
+                <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-surface p-3"><textarea value={text} onChange={(e) => setText(e.target.value)} rows="2" placeholder="Écrire un message…" className="min-w-0 flex-1 rounded-xl" /><button disabled={sending || !text.trim()} className="btn-primary self-end disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-4 w-4" /> {sending ? "Envoi…" : "Envoyer"}</button></form>
             </div>}
         </div>
     );

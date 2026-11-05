@@ -47,6 +47,9 @@ export default function AiAssistant({ slug }) {
     const scrollRef = useRef(null);
     const rootRef = useRef(null);
     const nativeFullscreenRef = useRef(false);
+    // Document actuellement affiché : une réponse arrivée pour un document précédent est ignorée.
+    const slugRef = useRef(slug);
+    slugRef.current = slug;
 
     useEffect(() => {
         mountedRef.current = true;
@@ -62,6 +65,7 @@ export default function AiAssistant({ slug }) {
         setError(null);
         setPending(null);
         setStreamText("");
+        setLoading(false);
     }, [slug]);
 
     useEffect(() => {
@@ -127,6 +131,10 @@ export default function AiAssistant({ slug }) {
 
         if (!finalQuestion || loading) return;
 
+        // Document visé par cette question (le composant peut changer de document en cours de route).
+        const askedSlug = slug;
+        const isCurrent = () => mountedRef.current && slugRef.current === askedSlug;
+
         setLoading(true);
         setError(null);
         setQuestion("");
@@ -138,7 +146,8 @@ export default function AiAssistant({ slug }) {
         const history = sessionMemory
             .getAiChat(slug)
             .slice(-4)
-            .map((ex) => ({ question: ex.question, answer: ex.answer }));
+            // Une image générée n'a pas de texte : on envoie un repère plutôt qu'une réponse vide.
+            .map((ex) => ({ question: ex.question, answer: ex.answer?.trim() ? ex.answer : "[image générée]" }));
         const page = sessionMemory.getReaderPage(slug);
         const extra = { history, ...(page ? { current_page: page } : {}) };
 
@@ -151,7 +160,7 @@ export default function AiAssistant({ slug }) {
                 result = await api.askAiStream(slug, finalQuestion, extra, {
                     onDelta: (delta) => {
                         streamed = true;
-                        if (mountedRef.current) setStreamText((t) => t + delta);
+                        if (isCurrent()) setStreamText((t) => t + delta);
                     },
                 });
             } catch (err) {
@@ -162,7 +171,7 @@ export default function AiAssistant({ slug }) {
             }
 
             const next = [
-                ...sessionMemory.getAiChat(slug),
+                ...sessionMemory.getAiChat(askedSlug),
                 {
                     question: finalQuestion,
                     answer: result.answer,
@@ -171,10 +180,11 @@ export default function AiAssistant({ slug }) {
                     meta: result.meta || null,
                 },
             ];
-            sessionMemory.setAiChat(slug, next);
-            if (mountedRef.current) setExchanges(next);
+            // La réponse reste rangée avec son propre document, mais n'est affichée que s'il est encore ouvert.
+            sessionMemory.setAiChat(askedSlug, next);
+            if (isCurrent()) setExchanges(next);
         } catch (err) {
-            if (mountedRef.current) {
+            if (isCurrent()) {
                 setError(
                     // 429 de la limite de fréquence (message Laravel en anglais) ; le 429 « quota Gemini »
                     // du serveur a déjà son propre message en français.
@@ -187,7 +197,7 @@ export default function AiAssistant({ slug }) {
                 );
             }
         } finally {
-            if (mountedRef.current) {
+            if (isCurrent()) {
                 setLoading(false);
                 setPending(null);
                 setStreamText("");

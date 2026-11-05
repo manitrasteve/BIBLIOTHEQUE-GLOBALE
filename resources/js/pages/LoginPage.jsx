@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Lock, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import AuthField from "../components/AuthField";
@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -23,7 +24,12 @@ export default function LoginPage() {
             const connectedUser = await login(email, password);
             finishTopProgress();
 
-            if (connectedUser.role === "administrateur") {
+            // Page protégée demandée avant la connexion (ProtectedRoute / RoleRoute / PermissionRoute) :
+            // on y retourne, si c'est bien un chemin interne autre que la page de connexion.
+            const from = location.state?.from;
+            if (typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/connexion")) {
+                navigate(from, { replace: true });
+            } else if (connectedUser.role === "administrateur") {
                 navigate("/administrateur/statistiques", { replace: true });
             } else if (connectedUser.role === "bibliothecaire") {
                 navigate("/bibliothecaire/tableau-de-bord", { replace: true });

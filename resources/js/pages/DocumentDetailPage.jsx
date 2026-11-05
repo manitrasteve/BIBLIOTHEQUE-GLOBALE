@@ -174,8 +174,15 @@ export default function DocumentDetailPage() {
     const readerRef = useRef(null);
 
     useEffect(() => {
+        // Changement de document : on repart d'un état vide et on ignore les réponses périmées.
+        let active = true;
+        setDoc(null);
+        setError(null);
+        setFavoriteError(null);
+        setTab("details");
         api.getDocument(slug)
             .then((data) => {
+                if (!active) return;
                 setDoc(data);
                 setFavorited(Boolean(data.is_favorited));
                 setFavoriteCount(data.favorite_count || 0);
@@ -184,9 +191,11 @@ export default function DocumentDetailPage() {
                 if (!(user && data.can_view_content)) finishTopProgress();
             })
             .catch(() => {
+                if (!active) return;
                 setError("Ce document n'existe pas ou n'est plus disponible.");
                 finishTopProgress(true);
             });
+        return () => { active = false; };
     }, [slug]);
 
     // Robot assistant flottant : il ouvre l'onglet « Assistant IA » de cette fiche
