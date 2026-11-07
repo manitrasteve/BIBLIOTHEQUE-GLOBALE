@@ -204,7 +204,7 @@ export default function FloatingAssistant() {
     // Sur une fiche document lisible, le robot ouvre l'assistant du document ; ailleurs, celui de l'espace.
     let target = null;
     if (docAssistant) target = { kind: "doc", message: DOC_MESSAGE, hidden: docAssistant.active };
-    else if (space) target = { kind: "space", message: spaceMessage(space, pathname), hidden: pathname.startsWith(space.to) };
+    else if (space) target = { kind: "space", message: spaceMessage(space, pathname), hidden: pathname.startsWith(space.to) || pathname.endsWith("/discussions") }; // discussion : il recouvrirait le bouton Envoyer
 
     const visible = Boolean(user && user.show_ai_robot !== false && target && !target.hidden);
     // La bulle réapparaît à chaque changement de rubrique, avec le message adapté.

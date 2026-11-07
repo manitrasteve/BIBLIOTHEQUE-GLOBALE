@@ -68,6 +68,7 @@ const PAGES = {
 };
 
 const requested = new Set();
+const START_DELAY_MS = 2500;
 
 export function preloadRoute(path) {
     const load = PAGES[path];
@@ -81,7 +82,7 @@ export function preloadRoute(path) {
 // Rien sur une connexion économe ou très lente. Renvoie la fonction d'annulation.
 export function preloadRoutesWhenIdle(paths) {
     const connection = navigator.connection;
-    if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || "")) return () => {};
+    if (navigator.onLine === false || connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || "")) return () => {};
 
     let cancelled = false;
     let handle = null;
@@ -94,10 +95,13 @@ export function preloadRoutesWhenIdle(paths) {
             if (!cancelled) handle = schedule(next);
         });
     };
-    handle = schedule(next);
+    // Laisse d'abord passer les données de la page affichée : avec php artisan serve, les requêtes se suivent
+    // une par une, et un préchargement lancé tout de suite les ferait attendre.
+    const start = setTimeout(() => { handle = schedule(next); }, START_DELAY_MS);
 
     return () => {
         cancelled = true;
+        clearTimeout(start);
         if (handle !== null) unschedule(handle);
     };
 }

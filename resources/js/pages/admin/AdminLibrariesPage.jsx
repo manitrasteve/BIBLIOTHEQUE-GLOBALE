@@ -266,7 +266,7 @@ export default function AdminLibrariesPage() {
       </div>
 
       {canManage && (
-        <aside className="mt-6 w-full lg:fixed lg:right-4 lg:top-[calc(var(--app-header-height)_+_1.5rem)] lg:z-10 lg:mt-0 lg:w-96 lg:max-h-[calc(100vh_-_var(--app-header-height)_-_3rem)] lg:overflow-y-auto xl:right-8">
+        <aside className="mt-6 w-full lg:fixed lg:right-4 lg:top-[calc(var(--app-header-height)_+_6rem)] lg:z-10 lg:mt-0 lg:w-96 lg:max-h-[calc(100vh_-_var(--app-header-height)_-_7.5rem)] lg:pb-44 lg:overflow-y-auto xl:right-8">
           <form onSubmit={handleSubmit} className="w-full space-y-4 rounded-xl border border-line bg-paper p-5">
             <div className="flex items-center justify-between">
               <p className="font-display text-lg text-ink">{editing ? `Modifier « ${editing.name} »` : 'Nouvelle bibliothèque'}</p>

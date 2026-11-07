@@ -231,7 +231,7 @@ export default function DocumentsManagePage() {
             Voir le PDF
           </button>
         )}
-        {doc.status !== 'publie' && can('publier_document') && (
+        {doc.status !== 'publie' && doc.status !== 'refuse' && can('publier_document') && (
           <button
             onClick={() => publish(doc)}
             disabled={busySlug === doc.slug}
@@ -241,7 +241,7 @@ export default function DocumentsManagePage() {
             Publier
           </button>
         )}
-        {doc.status !== 'publie' && can('publier_document') && (
+        {doc.status !== 'publie' && doc.status !== 'refuse' && can('publier_document') && (
           <button
             onClick={() => setScheduling(doc)}
             disabled={busySlug === doc.slug}

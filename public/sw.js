@@ -11,11 +11,11 @@
  *   icônes / manifest / logo en « stale-while-revalidate ».
  * - Mise à jour : CACHE_VERSION change => les anciens caches sont supprimés à l'activation.
  */
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = `bm-static-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const SHELL_URL = '/__app-shell'; // clé de cache de la coquille HTML de l'application
-const MAX_STATIC_ENTRIES = 80;
+const MAX_STATIC_ENTRIES = 250; // le build compte environ 170 fichiers : l'entrée de l'application n'est pas évincée
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -71,7 +71,8 @@ async function cacheFirst(request) {
 
     try {
         const response = await fetch(request);
-        if (response.ok) {
+        // Un fichier disparu après une mise à jour revient en HTML (page de l'application) : jamais mis en cache.
+        if (response.ok && !(response.headers.get('content-type') || '').includes('text/html')) {
             await cache.put(request, response.clone());
             await trim(cache);
         }
@@ -101,7 +102,8 @@ async function navigate(request) {
         const response = await fetch(request);
         // Même HTML pour toutes les routes (application React) : on garde la dernière version reçue.
         // Exception : les reçus imprimables (/tickets/…) sont des pages à part, avec des données personnelles.
-        const isAppPage = !new URL(request.url).pathname.startsWith('/tickets/');
+        const { pathname } = new URL(request.url);
+        const isAppPage = !pathname.startsWith('/tickets/') && pathname !== '/up' && pathname !== OFFLINE_URL;
         if (isAppPage && response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
             const cache = await caches.open(STATIC_CACHE);
             await cache.put(SHELL_URL, response.clone());

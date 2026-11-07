@@ -128,12 +128,17 @@ function AddDocument({ list, onAdded }) {
 // Une lecture : consigne et date limite modifiables sur place.
 function ItemRow({ list, item, onChanged }) {
     const confirm = useConfirm();
+    const toast = useToast();
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({ instruction: item.instruction || "", due_date: item.due_date || "" });
 
     async function save() {
-        onChanged(await api.updateCourseListItem(list.id, item.id, { instruction: form.instruction.trim() || null, due_date: form.due_date || null }));
-        setEditing(false);
+        try {
+            onChanged(await api.updateCourseListItem(list.id, item.id, { instruction: form.instruction.trim() || null, due_date: form.due_date || null }));
+            setEditing(false);
+        } catch (e) {
+            toast(e?.data?.errors?.due_date?.[0] || e?.data?.message || "Enregistrement impossible.");
+        }
     }
 
     async function remove() {

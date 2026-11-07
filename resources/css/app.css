@@ -313,6 +313,15 @@ html.dark {
     overscroll-behavior: contain;
 }
 
+/* Robot flottant affiché : tout le contenu de la page doit pouvoir défiler au-dessus de lui (il recouvrait
+   des boutons, sans moyen de les atteindre quand ils étaient en bas de page). */
+body:has(.ai-robot) .connected-main::after {
+    content: "";
+    display: block;
+    flex: none;
+    height: 11.5rem;
+}
+
 @media (max-width: 1023.98px) {
     .connected-layout {
         min-height: auto;
