@@ -11,12 +11,21 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    // Le navigateur remplit les champs de connexion dès l'ouverture de la page (identifiants enregistrés), même
+    // après une déconnexion. Il ne remplit pas un champ en lecture seule : chaque champ le reste jusqu'au clic.
+    const [emailUnlocked, setEmailUnlocked] = useState(false);
+    const [passwordUnlocked, setPasswordUnlocked] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     async function handleSubmit(e) {
         e.preventDefault();
+        // Un champ en lecture seule échappe à la validation « required » du navigateur.
+        if (!email || !password) {
+            setError("Saisissez votre adresse e-mail et votre mot de passe.");
+            return;
+        }
         setError(null);
         setLoading(true);
         // Barre bleue en haut de l'écran : elle arrive au bout une fois la connexion acceptée (en rouge sinon).
@@ -75,12 +84,15 @@ export default function LoginPage() {
                         <h1 className="mt-2 font-display text-[26px] font-extrabold tracking-tight text-ink">Connexion</h1>
                         <p className="mt-1.5 text-sm text-ink-soft">Connectez-vous pour accéder à vos services personnalisés.</p>
 
-                        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+                        <form onSubmit={handleSubmit} autoComplete="off" className="mt-4 space-y-3">
                             <AuthField
                                 label="Adresse e-mail"
                                 type="email"
                                 required
-                                autoComplete="email"
+                                autoComplete="off"
+                                readOnly={!emailUnlocked}
+                                onPointerDown={() => setEmailUnlocked(true)}
+                                onFocus={() => setEmailUnlocked(true)}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="vous@exemple.com"
@@ -90,7 +102,10 @@ export default function LoginPage() {
                                     label="Mot de passe"
                                     type="password"
                                     required
-                                    autoComplete="current-password"
+                                    autoComplete="off"
+                                    readOnly={!passwordUnlocked}
+                                    onPointerDown={() => setPasswordUnlocked(true)}
+                                    onFocus={() => setPasswordUnlocked(true)}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Votre mot de passe"
