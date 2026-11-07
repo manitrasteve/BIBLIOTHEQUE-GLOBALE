@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { preloadRoute, preloadRoutesWhenIdle } from "../lib/routePreload";
 import PageLoader from "./PageLoader";
 import RefreshButton from "./RefreshButton";
 import { RefreshContent, RefreshProgressBar } from "./RefreshView";
@@ -153,6 +154,10 @@ function LibrarianLayoutContent() {
         return item.permissions?.some((permission) => user?.permissions?.includes(permission));
     });
 
+    // Pages du menu préchargées au repos : le clic n'attend plus le téléchargement de la page.
+    const navPaths = nav.map((item) => item.to).join("|");
+    useEffect(() => preloadRoutesWhenIdle(navPaths.split("|")), [navPaths]);
+
     useEffect(() => setOpen(false), [location.pathname]);
     useEffect(() => {
         const closeOnEscape = (event) => {
@@ -198,6 +203,9 @@ function LibrarianLayoutContent() {
                         <NavLink
                             key={item.to}
                             to={item.to}
+                            onMouseEnter={() => preloadRoute(item.to)}
+                            onFocus={() => preloadRoute(item.to)}
+                            onTouchStart={() => preloadRoute(item.to)}
                             onClick={() => setOpen(false)}
                             className={({ isActive }) =>
                                 `group relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all ${

@@ -7,6 +7,7 @@ import { RefreshContent, RefreshProgressBar } from "./RefreshView";
 import NavBadge, { useNavBadges } from "./NavBadge";
 import { RefreshProvider } from "../context/RefreshContext";
 import { useDrawerScrollLock } from "../lib/useDrawerScrollLock";
+import { preloadRoute, preloadRoutesWhenIdle } from "../lib/routePreload";
 
 // Le contexte d'actualisation englobe aussi le menu : ses badges se rechargent après « Actualiser ».
 export default function ConnectedLayout(props) {
@@ -28,6 +29,10 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
     const visibleNav = nav.filter((item) => !item.showIfBadge || badges[item.showIfBadge]);
 
     useDrawerScrollLock(open);
+
+    // Pages du menu préchargées au repos : le clic n'attend plus le téléchargement de la page.
+    const navPaths = visibleNav.map((item) => item.to).join("|");
+    useEffect(() => preloadRoutesWhenIdle(navPaths.split("|")), [navPaths]);
 
     useEffect(() => setOpen(false), [location.pathname]);
     useEffect(() => {
@@ -74,6 +79,9 @@ function ConnectedLayoutContent({ badge: BadgeIcon, eyebrow, title, nav }) {
                         <NavLink
                             key={item.to}
                             to={item.to}
+                            onMouseEnter={() => preloadRoute(item.to)}
+                            onFocus={() => preloadRoute(item.to)}
+                            onTouchStart={() => preloadRoute(item.to)}
                             onClick={() => setOpen(false)}
                             className={({ isActive }) =>
                                 `group relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all ${
