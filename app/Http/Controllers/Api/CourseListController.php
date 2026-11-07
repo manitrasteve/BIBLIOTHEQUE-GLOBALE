@@ -70,7 +70,7 @@ class CourseListController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-        ]) + $this->validateAudience($request);
+        ]) + $this->validateAudience($request, $courseList);
 
         $courseList->update($data);
 
@@ -96,6 +96,7 @@ class CourseListController extends Controller
 
         // Seuls les documents publiés du catalogue : les étudiants doivent pouvoir les ouvrir.
         $document = Document::where('status', 'publie')->where('slug', $data['slug'])->firstOrFail();
+        abort_if($document->access_level === 'restreint', 422, 'Ce document est à accès restreint : les étudiants ne pourraient pas l’ouvrir.');
         abort_if($courseList->items()->where('document_id', $document->id)->exists(), 422, 'Ce document est déjà dans la bibliographie.');
 
         $courseList->items()->create([
@@ -120,9 +121,16 @@ class CourseListController extends Controller
         $this->authorizeOwner($request, $courseList);
         abort_unless($item->course_list_id === $courseList->id, 404);
 
+        // Comme à l'ajout, une nouvelle date limite ne peut pas être passée ; une date inchangée reste acceptée
+        // (modifier la consigne d'une lecture dont la date est dépassée).
+        $dueDate = ['nullable', 'date'];
+        if ($request->input('due_date') !== $item->due_date?->format('Y-m-d')) {
+            $dueDate[] = 'after_or_equal:today';
+        }
+
         $item->update($request->validate([
             'instruction' => ['nullable', 'string', 'max:500'],
-            'due_date' => ['nullable', 'date'],
+            'due_date' => $dueDate,
         ]));
 
         return response()->json($this->detail($courseList));
@@ -189,13 +197,15 @@ class CourseListController extends Controller
     {
         $this->authorizeOwner($request, $courseList);
         abort_unless($item->course_list_id === $courseList->id, 404);
+        // Document archivé ou supprimé : il n'apparaît plus chez les étudiants, le rappel n'aurait aucun sens.
+        abort_unless($item->document?->status === 'publie', 422, 'Ce document n’est plus disponible dans le catalogue.');
 
         $studentIds = $courseList->audience()->pluck('id')->all();
         $opened = $this->openedBy($item->document_id, $studentIds);
         $targets = array_values(array_diff($studentIds, $opened));
 
         if ($targets) {
-            $title = $item->document?->title ?? 'un document';
+            $title = $item->document->title;
             QueueKicker::dispatch(new NotifyCourseListAudienceJob(
                 $courseList,
                 'Rappel de lecture',
@@ -264,16 +274,21 @@ class CourseListController extends Controller
         abort_unless((int) $courseList->teacher_id === (int) $request->user()->id, 403, 'Cette bibliographie appartient à un autre enseignant.');
     }
 
-    /** Classe visée : uniquement une classe attribuée à l'enseignant par le Service Numérique. */
-    private function validateAudience(Request $request): array
+    /**
+     * Classe visée : uniquement une classe attribuée à l'enseignant par le Service Numérique.
+     * Modification ($current) : vérifiée seulement si la classe change, sinon une bibliographie dont
+     * l'enseignant a retiré le niveau ne pourrait plus être renommée.
+     */
+    private function validateAudience(Request $request, ?CourseList $current = null): array
     {
         $data = $request->validate([
             'school' => ['required', 'string'],
             'level' => ['required', 'string'],
             'filiere' => ['nullable', 'string', 'max:255'],
         ]);
+        $unchanged = $current && $current->school === $data['school'] && $current->level === $data['level'];
         abort_unless(
-            $request->user()->teachesClass($data['school'], $data['level']),
+            $unchanged || $request->user()->teachesClass($data['school'], $data['level']),
             422,
             'Cette classe ne vous est pas attribuée. Demandez au Service Numérique de l’ajouter à vos classes.',
         );

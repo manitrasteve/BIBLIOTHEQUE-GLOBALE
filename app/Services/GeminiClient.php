@@ -498,19 +498,25 @@ public function batchEmbed(array $texts): array
     ): array {
         $last = null;
 
-        foreach ($this->modelChain($options['model'] ?? null) as $model) {
+        // Modèle qui a produit les tours d'outils : réessayé en premier, comme generateWithTools().
+        $historyModel = $options['history_model'] ?? null;
+        unset($options['history_model']);
+
+        foreach ($this->modelChain($options['model'] ?? $historyModel) as $model) {
             $url = "{$this->baseUrl}/models/{$model}:streamGenerateContent?alt=sse";
+            // Signatures de réflexion propres au modèle émetteur : neutralisées pour un modèle de repli.
+            $payload = $historyModel && $model !== $historyModel ? self::neutralizeThoughtSignatures($contents) : $contents;
             try {
                 $response = $this->http($options['timeout'] ?? 90)
                     ->withOptions(['stream' => true])
-                    ->post($url, $this->payload($contents, $options));
+                    ->post($url, $this->payload($payload, $options));
 
                 // Repli : un modèle peut refuser le niveau de réflexion (400). On réessaie sans.
                 if ($response->status() === 400 && !empty($options['thinking_level']) && str_contains(mb_strtolower((string) $response->body()), 'thinking')) {
                     unset($options['thinking_level']);
                     $response = $this->http($options['timeout'] ?? 90)
                         ->withOptions(['stream' => true])
-                        ->post($url, $this->payload($contents, $options));
+                        ->post($url, $this->payload($payload, $options));
                 }
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);

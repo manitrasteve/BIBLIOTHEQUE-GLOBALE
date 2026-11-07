@@ -51,13 +51,15 @@ test('le renvoi du lien ne peut pas rouvrir un compte désactivé', function () 
     $library = Library::factory()->create();
     $member = User::factory()->create(['role' => 'etudiant', 'library_id' => $library->id, 'is_active' => false, 'password_set_at' => null]);
     $request = validatedRequestFor($member, $library);
+    // État laissé par une désactivation : le jeton a été effacé (UserController::deactivate).
+    $request->update(['setup_token_hash' => null, 'setup_expires_at' => null]);
 
     Sanctum::actingAs(User::factory()->create(['role' => 'administrateur', 'is_active' => true]));
     $this->postJson("/api/account-requests/{$request->id}/resend-setup-link")
         ->assertStatus(422)
         ->assertJsonPath('message', fn ($m) => str_contains($m, 'désactivé'));
 
-    expect($request->fresh()->setup_token_hash)->toBe(hash('sha256', 'ancien-jeton'));
+    expect($request->fresh()->setup_token_hash)->toBeNull();
 });
 
 test('le renvoi du lien ne peut pas écraser un mot de passe déjà créé', function () {

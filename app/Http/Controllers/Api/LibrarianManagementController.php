@@ -38,42 +38,47 @@ class LibrarianManagementController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:masculin,feminin'],
             'cin_number' => ['required', 'digits:12'],
-            'cin_issued_at' => ['required', 'date'],
+            'cin_issued_at' => ['required', 'date', 'before_or_equal:today'],
         ]);
 
-        $user = User::create([
-            'name' => trim(($data['first_name'] ?? '') . ' ' . $data['last_name']),
-            'email' => mb_strtolower(trim($data['email'])),
-            'password' => Hash::make(Str::random(64)),
-            'password_set_at' => null,
-            'role' => 'bibliothecaire',
-            'address' => $data['address'],
-            'phone' => $data['phone'],
-            'gender' => $data['gender'],
-            'cin_number' => $data['cin_number'],
-            'cin_issued_at' => $data['cin_issued_at'],
-            'is_active' => false,
-        ]);
+        // Compte, numéro de compte et registre : tout ou rien (l'e-mail part ensuite, hors transaction).
+        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $user = User::create([
+                'name' => trim(($data['first_name'] ?? '') . ' ' . $data['last_name']),
+                'email' => mb_strtolower(trim($data['email'])),
+                'password' => Hash::make(Str::random(64)),
+                'password_set_at' => null,
+                'role' => 'bibliothecaire',
+                'address' => $data['address'],
+                'phone' => $data['phone'],
+                'gender' => $data['gender'],
+                'cin_number' => $data['cin_number'],
+                'cin_issued_at' => $data['cin_issued_at'],
+                'is_active' => false,
+            ]);
 
-        // Numéro de compte issu de la séquence verrouillée (jamais réutilisé).
-        $matricule = User::generateNumeroCompte('bibliothecaire');
-        $user->update(['matricule' => $matricule]);
+            // Numéro de compte issu de la séquence verrouillée (jamais réutilisé).
+            $matricule = User::generateNumeroCompte('bibliothecaire');
+            $user->update(['matricule' => $matricule]);
 
-        MemberRegistry::create([
-            'matricule' => $matricule,
-            'user_id' => $user->id,
-            'role' => 'bibliothecaire',
-            'last_name' => $data['last_name'],
-            'first_name' => $data['first_name'] ?? '', // prénom facultatif
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'address' => $user->address,
-            'gender' => $user->gender,
-            'status' => 'desactive',
-            'profile_data' => [],
-        ]);
+            MemberRegistry::create([
+                'matricule' => $matricule,
+                'user_id' => $user->id,
+                'role' => 'bibliothecaire',
+                'last_name' => $data['last_name'],
+                'first_name' => $data['first_name'] ?? '', // prénom facultatif
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'gender' => $user->gender,
+                'status' => 'desactive',
+                'profile_data' => [],
+            ]);
 
-        $mailSent = $this->sendSetupLink($user, $matricule);
+            return $user;
+        });
+
+        $mailSent = $this->sendSetupLink($user, $user->matricule);
 
         // SMS « consultez votre e-mail » en arrière-plan, seulement si l'e-mail est parti.
         if ($mailSent) {

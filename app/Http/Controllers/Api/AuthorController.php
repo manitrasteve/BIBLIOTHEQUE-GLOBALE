@@ -48,6 +48,15 @@ class AuthorController extends Controller
 
     public function destroy(Author $author)
     {
+        // Le pivot author_document est en ON DELETE CASCADE : supprimer l'auteur le retirerait
+        // silencieusement de ses documents.
+        $documents = $author->documents()->withTrashed()->count();
+        if ($documents > 0) {
+            return response()->json([
+                'message' => "Cet auteur est associé à {$documents} document(s) (Corbeille comprise) : il ne peut pas être supprimé.",
+            ], 422);
+        }
+
         $author->delete();
 
         return response()->json(['message' => 'Auteur supprimé.']);

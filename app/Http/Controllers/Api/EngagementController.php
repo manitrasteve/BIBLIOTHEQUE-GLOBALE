@@ -101,12 +101,19 @@ class EngagementController extends Controller
     {
         // Documents encore publiés filtrés AVANT la pagination : sinon une page pouvait s'afficher vide
         // (lectures archivées retirées après coup) alors que les pages suivantes contenaient des lectures.
+        // Recherche facultative sur le titre.
+        $filters = $request->validate(['search' => ['nullable', 'string', 'max:255']]);
+        $search = trim($filters['search'] ?? '');
+        $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
+
         $rows = Consultation::where('user_id', $request->user()->id)
-            ->whereHas('document', fn ($d) => $d->where('status', 'publie'))
+            ->whereHas('document', fn ($d) => $d->where('status', 'publie')
+                ->when($search !== '', fn ($q) => $q->where('title', 'like', $like)))
             ->selectRaw('document_id, MAX(consulted_at) as last_consulted_at, COUNT(*) as views')
             ->groupBy('document_id')
             ->orderByDesc('last_consulted_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         $documents = Document::with('authors:id,name')
             ->where('status', 'publie')

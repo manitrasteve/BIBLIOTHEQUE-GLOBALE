@@ -43,7 +43,8 @@ class TeacherConfigController extends Controller
         $before = $teacher->teacherClasses->pluck('level')->sort()->values()->all();
 
         DB::transaction(function () use ($teacher, $wanted) {
-            $teacher->teacherClasses()->delete();
+            // Uniquement les niveaux de son centre : une classe d'un autre établissement n'est pas concernée.
+            $teacher->teacherClasses()->where('school', $teacher->school)->delete();
             foreach ($wanted as $level) {
                 TeacherClass::create(['user_id' => $teacher->id, 'school' => $teacher->school, 'level' => $level]);
             }

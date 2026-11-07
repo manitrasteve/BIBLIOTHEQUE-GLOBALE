@@ -44,8 +44,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 // Limité : la réponse indique si une adresse a un compte (limite l'énumération d'adresses).
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:10,1');
-Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:10,1,forgot-password');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1,reset-password');
 Route::get('/site-updates', [SiteUpdateController::class, 'index']);
 Route::get('/site-updates/{uuid}', [SiteUpdateController::class, 'show']);
 
@@ -60,20 +60,20 @@ Route::get('/authors', [AuthorController::class, 'index']);
 
 Route::get('/documents', [DocumentController::class, 'index']);
 // Avant /documents/{slug} ; appelée à chaque frappe (avec délai) dans la barre de recherche.
-Route::get('/documents/suggestions', [DocumentController::class, 'suggestions'])->middleware('throttle:120,1');
+Route::get('/documents/suggestions', [DocumentController::class, 'suggestions'])->middleware('throttle:120,1,suggestions');
 Route::get('/documents/{slug}', [DocumentController::class, 'show'])->middleware('optional.auth');
 Route::get('/documents/{slug}/similar', [DocumentController::class, 'similar']);
 
 // Limité : chaque demande notifie tout le personnel (sans limite, un script pouvait les inonder).
-Route::post('/account-requests', [AccountRequestController::class, 'store'])->middleware('throttle:10,1');
+Route::post('/account-requests', [AccountRequestController::class, 'store'])->middleware('throttle:10,1,account-request');
 // whereUuid : « /account-requests/export » (route authentifiée plus bas) n'est pas pris pour un identifiant.
 Route::get('/account-requests/{uuid}', [AccountRequestController::class, 'show'])->whereUuid('uuid');
 // Limité : chaque appel vérifie le jeton (bcrypt) contre toutes les demandes validées en attente.
-Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm'])->middleware('throttle:30,1');
+Route::get('/account-requests/setup/{token}', [AccountRequestController::class, 'setupForm'])->middleware('throttle:30,1,setup-form');
 // Limité : sans ça, un numéro de carte se devine par force brute (comme forgot-password ci-dessus).
-Route::post('/account-requests/verify-member', [AccountRequestController::class, 'verifyMember'])->middleware('throttle:10,1');
-Route::post('/account-requests/recreate', [AccountRequestController::class, 'recreate'])->middleware('throttle:10,1');
-Route::post('/account-requests/setup/{token}', [AccountRequestController::class, 'setupPassword'])->middleware('throttle:10,1');
+Route::post('/account-requests/verify-member', [AccountRequestController::class, 'verifyMember'])->middleware('throttle:10,1,verify-member');
+Route::post('/account-requests/recreate', [AccountRequestController::class, 'recreate'])->middleware('throttle:10,1,recreate');
+Route::post('/account-requests/setup/{token}', [AccountRequestController::class, 'setupPassword'])->middleware('throttle:10,1,setup-password');
 
 
 /*
@@ -84,9 +84,9 @@ Route::post('/account-requests/setup/{token}', [AccountRequestController::class,
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1,change-password');
     Route::get('/profile', [ProfileController::class, 'show']);
-    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile', [ProfileController::class, 'update'])->middleware('throttle:30,1,profile');
     Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
     Route::patch('/profile/preferences', [ProfileController::class, 'updatePreferences']);
     Route::get('/profile/reading-stats', [ProfileController::class, 'readingStats']);
@@ -96,12 +96,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents/{slug}/stream', [DocumentController::class, 'stream']);
 
     // Limité : chaque question déclenche des appels Gemini (quota / coût).
-    Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask'])->middleware('throttle:20,1');
-    Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream'])->middleware('throttle:20,1');
+    Route::post('/documents/{slug}/ask', [AiQueryController::class, 'ask'])->middleware('throttle:20,1,document-ask');
+    Route::post('/documents/{slug}/ask-stream', [AiQueryController::class, 'askStream'])->middleware('throttle:20,1,document-ask-stream');
     Route::get('/documents/{slug}/ai-history', [AiQueryController::class, 'history']);
 
     // Lecture personnelle : reprise à la dernière page et notes par page.
-    Route::put('/documents/{slug}/progress', [ReadingController::class, 'saveProgress'])->middleware('throttle:120,1');
+    Route::put('/documents/{slug}/progress', [ReadingController::class, 'saveProgress'])->middleware('throttle:120,1,reading-progress');
     Route::get('/documents/{slug}/notes', [ReadingController::class, 'notes']);
     Route::post('/documents/{slug}/notes', [ReadingController::class, 'storeNote']);
     Route::put('/notes/{note}', [ReadingController::class, 'updateNote']);
@@ -143,20 +143,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/course-lists/{courseList}/items/{item}', [CourseListController::class, 'updateItem']);
         Route::delete('/course-lists/{courseList}/items/{item}', [CourseListController::class, 'removeItem']);
         Route::get('/course-lists/{courseList}/progress', [CourseListController::class, 'progress']);
-        Route::post('/course-lists/{courseList}/items/{item}/remind', [CourseListController::class, 'remind'])->middleware('throttle:10,1');
+        Route::post('/course-lists/{courseList}/items/{item}/remind', [CourseListController::class, 'remind'])->middleware('throttle:10,1,course-list-remind');
 
         Route::get('/teacher-submissions', [TeacherSubmissionController::class, 'index']);
-        Route::post('/teacher-submissions', [TeacherSubmissionController::class, 'store'])->middleware('throttle:10,1');
-        Route::post('/teacher-submissions/{document}/resubmit', [TeacherSubmissionController::class, 'resubmit'])->middleware('throttle:10,1');
+        Route::post('/teacher-submissions', [TeacherSubmissionController::class, 'store'])->middleware('throttle:10,1,teacher-submission');
+        Route::post('/teacher-submissions/{document}/resubmit', [TeacherSubmissionController::class, 'resubmit'])->middleware('throttle:10,1,teacher-resubmit');
 
-        Route::post('/documents/{slug}/revision-questions', [RevisionQuestionController::class, 'generate'])->middleware('throttle:10,1');
+        Route::post('/documents/{slug}/revision-questions', [RevisionQuestionController::class, 'generate'])->middleware('throttle:10,1,revision-questions');
     });
     // Étudiant : lectures recommandées par les enseignants de sa classe.
     Route::get('/my-course-lists', [CourseListController::class, 'forStudent']);
 
     // Limités : chaque envoi notifie tous les administrateurs (et un signalement peut joindre une capture).
-    Route::post('/feedbacks', [FeedbackController::class, 'store'])->middleware('throttle:10,1');
-    Route::post('/problem-reports', [ProblemReportController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/feedbacks', [FeedbackController::class, 'store'])->middleware('throttle:10,1,feedback');
+    Route::post('/problem-reports', [ProblemReportController::class, 'store'])->middleware('throttle:10,1,problem-report');
 
 
 
@@ -190,8 +190,8 @@ Route::middleware('auth:sanctum')->group(function () {
     | Bibliothécaire + Administrateur
     |----------------------------------------------------------------------
     */
-    Route::post('/assistant/librarian', [LibrarianAssistantController::class, 'ask'])->middleware(['role:bibliothecaire', 'throttle:20,1']);
-    Route::post('/assistant/librarian/stream', [LibrarianAssistantController::class, 'askStream'])->middleware(['role:bibliothecaire', 'throttle:20,1']);
+    Route::post('/assistant/librarian', [LibrarianAssistantController::class, 'ask'])->middleware(['role:bibliothecaire', 'throttle:20,1,assistant-librarian']);
+    Route::post('/assistant/librarian/stream', [LibrarianAssistantController::class, 'askStream'])->middleware(['role:bibliothecaire', 'throttle:20,1,assistant-librarian-stream']);
 
     Route::middleware('role:administrateur,bibliothecaire')->group(function () {
         Route::post('/account-requests/by-librarian', [AccountRequestController::class, 'storeByLibrarian'])->middleware('permission:ajouter_utilisateur');
@@ -209,13 +209,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/documents-manage', [DocumentController::class, 'manageIndex']);
         Route::get('/documents-manage/{document}', [DocumentController::class, 'manageShow']);
+        // Lecture du PDF par le personnel, quel que soit le statut (dépôt à vérifier, brouillon, archive).
+        Route::get('/documents-manage/{document}/stream', [DocumentController::class, 'manageStream']);
         Route::post('/documents', [DocumentController::class, 'store']);
         // Importation par Excel : prépare les valeurs du formulaire ; la création reste POST /documents.
         Route::get('/document-imports/template', [DocumentImportController::class, 'template']);
-        Route::post('/document-imports/analyze', [DocumentImportController::class, 'analyze'])->middleware('throttle:30,1');
+        Route::post('/document-imports/analyze', [DocumentImportController::class, 'analyze'])->middleware('throttle:30,1,document-import');
         // Couverture générée par IA (Pollinations) : lancement puis suivi de l'état par le formulaire.
-        Route::post('/ai-covers', [AiCoverController::class, 'generate'])->middleware('throttle:5,1');
-        Route::get('/ai-covers/{requestId}', [AiCoverController::class, 'status'])->middleware('throttle:60,1');
+        Route::post('/ai-covers', [AiCoverController::class, 'generate'])->middleware('throttle:5,1,ai-cover');
+        Route::get('/ai-covers/{requestId}', [AiCoverController::class, 'status'])->middleware('throttle:60,1,ai-cover-status');
         Route::put('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}', [DocumentController::class, 'update']);
         Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->middleware('permission:publier_document');
@@ -270,8 +272,8 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate']);
        Route::delete('/users/{user}', [UserController::class, 'destroy']);
        // Assistant IA de gestion : administrateur uniquement, limité pour maîtriser les appels Gemini.
-       Route::post('/assistant/admin', [AdminAssistantController::class, 'ask'])->middleware('throttle:20,1');
-       Route::post('/assistant/admin/stream', [AdminAssistantController::class, 'askStream'])->middleware('throttle:20,1');
+       Route::post('/assistant/admin', [AdminAssistantController::class, 'ask'])->middleware('throttle:20,1,assistant-admin');
+       Route::post('/assistant/admin/stream', [AdminAssistantController::class, 'askStream'])->middleware('throttle:20,1,assistant-admin-stream');
        Route::get('/librarians', [LibrarianManagementController::class, 'index']);
        Route::post('/librarians', [LibrarianManagementController::class, 'store']);
        Route::post('/librarians/{librarian}/resend-setup-link', [LibrarianManagementController::class, 'resendSetupLink']);
@@ -298,7 +300,7 @@ Route::middleware('auth:sanctum')->group(function () {
        // Paramètres → Apparence du site (couleurs du thème : brouillon, aperçu, publication, défaut).
        Route::prefix('admin/theme')->group(function () {
            Route::get('/', [ThemeController::class, 'show']);
-           Route::post('/preview', [ThemeController::class, 'preview'])->middleware('throttle:120,1');
+           Route::post('/preview', [ThemeController::class, 'preview'])->middleware('throttle:120,1,theme-preview');
            Route::put('/draft', [ThemeController::class, 'saveDraft']);
            Route::delete('/draft', [ThemeController::class, 'discardDraft']);
            Route::post('/publish', [ThemeController::class, 'publish']);
@@ -340,12 +342,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/trash', [TrashController::class, 'index']);
     });
     Route::middleware(['role:administrateur,bibliothecaire', 'permission:restaurer_corbeille'])->group(function () {
-        Route::post('/trash/users/{id}/restore', [TrashController::class, 'restoreUser']);
-        Route::post('/trash/documents/{id}/restore', [TrashController::class, 'restoreDocument']);
+        Route::post('/trash/users/{id}/restore', [TrashController::class, 'restoreUser'])->whereNumber('id');
+        Route::post('/trash/documents/{id}/restore', [TrashController::class, 'restoreDocument'])->whereNumber('id');
     });
     Route::middleware(['role:administrateur,bibliothecaire', 'permission:supprimer_definitivement_corbeille'])->group(function () {
-        Route::delete('/trash/users/{id}', [TrashController::class, 'forceUser']);
-        Route::delete('/trash/documents/{id}', [TrashController::class, 'forceDocument']);
+        Route::delete('/trash/users/{id}', [TrashController::class, 'forceUser'])->whereNumber('id');
+        Route::delete('/trash/documents/{id}', [TrashController::class, 'forceDocument'])->whereNumber('id');
         Route::delete('/trash', [TrashController::class, 'empty']);
     });
 

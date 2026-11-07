@@ -16,8 +16,14 @@ class Category extends Model
     {
         static::creating(function (Category $category) {
             $category->uuid ??= (string) \Illuminate\Support\Str::uuid();
-            $category->slug ??= \Illuminate\Support\Str::slug($category->name);
+            $category->slug ??= self::slugFor($category->name);
         });
+    }
+
+    /** Slug du nom ; repli aléatoire pour un nom sans lettre latine (« !!! », « 数学 »), dont le slug serait vide. */
+    public static function slugFor(string $name): string
+    {
+        return \Illuminate\Support\Str::slug($name) ?: 'categorie-' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(8));
     }
 
     /** Catégorie saisie librement : retrouvée sans tenir compte de la casse (ou par son slug), sinon créée. */
@@ -25,9 +31,12 @@ class Category extends Model
     {
         $name = trim(preg_replace('/\s+/u', ' ', $name));
 
+        $slug = \Illuminate\Support\Str::slug($name);
+
+        // Slug vide : il ne désigne rien (sinon deux noms sans lettre latine seraient confondus).
         $category = static::query()
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-            ->orWhere('slug', \Illuminate\Support\Str::slug($name))
+            ->when($slug !== '', fn ($query) => $query->orWhere('slug', $slug))
             ->first();
 
         return ($category ?? static::create(['name' => $name]))->id;

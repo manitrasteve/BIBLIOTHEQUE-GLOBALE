@@ -41,12 +41,13 @@ class TrashController extends Controller
     }
 
     // Élément d'une autre bibliothèque : introuvable pour un bibliothécaire (pas de fuite d'existence).
-    private function trashed(Request $request, string $model, int $id)
+    // Identifiant en texte : un nombre trop grand pour un entier PHP donne un 404, pas une erreur 500.
+    private function trashed(Request $request, string $model, string $id)
     {
         return $request->user()->restrictToManagedLibrary($model::onlyTrashed())->findOrFail($id);
     }
 
-    public function restoreUser(Request $request, int $id)
+    public function restoreUser(Request $request, string $id)
     {
         $this->guard($request, 'restaurer_corbeille');
 
@@ -83,6 +84,7 @@ class TrashController extends Controller
                 'status' => 'validee',
                 'setup_token_hash' => Hash::make($token),
                 'setup_expires_at' => now()->addHours(AccountRequest::SETUP_LINK_HOURS),
+                'setup_reminder_sent_at' => null, // nouveau lien : son rappel reste à envoyer
             ]);
 
             /*
@@ -95,7 +97,25 @@ class TrashController extends Controller
                 'is_active' => false,
             ]);
 
-            $this->sendRestoreMail($accountRequest, $user, $token);
+            $mailSent = $this->sendRestoreMail($accountRequest, $user, $token);
+        } else {
+            // Compte sans demande (importé, créé avant le parcours actuel) : même traitement qu'une
+            // réactivation, sinon il retrouverait son ancien mot de passe à la restauration.
+            $user->update([
+                'password' => Hash::make(Str::random(64)),
+                'password_set_at' => null,
+                'is_active' => true,
+            ]);
+            $user->tokens()->delete();
+
+            $mailSent = app(UserController::class)->sendCreationLink($user, 'Votre compte a été restauré — créez votre nouveau mot de passe', [
+                'heading' => 'Votre compte a été restauré',
+                'paragraphs' => [
+                    "Bonjour {$user->name},",
+                    'Votre compte de la Bibliothèque Numérique a été restauré par l’administrateur.',
+                    'Pour des raisons de sécurité, vous devez créer un nouveau mot de passe avant de pouvoir utiliser votre compte.',
+                ],
+            ]);
         }
 
         /*
@@ -112,12 +132,11 @@ class TrashController extends Controller
 
         ActivityLogService::log($request->user()->id, 'restauration_utilisateur', $user->name, $user);
 
-        return response()->json(
-            $user->load('library')
-        );
+        // mail_sent : le lien de création du mot de passe est-il réellement parti ?
+        return response()->json([...$user->load('library')->toArray(), 'mail_sent' => $mailSent]);
     }
 
-    public function restoreDocument(Request $request, int $id)
+    public function restoreDocument(Request $request, string $id)
     {
         $this->guard($request, 'restaurer_corbeille');
 
@@ -138,7 +157,7 @@ class TrashController extends Controller
         return response()->json($doc->fresh());
     }
 
-    public function forceUser(Request $request, int $id)
+    public function forceUser(Request $request, string $id)
     {
         $this->guard($request, 'supprimer_definitivement_corbeille');
 
@@ -160,7 +179,7 @@ class TrashController extends Controller
         ]);
     }
 
-    public function forceDocument(Request $request, int $id)
+    public function forceDocument(Request $request, string $id)
     {
         $this->guard($request, 'supprimer_definitivement_corbeille');
 
@@ -185,7 +204,8 @@ class TrashController extends Controller
         $counts = ['utilisateurs' => (clone $users)->count(), 'documents' => (clone $documents)->count()];
 
         AccountRequest::deleteForDeletedAccounts((clone $users)->pluck('id')->all());
-        $users->forceDelete();
+        // Un par un pour déclencher les événements du modèle : photo de profil, captures, liens de mot de passe.
+        $users->lazyById()->each(fn (User $user) => $user->forceDelete());
 
         // Un par un (et non en une requête) pour déclencher forceDeleted : suppression des PDF et couvertures.
         // lazyById et non each() : each() pagine par décalage et sautait des lignes en supprimant au fil de l'eau.
@@ -206,13 +226,13 @@ class TrashController extends Controller
     }
 
     /**
-     * Envoie l'e-mail après restauration du compte.
+     * Envoie l'e-mail après restauration du compte ; false si l'envoi échoue.
      */
     private function sendRestoreMail(
         AccountRequest $accountRequest,
         User $user,
         string $token
-    ): void {
+    ): bool {
         $url = rtrim(config('app.url'), '/')
             . '/creer-mot-de-passe?token='
             . urlencode($token);
@@ -252,6 +272,10 @@ class TrashController extends Controller
             );
         } catch (\Throwable $e) {
             report($e);
+
+            return false;
         }
+
+        return true;
     }
 }

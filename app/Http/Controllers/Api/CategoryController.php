@@ -35,7 +35,11 @@ class CategoryController extends Controller
         ]);
 
         // Le slug est unique en base : un doublon (« Droit » / « droit ») provoquait une erreur 500.
-        if (Category::where('slug', Str::slug($data['name']))->exists()) {
+        $slug = Str::slug($data['name']);
+        $taken = Category::whereRaw('LOWER(name) = ?', [mb_strtolower(trim($data['name']))])
+            ->when($slug !== '', fn ($q) => $q->orWhere('slug', $slug))
+            ->exists();
+        if ($taken) {
             throw ValidationException::withMessages(['name' => ['Cette catégorie existe déjà.']]);
         }
 
@@ -52,7 +56,8 @@ class CategoryController extends Controller
         // Renommage : le slug suit le nom (sinon l'ancien slug bloquerait la création d'une catégorie
         // portant l'ancien nom, et la saisie libre de l'ancien nom retomberait sur cette catégorie).
         if (isset($data['name'])) {
-            $slug = Str::slug($data['name']);
+            // Nom sans lettre latine : slug vide, on garde le slug actuel (ou un slug de repli).
+            $slug = Str::slug($data['name']) ?: ($category->slug ?: Category::slugFor($data['name']));
             $taken = Category::whereKeyNot($category->id)
                 ->where(fn ($q) => $q->where('slug', $slug)->orWhereRaw('LOWER(name) = ?', [mb_strtolower(trim($data['name']))]))
                 ->exists();

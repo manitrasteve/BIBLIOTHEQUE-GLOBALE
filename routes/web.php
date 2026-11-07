@@ -9,7 +9,7 @@ Route::get('/tickets/account/{uuid}', function (string $uuid) {
     return view('tickets.account', compact('accountRequest'));
 });
 
-// Frontend React
+// Frontend React (hors /api : une adresse d'API inconnue répond en JSON 404, pas avec la page HTML)
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '.*');
+})->where('any', '(?!api(/|$)).*');

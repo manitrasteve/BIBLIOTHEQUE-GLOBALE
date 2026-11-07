@@ -1320,7 +1320,9 @@ class AccountRequestController extends Controller
 
         // Un nouveau lien redéfinit le mot de passe et réactive le compte (setupPassword) : il ne doit
         // jamais servir à rouvrir un compte désactivé, ni à écraser un mot de passe déjà créé.
-        if (!$createdUser->is_active) {
+        // La désactivation efface le jeton ; un compte restauré depuis la Corbeille est inactif mais en
+        // possède un (il attend son mot de passe) : son lien peut donc être renvoyé.
+        if (!$createdUser->is_active && !$accountRequest->setup_token_hash) {
             return response()->json([
                 'message' => 'Ce compte est désactivé : réactivez-le d’abord depuis la gestion des utilisateurs.',
             ], 422);
@@ -1363,7 +1365,7 @@ class AccountRequestController extends Controller
         );
 
         return response()->json([
-            'message' => "Le lien de création du mot de passe a été renvoyé à {$accountRequest->email}.",
+            'message' => "Le lien de création du mot de passe a été renvoyé à {$createdUser->email}.",
             'request' => $accountRequest->fresh()->load([
                 'library',
                 'createdUser',

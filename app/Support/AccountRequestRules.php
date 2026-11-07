@@ -22,6 +22,8 @@ final class AccountRequestRules
 
     public const LEVELS = ['L1', 'L2', 'L3', 'M1', 'M2', 'Doctorat'];
 
+    public const NIVEAU_TYPES = ['Université'];
+
     // Statuts d'une demande encore « en cours » (une seule par adresse e-mail).
     public const OPEN_STATUSES = ['en_attente', 'verifiee', 'en_attente_validation'];
 

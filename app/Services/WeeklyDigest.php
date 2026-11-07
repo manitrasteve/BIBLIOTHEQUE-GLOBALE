@@ -20,6 +20,9 @@ class WeeklyDigest
     private const MEMBER_ROLES = ['etudiant', 'enseignant', 'chercheur'];
     private const MAX_NEW_DOCUMENTS = 6;
 
+    /** Échecs d'envoi de la dernière campagne (sendAll). */
+    private int $failures = 0;
+
     /**
      * Envoi de la semaine en cours, une seule fois : la semaine commence le lundi à 8 h (heure locale),
      * comme la tâche planifiée. Le planificateur et DigestKicker partagent ce verrou, sans double envoi.
@@ -36,7 +39,15 @@ class WeeklyDigest
             return null;
         }
 
-        return $this->sendAll();
+        $sent = $this->sendAll();
+
+        // Aucun envoi n'a abouti (serveur de messagerie injoignable) : le verrou est libéré pour réessayer
+        // plus tard. Après un envoi partiel, il est conservé pour ne rien envoyer deux fois.
+        if ($sent === 0 && $this->failures > 0) {
+            Cache::forget(self::weekKey());
+        }
+
+        return $sent;
     }
 
     /** Lundi 8 h passé et digest de la semaine pas encore envoyé (vérification légère, sans verrou). */
@@ -60,6 +71,8 @@ class WeeklyDigest
      */
     public function sendAll(): int
     {
+        $this->failures = 0;
+
         // Nouveautés communes à tous : documents publiés durant les 7 derniers jours.
         $since = now()->subWeek();
         $newDocuments = Document::query()
@@ -138,6 +151,7 @@ class WeeklyDigest
         } catch (\Throwable $e) {
             // Un envoi raté ne doit pas interrompre toute la campagne.
             Log::warning('digest.envoi_echoue', ['user_id' => $member->id, 'erreur' => $e->getMessage()]);
+            $this->failures++;
 
             return false;
         }

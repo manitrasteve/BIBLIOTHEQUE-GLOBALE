@@ -48,6 +48,10 @@ class SimpleXlsx
             foreach ($row->c as $cell) {
                 $ref = (string) $cell['r'];
                 $letters = preg_replace('/[^A-Za-z]+/', '', $ref);
+                // Excel s'arrête à la colonne XFD (3 lettres) : au-delà, l'index dépasserait un entier.
+                if (strlen($letters) > 3) {
+                    throw new RuntimeException('Le classeur Excel est illisible.');
+                }
                 $column = $letters !== '' ? self::columnIndex($letters) : $column + 1;
                 $rowNumber = $rowNumber ?: (int) preg_replace('/\D+/', '', $ref);
                 $value = self::cellValue($cell, $sharedStrings);
@@ -275,7 +279,15 @@ class SimpleXlsx
             throw new RuntimeException('Le classeur Excel est trop volumineux.');
         }
 
-        $xml = simplexml_load_string((string) $zip->getFromName($name), \SimpleXMLElement::class, LIBXML_NONET);
+        // Sans cela, un XML invalide émet un warning, transformé en exception non prévue (erreur 500).
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $xml = simplexml_load_string((string) $zip->getFromName($name), \SimpleXMLElement::class, LIBXML_NONET);
+            libxml_clear_errors();
+        } finally {
+            libxml_use_internal_errors($previous);
+        }
+
         if ($xml === false) {
             throw new RuntimeException('Le classeur Excel est illisible.');
         }

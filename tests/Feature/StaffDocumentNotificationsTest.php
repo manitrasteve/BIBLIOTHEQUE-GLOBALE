@@ -52,14 +52,14 @@ beforeEach(function () {
     Http::fake();
 });
 
-test('un bibliothécaire qui ajoute un document notifie les administrateurs et les collègues de la même bibliothèque', function () {
+test('un bibliothécaire qui ajoute un document notifie les administrateurs et tous ses collègues (modèle global)', function () {
     $this->travelTo('2026-04-12 11:35:00'); // UTC → 14:35 à Madagascar
     $u = staffUsers();
     Sanctum::actingAs($u->a1);
 
     $id = $this->post('/api/documents', newDocumentPayload($u->libA), ['Accept' => 'application/json'])->assertCreated()->json('id');
 
-    foreach ([$u->admin1, $u->admin2, $u->a2] as $recipient) {
+    foreach ([$u->admin1, $u->admin2, $u->a2, $u->b1] as $recipient) {
         $notes = received($recipient, 'document_ajoute');
         expect($notes)->toHaveCount(1);
         expect($notes[0]->title)->toBe('Nouveau document ajouté')
@@ -67,8 +67,8 @@ test('un bibliothécaire qui ajoute un document notifie les administrateurs et l
             ->and($notes[0]->related_id)->toBe($id)->and($notes[0]->related_type)->toBe(Document::class)
             ->and($notes[0]->read_at)->toBeNull();
     }
-    // Ni l'auteur, ni une autre bibliothèque, ni un compte inactif, ni un étudiant.
-    foreach ([$u->a1, $u->b1, $u->a3, $u->student] as $excluded) {
+    // Ni l'auteur, ni un compte inactif, ni un étudiant.
+    foreach ([$u->a1, $u->a3, $u->student] as $excluded) {
         expect(received($excluded))->toHaveCount(0);
     }
 });
@@ -85,8 +85,8 @@ test('la modification par un bibliothécaire notifie avec les champs modifiés, 
 
     expect(received($u->admin1, 'document_modifie'))->toHaveCount(1)
         ->and(received($u->a2, 'document_modifie')[0]->message)->toContain('modifié par Jean Dupont')->toContain('Champs modifiés : titre, niveau.')
-        ->and(received($u->a1))->toHaveCount(0)->and(received($u->b1))->toHaveCount(0)
-        ->and(AppNotification::where('type', 'document_modifie')->count())->toBe(3); // admin1, admin2, a2 : aucun doublon
+        ->and(received($u->a1))->toHaveCount(0)->and(received($u->b1))->toHaveCount(1)
+        ->and(AppNotification::where('type', 'document_modifie')->count())->toBe(4); // admin1, admin2, a2, b1 : aucun doublon
 });
 
 test('l\'archivage par un bibliothécaire notifie une seule fois, même si on archive deux fois', function () {
@@ -97,11 +97,11 @@ test('l\'archivage par un bibliothécaire notifie une seule fois, même si on ar
     $this->postJson("/api/documents/{$document->id}/archive")->assertOk();
     $this->postJson("/api/documents/{$document->id}/archive")->assertOk();
 
-    expect(AppNotification::where('type', 'document_archive')->count())->toBe(3)
+    expect(AppNotification::where('type', 'document_archive')->count())->toBe(4)
         ->and(received($u->admin2, 'document_archive')[0]->title)->toBe('Document archivé');
 });
 
-test('un administrateur qui modifie, archive ou supprime notifie uniquement les bibliothécaires de la même bibliothèque', function () {
+test('un administrateur qui modifie, archive ou supprime notifie uniquement les bibliothécaires actifs (modèle global)', function () {
     $u = staffUsers();
     $document = Document::factory()->create(['status' => 'publie', 'library_id' => $u->libA->id, 'title' => 'Droit civil']);
     Sanctum::actingAs($u->admin1);
@@ -111,8 +111,8 @@ test('un administrateur qui modifie, archive ou supprime notifie uniquement les 
     $this->deleteJson("/api/documents/{$document->id}")->assertOk();
 
     foreach (['document_modifie', 'document_archive', 'document_supprime'] as $type) {
-        expect(received($u->a1, $type))->toHaveCount(1)->and(received($u->a2, $type))->toHaveCount(1);
-        foreach ([$u->admin1, $u->admin2, $u->b1, $u->a3, $u->student] as $excluded) {
+        expect(received($u->a1, $type))->toHaveCount(1)->and(received($u->a2, $type))->toHaveCount(1)->and(received($u->b1, $type))->toHaveCount(1);
+        foreach ([$u->admin1, $u->admin2, $u->a3, $u->student] as $excluded) {
             expect(received($excluded, $type))->toHaveCount(0);
         }
     }

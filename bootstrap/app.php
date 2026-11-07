@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'optional.auth' => \App\Http\Middleware\ResolveOptionalUser::class,
         ]);
 
+        $middleware->api(prepend: [\App\Http\Middleware\RejectInvalidUtf8::class]);
+
         // Pas de route nommée « login » (la connexion est gérée par React sur
         // /connexion) : sans cela, une requête API non authentifiée qui
         // n'envoie pas « Accept: application/json » provoque une erreur 500.

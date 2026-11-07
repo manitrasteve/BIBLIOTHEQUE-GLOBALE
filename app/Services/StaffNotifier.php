@@ -11,8 +11,9 @@ use Throwable;
  * Notifications Administrateur ↔ Bibliothécaires lors d'une action sur un document.
  *
  * Réutilise NotificationService / AppNotification. Règles :
- *  - Bibliothécaire : ajout, modification, archivage  → administrateurs + bibliothécaires de la MÊME bibliothèque.
- *  - Administrateur : modification, archivage, suppression → bibliothécaires de la MÊME bibliothèque.
+ *  - Bibliothécaire : ajout, modification, archivage  → administrateurs + bibliothécaires.
+ *  - Administrateur : modification, archivage, suppression → bibliothécaires.
+ *  - Bibliothèque Numérique Globale : les bibliothécaires ne sont rattachés à aucune bibliothèque, ils sont tous prévenus.
  *  - L'auteur de l'action ne reçoit jamais sa propre notification ; pas de doublon (un seul envoi par destinataire).
  *  - La publication n'est pas traitée ici : elle est déjà annoncée à tous par la diffusion « document_publie ».
  */
@@ -59,8 +60,8 @@ class StaffNotifier
             $recipients = User::query()
                 ->where('is_active', true)
                 ->whereKeyNot($actor->id)
-                ->where(function ($query) use ($actorRole, $libraryIds) {
-                    $query->where(fn ($q) => $q->where('role', 'bibliothecaire')->whereIn('library_id', $libraryIds));
+                ->where(function ($query) use ($actorRole) {
+                    $query->where('role', 'bibliothecaire');
 
                     if ($actorRole === 'bibliothecaire') {
                         $query->orWhereIn('role', ['administrateur', 'admin']);

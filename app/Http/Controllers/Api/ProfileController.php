@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Rules\AvailableEmail;
+use App\Support\AccountRequestRules as Rules;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,7 +26,8 @@ class ProfileController extends Controller
             'date_of_birth' => ['nullable','date'],
             'photo' => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'],
             'school' => ['nullable','string','max:255'], 'filiere'=>['nullable','string','max:255'],
-            'niveau_type'=>['nullable','string','max:50'], 'niveau_detail'=>['nullable','string','max:80'],
+            'niveau_type'=>['nullable','string','max:50', ...$this->listRuleIfChanged($request, 'niveau_type', Rules::NIVEAU_TYPES)],
+            'niveau_detail'=>['nullable','string','max:80', ...$this->listRuleIfChanged($request, 'niveau_detail', Rules::LEVELS)],
             'faculty'=>['nullable','string','max:255'], 'department'=>['nullable','string','max:255'],
             'position'=>['nullable','string','max:255'], 'teaching_specialty'=>['nullable','string','max:255'],
             'specialty'=>['nullable','string','max:255'], 'diploma'=>['nullable','string','max:255'],
@@ -75,6 +78,13 @@ class ProfileController extends Controller
         return response()->json($user->fresh()->load('library'));
     }
 
+    // Mêmes listes qu'à la création du compte, mais seulement si la valeur change : un profil existant
+    // en texte libre reste enregistrable tant qu'on n'y touche pas.
+    private function listRuleIfChanged(Request $request, string $field, array $allowed): array
+    {
+        return $request->input($field) !== $request->user()->{$field} ? [Rule::in($allowed)] : [];
+    }
+
     // Profil lecteur : chiffres de lecture et catégories les plus consultées (données réelles uniquement).
     public function readingStats(Request $request)
     {
@@ -83,6 +93,7 @@ class ProfileController extends Controller
         $topCategories = \App\Models\Consultation::query()
             ->where('consultations.user_id', $user->id)
             ->join('documents', 'documents.id', '=', 'consultations.document_id')
+            ->whereNull('documents.deleted_at')
             ->join('categories', 'categories.id', '=', 'documents.category_id')
             ->selectRaw('categories.name AS name, COUNT(DISTINCT consultations.document_id) AS documents')
             ->groupBy('categories.id', 'categories.name')
@@ -94,6 +105,7 @@ class ProfileController extends Controller
 
         // Documents distincts et total des consultations en une seule requête.
         $consulted = $user->consultations()->toBase()
+            ->whereIn('document_id', fn ($q) => $q->select('id')->from('documents')->whereNull('deleted_at'))
             ->selectRaw('COUNT(DISTINCT document_id) as documents, COUNT(*) as total')
             ->first();
 

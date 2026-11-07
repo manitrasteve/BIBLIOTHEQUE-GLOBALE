@@ -61,6 +61,12 @@ class DocumentImportController extends Controller
             ));
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage(), 'errors' => ['excel' => [$e->getMessage()]]], 422);
+        } catch (\Throwable $e) {
+            // Classeur malformé non prévu par le lecteur : journalisé, sans erreur 500 pour l'utilisateur.
+            report($e);
+            $message = 'Le classeur Excel est illisible.';
+
+            return response()->json(['message' => $message, 'errors' => ['excel' => [$message]]], 422);
         }
     }
 }

@@ -74,6 +74,9 @@ class AdminMessageController extends Controller
             return response()->json(['message' => 'Sélectionnez au moins un destinataire actif.'], 422);
         }
 
+        // Destinataires choisis, sans les copies aux administrateurs ci-dessous.
+        $recipientCount = $users->count();
+
         // Message d'un bibliothécaire : l'administrateur en reçoit une copie dans sa boîte « Messages »
         // (menu Profil), pour suivre ce qui est communiqué aux membres.
         if ($request->user()->isLibrarian()) {
@@ -84,7 +87,7 @@ class AdminMessageController extends Controller
             'sender_id' => $request->user()->id,
             'subject' => trim($data['subject']),
             'message' => trim($data['message']),
-            'recipient_count' => $users->count(),
+            'recipient_count' => $recipientCount,
         ]);
 
         // Envoi (SMTP + notifications) en tâche de fond : un envoi à de

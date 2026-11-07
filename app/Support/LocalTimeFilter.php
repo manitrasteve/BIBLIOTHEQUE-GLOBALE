@@ -60,6 +60,7 @@ class LocalTimeFilter
             })
             ->modelKeys();
 
-        $query->whereIn($model->getQualifiedKeyName(), $ids);
+        // Sans paramètres liés : au-delà de 65 535 identifiants, un whereIn dépasserait la limite de MySQL.
+        $query->whereIntegerInRaw($model->getQualifiedKeyName(), $ids);
     }
 }

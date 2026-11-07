@@ -43,7 +43,7 @@ class TeacherSubmissionController extends Controller
             // Résumé en texte enrichi (HTML de l'éditeur) : nettoyé à l'affichage, comme pour le personnel.
             'abstract' => ['nullable', 'string', 'max:20000'],
             'category' => ['required', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
-            'library_id' => ['nullable', 'exists:libraries,id'],
+            'library_id' => ['nullable', 'integer', 'exists:libraries,id'],
             'niveau' => ['nullable', 'string', 'max:100'],
             'language' => ['nullable', 'string', 'max:50'],
             'course_list_id' => ['nullable', 'integer'],
@@ -82,7 +82,7 @@ class TeacherSubmissionController extends Controller
         $this->notifyStaff($teacher, $document, 'Nouveau dépôt d’un enseignant', "{$teacher->name} a déposé « {$document->title} ». Vérifiez-le puis publiez-le ou refusez-le.");
         QueueKicker::dispatch(new IngestDocumentJob($document));
 
-        return response()->json($document, 201);
+        return response()->json($document->load('category:id,name'), 201);
     }
 
     /** Dépôt refusé : l'enseignant envoie un PDF corrigé, le document repart en vérification. */

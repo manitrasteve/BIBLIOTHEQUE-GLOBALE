@@ -199,7 +199,8 @@ class HomepageSchema
             if (!is_string($value) || $value === '') {
                 return;
             }
-            if (!preg_match('#^'.self::IMAGE_DIR.'/[A-Za-z0-9._-]+$#', $value) || !Storage::disk('public')->exists($value)) {
+            // « .. » et fileExists : le chemin doit désigner un fichier du dossier, pas un dossier (homepage/..).
+            if (!preg_match('#^'.self::IMAGE_DIR.'/[A-Za-z0-9._-]+$#', $value) || str_contains($value, '..') || !Storage::disk('public')->fileExists($value)) {
                 $fail('Image introuvable : téléversez-la de nouveau.');
             }
         };

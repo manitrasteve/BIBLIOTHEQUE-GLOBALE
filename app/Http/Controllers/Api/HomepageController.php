@@ -113,7 +113,8 @@ class HomepageController extends Controller
         ]);
     }
 
-    public function version(int $version)
+    // Numéro en texte : un nombre trop grand pour un entier PHP donne un 404, pas une erreur 500.
+    public function version(string $version)
     {
         $found = HomepageVersion::published()->with('author:id,name')->where('version', $version)->firstOrFail();
 
@@ -124,7 +125,7 @@ class HomepageController extends Controller
      * Restauration : crée une NOUVELLE version publiée identique à l'ancienne.
      * L'historique n'est jamais modifié ; le brouillon en cours est abandonné.
      */
-    public function restore(Request $request, int $version)
+    public function restore(Request $request, string $version)
     {
         $source = HomepageVersion::published()->where('version', $version)->firstOrFail();
         $sections = HomepageSchema::validate($source->sections());

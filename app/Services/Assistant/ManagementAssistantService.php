@@ -161,6 +161,9 @@ class ManagementAssistantService
             if ($step === 0) {
                 $options['tool_config'] = ['functionCallingConfig' => ['mode' => 'ANY']];
             }
+            if ($step > 0 && $model) {
+                $options['history_model'] = $model; // signatures de réflexion émises par ce modèle
+            }
 
             $reply = $this->gemini->generateWithTools($contents, $options);
             $model = $reply['model'];
@@ -196,6 +199,7 @@ class ManagementAssistantService
                 'tool_config' => ['functionCallingConfig' => ['mode' => 'NONE']],
                 'temperature' => 0.1,
                 'timeout' => 60,
+                'history_model' => $model, // signatures de réflexion émises par ce modèle
                 'thinking_level' => $thinking,
             ]
         );

@@ -34,8 +34,10 @@ class SetupLinkReminder
         foreach ($due as $accountRequest) {
             $user = User::find($accountRequest->created_user_id);
 
-            // Compte supprimé, désactivé ou mot de passe déjà créé : aucun rappel (et plus de nouvelle tentative).
-            if (!$user || !$user->is_active || $user->password_set_at !== null) {
+            // Compte supprimé ou mot de passe déjà créé : aucun rappel (et plus de nouvelle tentative).
+            // Un compte inactif n'est pas exclu : la désactivation efface le jeton, donc un compte inactif
+            // retenu par la requête ci-dessus a été restauré depuis la Corbeille et attend son mot de passe.
+            if (!$user || $user->password_set_at !== null) {
                 $accountRequest->update(['setup_reminder_sent_at' => now()]);
                 continue;
             }
@@ -43,7 +45,7 @@ class SetupLinkReminder
             [$token, $tokenHash] = $this->provisioner->newSetupToken();
 
             try {
-                $this->provisioner->sendSetupMail($user, $accountRequest, $token, 'Rappel : créez votre mot de passe', 'reminder', $accountRequest->email);
+                $this->provisioner->sendSetupMail($user, $accountRequest, $token, 'Rappel : créez votre mot de passe', 'reminder', $user->email);
             } catch (\Throwable $e) {
                 // Envoi impossible (serveur de messagerie injoignable) : l'ancien lien reste valable, nouvel essai plus tard.
                 report($e);

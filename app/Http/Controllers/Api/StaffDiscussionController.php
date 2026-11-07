@@ -148,6 +148,7 @@ class StaffDiscussionController extends Controller
                 'recipient:id,name,email,role',
             ])
             ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
 
         /*
@@ -166,6 +167,10 @@ class StaffDiscussionController extends Controller
                 'librarian:id,name,email',
             ]),
             'messages' => $messages,
+            // Bibliothécaire : l'administrateur que sa prochaine réponse atteindra (null pour un administrateur).
+            'interlocutor' => $user->role === 'bibliothecaire'
+                ? User::find($this->librarianInterlocutorId($user))?->only(['id', 'name'])
+                : null,
         ]);
     }
 

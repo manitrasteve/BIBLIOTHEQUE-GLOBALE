@@ -119,7 +119,10 @@ class AccountProvisioner
             return;
         }
 
-        $greeting = $user->first_name ? "Bonjour {$user->first_name}, v" : 'V';
+        // users n'a pas de colonne first_name : le prénom vient du registre des membres, sinon de la demande.
+        $firstName = MemberRegistry::where('user_id', $user->id)->value('first_name')
+            ?: AccountRequest::where('created_user_id', $user->id)->latest()->value('first_name');
+        $greeting = $firstName ? "Bonjour {$firstName}, v" : 'V';
         // Bibliothécaire : compte créé inactif, activé quand il définit son mot de passe.
         $state = $user->is_active ? 'est activé' : 'a été créé';
 

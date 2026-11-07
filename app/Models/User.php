@@ -66,6 +66,18 @@ class User extends Authenticatable
             // Une demande en attente ne doit donc jamais recevoir de matricule.
             $user->uuid ??= (string) \Illuminate\Support\Str::uuid();
         });
+
+        // Suppression définitive : ses signalements partent en cascade ; un par un pour que leur capture
+        // d'écran, sur le disque public, soit aussi supprimée (voir ProblemReport::booted).
+        static::forceDeleting(function (User $user) {
+            $user->problemReports()->lazyById()->each(fn (ProblemReport $report) => $report->delete());
+        });
+
+        // Ni photo de profil restée publique, ni lien de mot de passe réutilisable si l'adresse est reprise.
+        static::forceDeleted(function (User $user) {
+            if ($user->photo_path) \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo_path);
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+        });
     }
 
     /**

@@ -285,9 +285,24 @@ class DocumentController extends Controller
         Consultation::create(['user_id' => $user->id, 'document_id' => $document->id]);
         ActivityLogService::log($user->id, 'consultation_document', $document->title, $document);
 
-        // Le fichier est streamé inline, jamais renvoyé avec Content-Disposition: attachment,
-        // pour empêcher le téléchargement depuis le lecteur intégré.
-        $response = Storage::disk('local')->response($document->file_path, null, [
+        return $this->pdfResponse($document);
+    }
+
+    // Lecture du PDF par le personnel, quel que soit le statut (vérifier un dépôt avant de le publier).
+    // N'est pas une consultation de lecteur : rien n'est ajouté aux statistiques ni à l'historique.
+    public function manageStream(Request $request, Document $document): StreamedResponse
+    {
+        $this->authorizeLibrary($request, $document->library_id);
+        abort_unless($document->file_path && Storage::disk('local')->exists($document->file_path), 404, 'Fichier introuvable.');
+
+        return $this->pdfResponse($document);
+    }
+
+    // Le fichier est streamé inline, jamais renvoyé avec Content-Disposition: attachment,
+    // pour empêcher le téléchargement depuis le lecteur intégré.
+    private function pdfResponse(Document $document): StreamedResponse
+    {
+        return Storage::disk('local')->response($document->file_path, null, [
             'Content-Disposition' => 'inline',
             'Content-Type' => 'application/pdf',
             'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
@@ -296,8 +311,6 @@ class DocumentController extends Controller
             'X-Frame-Options' => 'SAMEORIGIN',
             'Referrer-Policy' => 'same-origin',
         ]);
-
-        return $response;
     }
 
     // Liste de gestion (bibliothécaire/admin) : tous statuts, tous champs.
@@ -383,22 +396,22 @@ class DocumentController extends Controller
         return [
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'abstract' => ['nullable', 'string'],
+            'abstract' => ['nullable', 'string', 'max:60000'],
             'type' => ['required', 'string', 'max:100'],
             'niveau' => ['nullable', 'string', 'max:100'],
             // Catégorie : nom saisi librement (créée si elle n'existe pas) ; category_id reste accepté.
             'category' => ['required_without:category_id', 'nullable', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
-            'category_id' => ['required_without:category', 'nullable', 'exists:categories,id'],
-            'library_id' => ['required', 'exists:libraries,id'],
-            'year' => ['nullable', 'digits:4'],
+            'category_id' => ['required_without:category', 'nullable', 'integer', 'exists:categories,id'],
+            'library_id' => ['required', 'integer', 'exists:libraries,id'],
+            'year' => ['nullable', 'integer', 'between:1000,2155'],
             'publisher' => ['nullable', 'string', 'max:255'],
             'isbn' => ['nullable', 'string', 'max:50'],
             'language' => ['required', 'string', 'max:50'],
             'edition' => ['nullable', 'string', 'max:100'],
-            'keywords' => ['nullable', 'string'],
+            'keywords' => ['nullable', 'string', 'max:255'],
             'access_level' => ['required', 'in:public,authentifie,restreint'],
             'author_ids' => ['array'],
-            'author_ids.*' => ['exists:authors,id'],
+            'author_ids.*' => ['integer', 'exists:authors,id'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
             'cover' => ['nullable', 'image', 'max:5120'],
         ];
@@ -455,22 +468,22 @@ class DocumentController extends Controller
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'abstract' => ['nullable', 'string'],
+            'abstract' => ['nullable', 'string', 'max:60000'],
             // Le type était ignoré à la modification ; il est désormais modifiable (texte libre).
             'type' => ['sometimes', 'required', 'string', 'max:100'],
             'niveau' => ['nullable', 'string', 'max:100'],
             'category' => ['sometimes', 'required', 'string', 'max:255', 'regex:/[\pL\pN]/u'],
-            'category_id' => ['sometimes', 'exists:categories,id'],
-            'library_id' => ['sometimes', 'exists:libraries,id'],
-            'year' => ['nullable', 'digits:4'],
+            'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
+            'library_id' => ['sometimes', 'integer', 'exists:libraries,id'],
+            'year' => ['nullable', 'integer', 'between:1000,2155'],
             'publisher' => ['nullable','string','max:255'],
             'isbn' => ['nullable','string','max:50'],
             'language' => ['sometimes', 'required', 'string', 'max:50'],
             'edition' => ['nullable','string','max:100'],
-            'keywords' => ['nullable','string'],
+            'keywords' => ['nullable','string','max:255'],
             'access_level' => ['sometimes', 'in:public,authentifie,restreint'],
             'author_ids' => ['array'],
-            'author_ids.*' => ['exists:authors,id'],
+            'author_ids.*' => ['integer', 'exists:authors,id'],
             'file' => ['nullable','file','mimes:pdf','max:51200'],
             'cover' => ['nullable','image','max:5120'],
         ]);
@@ -492,10 +505,10 @@ class DocumentController extends Controller
         if (isset($data['cover_path']) && $previousFiles['public']) Storage::disk('public')->delete($previousFiles['public']);
         // Le formulaire renvoie toujours la liste complète des auteurs cochés ; si elle est
         // vidée, FormData n'envoie aucune entrée "author_ids[]" (la clé est alors absente de
-        // la requête). On synchronise donc toujours, avec [] par défaut, pour bien retirer
-        // tous les auteurs plutôt que de laisser silencieusement les anciens en place.
-        // Une mise à jour JSON partielle (sans author_ids) ne touche pas aux auteurs.
-        if (array_key_exists('author_ids', $data) || ! $request->isJson()) {
+        // la requête). Un envoi du formulaire complet (ses champs obligatoires sont toujours
+        // présents) ou le marqueur « author_ids_present » vaut donc liste vide, pour bien retirer
+        // tous les auteurs. Une mise à jour partielle (sans author_ids) ne touche pas aux auteurs.
+        if (array_key_exists('author_ids', $data) || $request->has('author_ids_present') || (! $request->isJson() && $request->has(['title', 'library_id', 'language']))) {
             $document->authors()->sync($data['author_ids'] ?? []);
         }
 
@@ -547,6 +560,8 @@ class DocumentController extends Controller
             return response()->json($document);
         }
 
+        $this->ensureNotRefused($document);
+
         DocumentPublisher::publish($document, $request->user()->id);
 
         return response()->json($document);
@@ -561,6 +576,8 @@ class DocumentController extends Controller
         if ($document->status === 'publie') {
             return response()->json(['message' => 'Ce document est déjà publié.'], 422);
         }
+
+        $this->ensureNotRefused($document);
 
         $data = $request->validate([
             // La minute en cours est acceptée (publication dans la minute qui suit).
@@ -596,7 +613,13 @@ class DocumentController extends Controller
         return response()->json($document);
     }
 
-    // Annule la programmation : le document redevient un brouillon.
+    // Un dépôt refusé attend la correction de l'enseignant : il ne peut être ni publié ni programmé.
+    private function ensureNotRefused(Document $document): void
+    {
+        abort_if($document->status === 'refuse', 422, 'Ce dépôt a été refusé : il ne peut pas être publié tant que l’enseignant ne l’a pas renvoyé corrigé.');
+    }
+
+    // Annule la programmation : le document redevient un brouillon (ou un dépôt à vérifier).
     public function unschedule(Request $request, Document $document)
     {
         $this->authorizeLibrary($request, $document->library_id);
@@ -606,7 +629,10 @@ class DocumentController extends Controller
         }
 
         $previousDate = $document->scheduled_at;
-        $document->update(['status' => 'brouillon', 'scheduled_at' => null, 'scheduled_by' => null]);
+        // Dépôt d'un enseignant : il redevient « à vérifier » (il peut encore être refusé).
+        $author = $document->created_by ? \App\Models\User::withTrashed()->find($document->created_by) : null;
+        $status = $author?->role === 'enseignant' ? 'soumis' : 'brouillon';
+        $document->update(['status' => $status, 'scheduled_at' => null, 'scheduled_by' => null]);
 
         ActivityLogService::log(
             $request->user()->id,
@@ -614,7 +640,7 @@ class DocumentController extends Controller
             $document->title,
             $document,
             [
-                'status' => ['before' => 'programme', 'after' => 'brouillon'],
+                'status' => ['before' => 'programme', 'after' => $status],
                 'publication_prevue' => ['before' => $previousDate?->toIso8601String(), 'after' => null],
             ],
         );

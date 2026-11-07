@@ -32,7 +32,7 @@ class LibraryController extends Controller
             'location' => ['nullable', 'string', 'max:255'], // plus demandé dans le formulaire
             'opening_hours' => ['required', 'string', 'max:255'],
             'opening_days' => ['required', 'string', 'max:255'],
-            'map_link' => ['nullable', 'url'],
+            'map_link' => ['nullable', 'url', 'max:255'],
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
@@ -59,20 +59,22 @@ class LibraryController extends Controller
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'opening_hours' => ['sometimes', 'required', 'string', 'max:255'],
             'opening_days' => ['sometimes', 'required', 'string', 'max:255'],
-            'map_link' => ['nullable', 'url'],
+            'map_link' => ['nullable', 'url', 'max:255'],
             // Facultative en modification : les anciennes bibliothèques n'ont pas encore de couverture.
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         unset($data['photo']);
         if ($request->hasFile('photo')) {
-            if ($library->photo_path) Storage::disk('public')->delete($library->photo_path);
             $data['photo_path'] = $request->file('photo')->store('libraries', 'public');
         }
 
+        $previousPhoto = $library->photo_path;
         $fields = ['name', 'description', 'address', 'location', 'opening_hours', 'opening_days', 'map_link'];
         $before = $library->only($fields);
         $library->update($data);
+        // Ancienne photo supprimée seulement une fois la modification enregistrée.
+        if (isset($data['photo_path']) && $previousPhoto) Storage::disk('public')->delete($previousPhoto);
 
         // Audit : uniquement les champs réellement modifiés (avant / après).
         $changes = ActivityLogService::diff($before, $library->fresh()->only($fields));

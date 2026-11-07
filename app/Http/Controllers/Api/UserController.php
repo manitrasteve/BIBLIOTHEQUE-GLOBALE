@@ -99,7 +99,7 @@ class UserController extends Controller
     }
 
     /** Nouveau lien de création du mot de passe (table des liens de réinitialisation) envoyé par e-mail ; false si l'envoi échoue. */
-    private function sendCreationLink(User $user, string $subject, array $content): bool
+    public function sendCreationLink(User $user, string $subject, array $content): bool
     {
         $token = Str::random(64);
         DB::table('password_reset_tokens')->updateOrInsert(
@@ -335,6 +335,8 @@ class UserController extends Controller
         \App\Services\NotificationService::send($user, 'compte_supprime', 'Compte supprimé', "Votre compte a été supprimé. Raison : {$data['reason']}", $user);
         // Les jetons survivent au soft delete : ils redeviendraient valides après une restauration.
         $user->tokens()->delete();
+        // De même pour un lien de mot de passe : il redeviendrait valable après une restauration.
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         $user->delete();
 
         return response()->json(['message' => 'Utilisateur supprimé. Son numéro de compte reste conservé dans l’historique et ne sera jamais réattribué.']);

@@ -200,7 +200,7 @@ it('valide les valeurs comme le formulaire', function (array $override, string $
     'niveau invalide' => [['niveau' => 'L9'], 'Niveau invalide'],
     'catégorie invalide' => [['category' => '???'], '« Catégorie » doit contenir au moins une lettre'],
     'catégorie manquante' => [['category' => ''], '« Catégorie » est obligatoire'],
-    'année invalide' => [['year' => '24'], '« Année » doit contenir 4 chiffres'],
+    'année invalide' => [['year' => '24'], '« Année » doit être compris entre 1000 et 2155'],
     'langue manquante' => [['language' => ''], '« Langue » est obligatoire'],
 ]);
 

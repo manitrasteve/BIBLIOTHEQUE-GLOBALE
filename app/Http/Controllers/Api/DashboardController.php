@@ -77,6 +77,7 @@ class DashboardController extends Controller
         // Top 4 domaines consultés par cet utilisateur (sur toute la période).
         $topCategories = $user->consultations()
             ->join('documents', 'consultations.document_id', '=', 'documents.id')
+            ->whereNull('documents.deleted_at')
             ->join('categories', 'documents.category_id', '=', 'categories.id')
             ->selectRaw('categories.name as name, COUNT(*) as count')
             ->groupBy('categories.id', 'categories.name')
@@ -91,6 +92,8 @@ class DashboardController extends Controller
             ->join('documents', 'reading_progress.document_id', '=', 'documents.id')
             ->where('reading_progress.user_id', $user->id)
             ->where('documents.status', 'publie')
+            ->whereNull('documents.deleted_at') // DB::table n'applique pas le filtre de la Corbeille
+            ->whereNull('reading_progress.completed_at') // une lecture terminée n'est plus « en cours »
             ->orderByDesc('reading_progress.updated_at')
             ->limit(3)
             ->get(['documents.slug', 'documents.title', 'documents.type', 'reading_progress.last_page', 'reading_progress.total_pages'])
