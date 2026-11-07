@@ -11,6 +11,7 @@ export const ROLES = {
     administrateur: "Administrateur",
 };
 const GENDERS = { masculin: "Masculin", feminin: "Féminin" };
+export const genderLabel = (value) => GENDERS[value] || value || "Non renseigné";
 
 export function formatDate(value) {
     if (!value) return null;
@@ -34,7 +35,8 @@ function personSections(row) {
             fields: [
                 ["Nom", row.last_name],
                 ["Prénom", row.first_name],
-                ["Genre", GENDERS[row.gender] || row.gender],
+                // Toujours affiché : un champ vide est masqué par la fenêtre, et les anciens comptes n'ont pas de genre.
+                ["Genre", genderLabel(row.gender)],
                 ["Date de naissance", formatDate(row.date_of_birth)],
                 ["Lieu de naissance", row.birth_place],
                 ["CIN n°", row.cin_number],
