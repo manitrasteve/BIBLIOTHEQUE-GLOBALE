@@ -24,7 +24,7 @@ class TeacherConfigController extends Controller
         return response()->json([
             'centre' => $teacher->school,
             'levels' => Rules::LEVELS,
-            'selected' => $teacher->teacherClasses()->pluck('level')->values(),
+            'selected' => $teacher->teacherClasses()->where('school', $teacher->school)->pluck('level')->values(),
         ]);
     }
 
@@ -40,7 +40,7 @@ class TeacherConfigController extends Controller
         ]);
 
         $wanted = collect($data['levels'])->unique()->values();
-        $before = $teacher->teacherClasses->pluck('level')->sort()->values()->all();
+        $before = $teacher->teacherClasses()->where('school', $teacher->school)->pluck('level')->sort()->values()->all();
 
         DB::transaction(function () use ($teacher, $wanted) {
             // Uniquement les niveaux de son centre : une classe d'un autre établissement n'est pas concernée.
@@ -64,7 +64,7 @@ class TeacherConfigController extends Controller
         return response()->json([
             'centre' => $teacher->school,
             'levels' => Rules::LEVELS,
-            'selected' => $teacher->teacherClasses()->pluck('level')->values(),
+            'selected' => $teacher->teacherClasses()->where('school', $teacher->school)->pluck('level')->values(),
         ]);
     }
 }

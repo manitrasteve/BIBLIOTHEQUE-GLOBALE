@@ -24,9 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Pas de route nommée « login » (la connexion est gérée par React sur
         // /connexion) : sans cela, une requête API non authentifiée qui
         // n'envoie pas « Accept: application/json » provoque une erreur 500.
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/connexion');
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api', 'api/*') ? null : '/connexion');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // L'API répond toujours en JSON (401, 404, 422…), même sans en-tête Accept.
-        $exceptions->shouldRenderJsonWhen(fn (Request $request) => $request->is('api/*') || $request->expectsJson());
+        $exceptions->shouldRenderJsonWhen(fn (Request $request) => $request->is('api', 'api/*') || $request->expectsJson());
     })->create();

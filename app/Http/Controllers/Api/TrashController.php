@@ -144,14 +144,16 @@ class TrashController extends Controller
         $previousStatus = $doc->status;
         $doc->restore();
         // Une restauration depuis la corbeille ne republie jamais le document.
-        $doc->update(['status' => 'brouillon', 'published_at' => null, 'scheduled_at' => null, 'scheduled_by' => null]);
+        // Un dépôt refusé le reste : passer par la corbeille ne doit pas permettre de le publier.
+        $restoredStatus = $previousStatus === 'refuse' ? 'refuse' : 'brouillon';
+        $doc->update(['status' => $restoredStatus, 'published_at' => null, 'scheduled_at' => null, 'scheduled_by' => null]);
 
         ActivityLogService::log(
             $request->user()->id,
             'restauration_document',
             $doc->title,
             $doc,
-            ['status' => ['before' => $previousStatus, 'after' => 'brouillon']],
+            ['status' => ['before' => $previousStatus, 'after' => $restoredStatus]],
         );
 
         return response()->json($doc->fresh());

@@ -108,7 +108,8 @@ class EngagementController extends Controller
 
         $rows = Consultation::where('user_id', $request->user()->id)
             ->whereHas('document', fn ($d) => $d->where('status', 'publie')
-                ->when($search !== '', fn ($q) => $q->where('title', 'like', $like)))
+                ->when($search !== '', fn ($q) => $q->where(fn ($s) => $s->where('title', 'like', $like)
+                    ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', $like)))))
             ->selectRaw('document_id, MAX(consulted_at) as last_consulted_at, COUNT(*) as views')
             ->groupBy('document_id')
             ->orderByDesc('last_consulted_at')

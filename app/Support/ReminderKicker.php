@@ -20,6 +20,11 @@ class ReminderKicker
         }
 
         try {
+            // Sans planificateur, sanctum:prune-expired ne tournerait jamais : les jetons expirés sont purgés ici.
+            if ($minutes = (int) config('sanctum.expiration')) {
+                \Laravel\Sanctum\PersonalAccessToken::where('created_at', '<', now()->subMinutes($minutes))->delete();
+            }
+
             $php = stripos(basename(PHP_BINARY), 'php') !== false ? PHP_BINARY : 'php';
             $command = '"' . $php . '" "' . base_path('artisan') . '" comptes:rappel-mot-de-passe --quiet';
             $command = PHP_OS_FAMILY === 'Windows'

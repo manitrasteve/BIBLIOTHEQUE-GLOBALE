@@ -14,7 +14,7 @@ class Document extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'uuid', 'slug', 'title', 'subtitle', 'abstract', 'type','niveau',
+        'uuid', 'slug', 'title', 'subtitle', 'abstract', 'type','niveau', 'status_before_schedule',
         'category_id', 'library_id', 'year', 'publisher', 'isbn',
         'language', 'edition', 'keywords', 'cover_path', 'file_path',
         'access_level', 'status', 'created_by', 'published_at', 'scheduled_at', 'scheduled_by',

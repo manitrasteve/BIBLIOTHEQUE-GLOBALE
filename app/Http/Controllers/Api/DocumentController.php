@@ -396,7 +396,7 @@ class DocumentController extends Controller
         return [
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'abstract' => ['nullable', 'string', 'max:60000'],
+            'abstract' => ['nullable', 'string', 'max:65535'],
             'type' => ['required', 'string', 'max:100'],
             'niveau' => ['nullable', 'string', 'max:100'],
             // Catégorie : nom saisi librement (créée si elle n'existe pas) ; category_id reste accepté.
@@ -468,7 +468,7 @@ class DocumentController extends Controller
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'abstract' => ['nullable', 'string', 'max:60000'],
+            'abstract' => ['nullable', 'string', 'max:65535'],
             // Le type était ignoré à la modification ; il est désormais modifiable (texte libre).
             'type' => ['sometimes', 'required', 'string', 'max:100'],
             'niveau' => ['nullable', 'string', 'max:100'],
@@ -591,6 +591,8 @@ class DocumentController extends Controller
         $previousDate = $document->scheduled_at;
         $document->update([
             'status' => 'programme',
+            // Statut à retrouver si la programmation est annulée (une reprogrammation garde le premier).
+            'status_before_schedule' => $document->status === 'programme' ? $document->status_before_schedule : $document->status,
             // Converti en UTC : une heure envoyée avec un décalage (+03:00) serait sinon stockée telle quelle.
             'scheduled_at' => Carbon::parse($data['scheduled_at'])->utc(),
             'scheduled_by' => $request->user()->id,
@@ -631,8 +633,8 @@ class DocumentController extends Controller
         $previousDate = $document->scheduled_at;
         // Dépôt d'un enseignant : il redevient « à vérifier » (il peut encore être refusé).
         $author = $document->created_by ? \App\Models\User::withTrashed()->find($document->created_by) : null;
-        $status = $author?->role === 'enseignant' ? 'soumis' : 'brouillon';
-        $document->update(['status' => $status, 'scheduled_at' => null, 'scheduled_by' => null]);
+        $status = $document->status_before_schedule ?: ($author?->role === 'enseignant' ? 'soumis' : 'brouillon');
+        $document->update(['status' => $status, 'status_before_schedule' => null, 'scheduled_at' => null, 'scheduled_by' => null]);
 
         ActivityLogService::log(
             $request->user()->id,
@@ -659,6 +661,9 @@ class DocumentController extends Controller
     public function archive(Request $request, Document $document)
     {
         $this->authorizeLibrary($request, $document->library_id);
+
+        // Sinon l'archivage servirait à contourner le refus : un document archivé peut être republié.
+        abort_if($document->status === 'refuse', 422, 'Ce dépôt a été refusé : il ne peut pas être archivé tant que l’enseignant ne l’a pas renvoyé corrigé.');
 
         $previousStatus = $document->status;
         $document->update(['status' => 'archive', 'scheduled_at' => null, 'scheduled_by' => null]);

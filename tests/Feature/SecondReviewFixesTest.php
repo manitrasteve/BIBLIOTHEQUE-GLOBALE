@@ -216,7 +216,8 @@ test('les limites de validation évitent les erreurs de colonne', function () {
     $this->putJson("/api/documents/{$document->id}", ['year' => 999])->assertUnprocessable();
     $this->putJson("/api/documents/{$document->id}", ['year' => 2156])->assertUnprocessable();
     $this->putJson("/api/documents/{$document->id}", ['keywords' => str_repeat('a', 256)])->assertUnprocessable();
-    $this->putJson("/api/documents/{$document->id}", ['abstract' => str_repeat('a', 60001)])->assertUnprocessable();
+    $this->putJson("/api/documents/{$document->id}", ['abstract' => str_repeat('a', 65535)])->assertOk();
+    $this->putJson("/api/documents/{$document->id}", ['abstract' => str_repeat('a', 65536)])->assertUnprocessable();
     $this->putJson("/api/libraries/{$library->id}", ['map_link' => 'https://example.test/' . str_repeat('a', 250)])->assertUnprocessable();
 });
 

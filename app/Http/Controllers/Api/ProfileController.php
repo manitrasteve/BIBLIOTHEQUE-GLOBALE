@@ -57,7 +57,7 @@ class ProfileController extends Controller
             $user->role === 'enseignant'
             && filled($user->school)
             && array_key_exists('school', $data)
-            && $data['school'] !== $user->school
+            && trim((string) $data['school']) !== trim((string) $user->school)
         ) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'school' => 'Votre établissement est rattaché à votre compte : il ne peut pas être modifié depuis votre profil.',
@@ -96,7 +96,8 @@ class ProfileController extends Controller
     // en texte libre reste enregistrable tant qu'on n'y touche pas.
     private function listRuleIfChanged(Request $request, string $field, array $allowed): array
     {
-        return $request->input($field) !== $request->user()->{$field} ? [Rule::in($allowed)] : [];
+        // trim : la saisie est nettoyée de ses espaces, pas forcément la valeur enregistrée (imports).
+        return trim((string) $request->input($field)) !== trim((string) $request->user()->{$field}) ? [Rule::in($allowed)] : [];
     }
 
     // Profil lecteur : chiffres de lecture et catégories les plus consultées (données réelles uniquement).
