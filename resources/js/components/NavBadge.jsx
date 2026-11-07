@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, BADGES_CHANGED_EVENT } from "../lib/api";
 import { useRefresh } from "../context/RefreshContext";
 
 // Couleur du badge selon la rubrique : rouge = action requise, ambre = nouveauté à lire, gris = simple total.
@@ -36,12 +36,12 @@ const LABELS = {
     trash: "éléments",
 };
 
-// Compteurs du menu latéral : rechargés à chaque changement de page, après « Actualiser »
-// et toutes les 60 s quand l'onglet est visible.
+// Compteurs du menu latéral : rechargés à chaque changement de page, après « Actualiser », après une action
+// qui les modifie (notifyBadgesChanged) et toutes les 60 s quand l'onglet est visible.
 export function useNavBadges() {
     const [badges, setBadges] = useState({});
     const { pathname } = useLocation();
-    const refreshCount = useRefresh()?.refreshCount;
+    const refreshCount = useRefresh()?.manualRefreshCount;
 
     useEffect(() => {
         let mounted = true;
@@ -51,10 +51,12 @@ export function useNavBadges() {
         load();
         const interval = setInterval(onVisible, 60000);
         document.addEventListener("visibilitychange", onVisible);
+        window.addEventListener(BADGES_CHANGED_EVENT, load);
         return () => {
             mounted = false;
             clearInterval(interval);
             document.removeEventListener("visibilitychange", onVisible);
+            window.removeEventListener(BADGES_CHANGED_EVENT, load);
         };
     }, [pathname, refreshCount]);
 

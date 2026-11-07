@@ -14,6 +14,9 @@ const CENTERS = [
 ];
 const STUDENT_LEVELS = ["L1", "L2", "L3", "M1", "M2", "Doctorat"];
 
+// Champs de la première étape du formulaire étudiant : une erreur serveur sur l'un d'eux y ramène.
+const STUDENT_STEP_ONE_FIELDS = ["last_name", "first_name", "date_of_birth", "birth_place", "gender", "cin_number", "cin_issued_at", "email", "phone", "address"];
+
 const ALL_ROLES = [
     { value: "etudiant", label: "Étudiant" },
     { value: "enseignant", label: "Enseignant" },
@@ -171,6 +174,7 @@ export default function CreateUserForm({
             onCreated(res);
         } catch (err) {
             const errors = err?.data?.errors;
+            if (errors && Object.keys(errors).some((key) => STUDENT_STEP_ONE_FIELDS.includes(key))) setStudentStep(1);
             setError(
                 errors
                     ? Object.values(errors)[0]?.[0]
@@ -243,12 +247,13 @@ export default function CreateUserForm({
                                         type="radio"
                                         name="admin-role"
                                         checked={form.role === r.value}
-                                        onChange={() =>
+                                        onChange={() => {
                                             setForm((f) => ({
                                                 ...f,
                                                 role: r.value,
-                                            }))
-                                        }
+                                            }));
+                                            setStudentStep(1);
+                                        }}
                                     />
                                     {r.label}
                                 </label>
@@ -362,6 +367,15 @@ export default function CreateUserForm({
                         >
                             Annuler
                         </button>
+                        {form.role === "etudiant" && studentStep === 2 && (
+                            <button
+                                type="button"
+                                onClick={() => setStudentStep(1)}
+                                className="btn-secondary"
+                            >
+                                Retour
+                            </button>
+                        )}
                         <button
                             type="submit"
                             disabled={saving}

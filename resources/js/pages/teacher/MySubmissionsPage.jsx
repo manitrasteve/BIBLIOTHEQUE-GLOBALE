@@ -40,6 +40,10 @@ function ResubmitButton({ doc, onDone }) {
 
     async function send(file) {
         if (!file) return;
+        if (file.size > MAX_PDF_BYTES) {
+            toast("Le PDF dépasse 50 Mo. Choisissez un fichier plus léger.");
+            return;
+        }
         setBusy(true);
         try {
             const body = new FormData();
@@ -56,7 +60,7 @@ function ResubmitButton({ doc, onDone }) {
     return (
         <label className={`btn-secondary cursor-pointer !py-1.5 ${busy ? "opacity-50" : ""}`}>
             <FileUp className="h-3.5 w-3.5" /> {busy ? "Envoi…" : "Envoyer un PDF corrigé"}
-            <input type="file" accept="application/pdf" className="sr-only" disabled={busy} onChange={(e) => send(e.target.files?.[0])} />
+            <input type="file" accept="application/pdf" className="sr-only" disabled={busy} onChange={(e) => { send(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
     );
 }

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookMarked, Search, PlayCircle } from "lucide-react";
 import { api } from "../lib/api";
 import { usePageRefresh } from "../context/RefreshContext";
 import { sessionMemory } from "../lib/sessionMemory";
-import { matchesSearch } from "../lib/search";
+import { useDebouncedValue } from "../lib/search";
 import EmptyState from "../components/EmptyState";
 import { startTopProgress } from "../lib/topProgress";
 
@@ -30,28 +30,33 @@ export default function MyReadingsPage() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
 
+    // Recherche faite par le serveur, sur toutes les lectures (et non sur la seule page affichée).
+    const term = useDebouncedValue(search.trim(), 350);
+
+    // Seule la réponse à la dernière requête est affichée (frappe rapide, actualisation pendant un changement de page).
+    const requestRef = useRef(0);
+    async function fetchReadings() {
+        const requestId = ++requestRef.current;
+        const res = await api.getMyReadings({ page, ...(term ? { search: term } : {}) });
+        if (requestId !== requestRef.current) return;
+        setResult(res);
+        setError(null);
+    }
+
     useEffect(() => {
-        let active = true;
         setResult(null);
         setError(null);
-        api.getMyReadings({ page })
-            .then((res) => active && setResult(res))
-            .catch(() => {
-                if (!active) return;
-                setError("Impossible de charger vos lectures.");
-                setResult({ data: [] });
-            });
-        return () => {
-            active = false;
-        };
-    }, [page]);
-    usePageRefresh(() => api.getMyReadings({ page }).then((res) => { setResult(res); setError(null); }));
+        const pending = fetchReadings();
+        const requestId = requestRef.current;
+        pending.catch(() => {
+            if (requestId !== requestRef.current) return;
+            setError("Impossible de charger vos lectures.");
+            setResult({ data: [] });
+        });
+    }, [page, term]);
+    usePageRefresh(fetchReadings);
 
-    const rows = useMemo(() => {
-        return (result?.data || []).filter((row) =>
-            matchesSearch(`${row.title} ${(row.authors || []).join(" ")}`, search),
-        );
-    }, [result, search]);
+    const rows = result?.data || [];
 
     return (
         <div>
@@ -65,7 +70,10 @@ export default function MyReadingsPage() {
                 <input
                     type="search"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                        setSearch(e.target.value);
+                        setPage(1);
+                    }}
                     placeholder="Filtrer par titre ou auteur…"
                     aria-label="Filtrer mes lectures"
                     className="w-full rounded-xl border border-slate-200 bg-surface py-2.5 pl-9 pr-3 text-sm"

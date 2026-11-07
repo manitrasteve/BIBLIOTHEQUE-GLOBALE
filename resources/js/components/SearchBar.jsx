@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, ChevronDown, Search, UserRound } from 'lucide-react';
 import { api } from '../lib/api';
 import { useDebouncedValue } from '../lib/search';
@@ -16,10 +16,16 @@ const FILTERS = [
   { key: 'keyword', label: 'Mot-clé' },
 ];
 
+// Page de résultats : le catalogue de l'espace bibliothécaire reste dans son espace, sinon le catalogue public.
+function catalogPath(pathname) {
+  return pathname.startsWith('/bibliothecaire/catalogue') ? '/bibliothecaire/catalogue' : '/recherche';
+}
+
 // Suggestions pendant la frappe (titres et auteurs) : liste déroulante accessible au clavier
 // (↑ ↓ pour parcourir, Entrée pour ouvrir, Échap pour fermer).
 function useSuggestions(query) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const listId = useId();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
@@ -37,7 +43,7 @@ function useSuggestions(query) {
         if (cancelled) return;
         setItems([
           ...(res.documents || []).map((d) => ({ key: `d-${d.slug}`, type: 'document', label: d.title, hint: d.year, to: `/documents/${d.slug}` })),
-          ...(res.authors || []).map((name) => ({ key: `a-${name}`, type: 'author', label: name, hint: 'Auteur', to: `/recherche?${new URLSearchParams({ q: name, by: 'author' })}` })),
+          ...(res.authors || []).map((name) => ({ key: `a-${name}`, type: 'author', label: name, hint: 'Auteur', to: `${catalogPath(pathname)}?${new URLSearchParams({ q: name, by: 'author' })}` })),
         ]);
         setActive(-1);
       })
@@ -127,7 +133,11 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit, 
   useEffect(() => {
     function onKey(e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        // Palette de commandes ouverte : c'est elle qui se referme.
+        if (document.querySelector('[aria-label="Palette de commandes"]')) return;
         e.preventDefault();
+        // Sur le catalogue, le raccourci annoncé place le curseur ici : il n'ouvre pas aussi la palette.
+        e.stopPropagation();
         inputRef.current?.focus();
       }
     }
@@ -190,10 +200,16 @@ function CatalogueSearchBar({ query, setQuery, filter, setFilter, handleSubmit, 
 // variant « catalogue » : grande barre de la page catalogue ; par défaut, barre « tiroir » de l'accueil.
 // initialBy : champ de recherche lu dans l'adresse (?by=), pour le garder affiché après rechargement.
 // Adresse de résultats : « Tout » n'ajoute pas de ?by= (recherche large côté serveur).
-function resultsUrl(q, filter) {
-  const params = new URLSearchParams({ q });
-  if (filter !== 'all') params.set('by', filter);
-  return `/recherche?${params.toString()}`;
+// `current` : paramètres de l'adresse à conserver (catégorie, langue de la page de résultats) ; la page repart à 1.
+function resultsUrl(q, filter, base, current = '') {
+  const params = new URLSearchParams(current);
+  params.delete('page');
+  if (q) params.set('q', q);
+  else params.delete('q');
+  if (q && filter !== 'all') params.set('by', filter);
+  else params.delete('by');
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export default function SearchBar({ initialQuery = '', initialBy = 'all', live = false, variant = 'default' }) {
@@ -201,22 +217,28 @@ export default function SearchBar({ initialQuery = '', initialBy = 'all', live =
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState(initialFilter);
   const navigate = useNavigate();
+  const location = useLocation();
+  const base = catalogPath(location.pathname);
   const debouncedQuery = useDebouncedValue(query.trim(), 350);
   const suggestions = useSuggestions(query);
 
+  // Adresse changée sans passer par ce champ (auteur suggéré…) : le champ reprend la recherche affichée.
+  useEffect(() => {
+    if (!live || (initialQuery.trim() === debouncedQuery && initialFilter === filter)) return;
+    setQuery(initialQuery);
+    setFilter(initialFilter);
+  }, [initialQuery, initialFilter]);
+
   // Recherche dès la saisie ou au changement de champ (page de résultats) ; champ vide => état initial.
   useEffect(() => {
-    if (!live || (debouncedQuery === initialQuery.trim() && filter === initialFilter)) return;
-    if (!debouncedQuery) {
-      navigate('/recherche', { replace: true });
-      return;
-    }
-    navigate(resultsUrl(debouncedQuery, filter), { replace: true });
+    // Frappe en cours : le délai n'est pas écoulé, cet effet repassera avec la valeur définitive.
+    if (!live || debouncedQuery !== query.trim() || (debouncedQuery === initialQuery.trim() && filter === initialFilter)) return;
+    navigate(resultsUrl(debouncedQuery, filter, base, location.search), { replace: true });
   }, [debouncedQuery, filter]);
 
   function handleSubmit(e) {
     e.preventDefault();
-    navigate(resultsUrl(query, filter));
+    navigate(resultsUrl(query, filter, base, live ? location.search : ''));
   }
 
   if (variant === 'catalogue') {

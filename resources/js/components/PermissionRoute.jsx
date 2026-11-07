@@ -7,7 +7,7 @@ export default function PermissionRoute({ permission, permissions, children }) {
     const location = useLocation();
 
     if (loading) return <div className="px-6 py-10"><SkeletonProfile /></div>;
-    if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />;
+    if (!user) return <Navigate to="/connexion" state={{ from: location.pathname + location.search + location.hash }} replace />;
 
     const isAdmin = user.role === "administrateur" || user.role === "admin";
     const allowed = permission ? user.permissions?.includes(permission) : permissions?.some((item) => user.permissions?.includes(item));

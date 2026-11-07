@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePageRefresh } from "../../context/RefreshContext";
 import {
     Users,
@@ -61,20 +61,26 @@ export default function AdminStatsPage() {
             .catch(() => setError("Impossible de charger les statistiques pour le moment."));
     }, []);
 
+    // Seule la réponse à la dernière demande est affichée (clics rapides sur la période ou l'établissement).
+    const statsRequest = useRef(0);
+
     useEffect(() => {
+        const requestId = ++statsRequest.current;
         setStatsError(null);
         api.getStatistics({ months, ...(establishment ? { establishment } : {}) })
-            .then(setStats)
-            .catch(() => setStatsError("Impossible de charger les graphiques pour le moment."));
+            .then((data) => { if (requestId === statsRequest.current) setStats(data); })
+            .catch(() => { if (requestId === statsRequest.current) setStatsError("Impossible de charger les graphiques pour le moment."); });
     }, [months, establishment]);
 
     // Actualisation : chiffres clés et graphiques de la période choisie, sans repasser par le squelette.
     usePageRefresh(async () => {
+        const requestId = ++statsRequest.current;
         const [dashboard, statistics] = await Promise.all([
             api.getAdminDashboard(),
             api.getStatistics({ months, ...(establishment ? { establishment } : {}) }),
         ]);
         setS(dashboard);
+        if (requestId !== statsRequest.current) return;
         setStats(statistics);
         setStatsError(null);
     });

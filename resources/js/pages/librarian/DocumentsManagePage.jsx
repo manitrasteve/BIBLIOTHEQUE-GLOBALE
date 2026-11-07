@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search, CalendarClock, CalendarX, GraduationCap, Ban } from 'lucide-react';
+import { FileSearch, FileText, FilePen, Plus, Pencil, UploadCloud, Archive, Trash2, Inbox, Sparkles, Search, CalendarClock, CalendarX, GraduationCap, Ban } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/search';
 import { sortRows } from '../../lib/sort';
@@ -180,13 +180,31 @@ export default function DocumentsManagePage() {
   }
 
   async function remove(doc) {
-    if (!(await confirm({ title: `Supprimer « ${doc.title} » ?`, message: `Cette action est irréversible.`, danger: true }))) return;
+    if (!(await confirm({ title: `Supprimer « ${doc.title} » ?`, message: `Le document ira à la corbeille, d'où il pourra être restauré.`, danger: true }))) return;
     setBusySlug(doc.slug);
     try {
       await api.deleteDocument(doc.id);
       load();
     } catch (e) {
       toast(e?.data?.message || 'Suppression impossible.');
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  // PDF du document, même non publié : l'onglet s'ouvre au clic (sinon bloqué par le navigateur), puis reçoit le fichier.
+  async function viewPdf(doc) {
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) {
+      toast("Autorisez les fenêtres pour ce site afin d’ouvrir le PDF.");
+      return;
+    }
+    setBusySlug(doc.slug);
+    try {
+      await api.openManagedDocumentPdf(doc.id, tab);
+    } catch (e) {
+      tab.close();
+      toast(e?.message || "Le PDF n'a pas pu être ouvert.");
     } finally {
       setBusySlug(null);
     }
@@ -203,6 +221,16 @@ export default function DocumentsManagePage() {
         >
           <Pencil className="h-4 w-4" strokeWidth={1.75} />
         </Link>
+        {doc.file_path && (
+          <button
+            onClick={() => viewPdf(doc)}
+            disabled={busySlug === doc.slug}
+            className="flex items-center gap-1 text-brass hover:text-brass-deep disabled:opacity-50"
+          >
+            <FileSearch className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Voir le PDF
+          </button>
+        )}
         {doc.status !== 'publie' && can('publier_document') && (
           <button
             onClick={() => publish(doc)}
@@ -254,7 +282,7 @@ export default function DocumentsManagePage() {
             Archiver
           </button>
         )}
-        {user?.role === 'administrateur' && <button
+        {can('supprimer_document') && <button
           onClick={() => remove(doc)}
           disabled={busySlug === doc.slug}
           title="Supprimer"
@@ -293,7 +321,7 @@ export default function DocumentsManagePage() {
                 onClick={() => selectStatus(key)}
               />
             ))
-          : Array.from({ length: 6 }, (_, i) => <StatCardSkeleton key={i} />)}
+          : !error && Array.from({ length: 6 }, (_, i) => <StatCardSkeleton key={i} />)}
       </div>
 
       <div className="relative mb-6 w-full sm:max-w-[600px]">
@@ -329,7 +357,7 @@ export default function DocumentsManagePage() {
       <div ref={listRef} className="scroll-mt-24" />
 
       {documents === null ? (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
+        !error && <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface"><table className="min-w-full"><SkeletonTable columns={5} /></table></div>
       ) : documents.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line p-10 text-center">
           <Inbox className="h-6 w-6 mx-auto text-slate-400 mb-2" strokeWidth={1.5} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CheckCircle2, ClipboardCheck, Mail, UserRound } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Clock3, Mail, UserRound, XCircle } from "lucide-react";
 import { api } from "../lib/api";
 
 export default function TicketReceiptPage() {
@@ -99,6 +99,40 @@ export default function TicketReceiptPage() {
     const statusLabel = statusStyles[ticket.status]?.label ?? ticket.status ?? "—";
     const statusClass = statusStyles[ticket.status]?.cls ?? "text-amber-700";
 
+    // Le reçu peut être rouvert après traitement : l'en-tête et la suite dépendent de l'état réel de la demande.
+    const accepted = {
+        Icon: CheckCircle2,
+        tone: "border-green-200 bg-green-50 text-green-700",
+        title: "Demande acceptée",
+        intro: "Votre demande a été acceptée. Conservez les informations ci-dessous.",
+        next: "Consultez votre boîte e-mail : le lien de création du mot de passe y a été envoyé.",
+    };
+    const stateTexts = {
+        validee: accepted,
+        traitee: accepted,
+        rejetee: {
+            Icon: XCircle,
+            tone: "border-rose-200 bg-rose-50 text-rose-700",
+            title: "Demande rejetée",
+            intro: "Votre demande n'a pas été acceptée. Le motif vous a été envoyé par e-mail.",
+            next: "Vous pouvez déposer une nouvelle demande après avoir corrigé les informations concernées.",
+        },
+        expiree: {
+            Icon: Clock3,
+            tone: "border-line bg-paper text-ink-soft",
+            title: "Demande expirée",
+            intro: "Le délai de traitement de cette demande est dépassé.",
+            next: "Déposez une nouvelle demande de création de compte pour que votre dossier soit examiné.",
+        },
+    };
+    const state = stateTexts[ticket.status] ?? {
+        Icon: CheckCircle2,
+        tone: "border-green-200 bg-green-50 text-green-700",
+        title: "Demande enregistrée",
+        intro: "Votre demande a bien été envoyée. Conservez les informations ci-dessous pour suivre votre demande.",
+        next: "Votre demande sera examinée par le service concerné. Vous recevrez un e-mail concernant la validation ou le rejet de votre demande.",
+    };
+
     /*
      * Prénom facultatif :
      *
@@ -125,17 +159,16 @@ export default function TicketReceiptPage() {
             <div className="mx-auto max-w-4xl">
                 {/* EN-TÊTE */}
                 <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-50">
-                        <CheckCircle2 className="h-8 w-8 text-green-700" />
+                    <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full border ${state.tone}`}>
+                        <state.Icon className="h-8 w-8" />
                     </div>
 
                     <h1 className="mt-5 text-2xl font-bold text-ink md:text-2xl">
-                        Demande enregistrée
+                        {state.title}
                     </h1>
 
                     <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-ink-soft md:text-base">
-                        Votre demande a bien été envoyée. Conservez les
-                        informations ci-dessous pour suivre votre demande.
+                        {state.intro}
                     </p>
                 </div>
 
@@ -319,9 +352,7 @@ export default function TicketReceiptPage() {
                                 </h2>
 
                                 <p className="mt-2 text-sm leading-6 text-ink-soft">
-                                    Votre demande sera examinée par le service
-                                    concerné. Vous recevrez un e-mail concernant
-                                    la validation ou le rejet de votre demande.
+                                    {state.next}
                                 </p>
                             </div>
                         </div>

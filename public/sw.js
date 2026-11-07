@@ -11,7 +11,7 @@
  *   icônes / manifest / logo en « stale-while-revalidate ».
  * - Mise à jour : CACHE_VERSION change => les anciens caches sont supprimés à l'activation.
  */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `bm-static-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const SHELL_URL = '/__app-shell'; // clé de cache de la coquille HTML de l'application
@@ -100,7 +100,9 @@ async function navigate(request) {
     try {
         const response = await fetch(request);
         // Même HTML pour toutes les routes (application React) : on garde la dernière version reçue.
-        if (response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
+        // Exception : les reçus imprimables (/tickets/…) sont des pages à part, avec des données personnelles.
+        const isAppPage = !new URL(request.url).pathname.startsWith('/tickets/');
+        if (isAppPage && response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
             const cache = await caches.open(STATIC_CACHE);
             await cache.put(SHELL_URL, response.clone());
         }

@@ -87,6 +87,7 @@ export default function AdminMessagesPage() {
     // Historique paginé par le serveur (20 par page).
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState(null);
+    const [historyFailed, setHistoryFailed] = useState(false);
     // Recherche (objet, texte ; envoyée après une courte pause de frappe) et filtres date / jour / heure,
     // appliqués par le serveur à tout l'historique.
     const [search, setSearch] = useState("");
@@ -107,8 +108,14 @@ export default function AdminMessagesPage() {
         const requestId = ++requestRef.current;
         const messages = await api.getAdminMessages(page, { search: debouncedSearch.trim(), ...filters });
         if (requestId !== requestRef.current) return;
+        // Page devenue vide (derniers envois supprimés) : retour à la page précédente.
+        if (!(messages.data || []).length && page > 1) {
+            setPage(page - 1);
+            return;
+        }
         setHistory(messages.data || []);
         setMeta(messages);
+        setHistoryFailed(false);
     }
 
     // Destinataires : chargés à l'ouverture et à l'actualisation, pas à chaque recherche dans l'historique.
@@ -134,6 +141,7 @@ export default function AdminMessagesPage() {
         try {
             await fetchHistory();
         } catch (e) {
+            setHistoryFailed(true);
             setNotice({ type: "error", text: e?.data?.message || "Impossible de charger la messagerie." });
         }
     }
@@ -172,7 +180,7 @@ export default function AdminMessagesPage() {
 
     async function clear() {
         if (!(await confirm({ title: "Supprimer tout votre historique de messages envoyés ?", danger: true }))) return;
-        try { await api.clearAdminMessageHistory(); setHistory([]); }
+        try { await api.clearAdminMessageHistory(); setHistory([]); setMeta(null); setPage(1); }
         catch (e) { setNotice({ type: "error", text: e?.data?.message || "Suppression impossible." }); }
     }
 
@@ -501,7 +509,7 @@ export default function AdminMessagesPage() {
                             <button onClick={() => remove(item.id)} title="Supprimer" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                         </div>
                     ))}
-                    {history.length === 0 && (
+                    {history.length === 0 && !historyFailed && (
                         <div className="modern-card p-5 text-center text-sm text-slate-500">
                             {isFiltering ? "Aucun envoi ne correspond à cette recherche." : "Aucun message envoyé."}
                         </div>

@@ -63,7 +63,7 @@ function SkeletonResults({ view }) {
 }
 
 export default function SearchResultsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   // Dans l'espace bibliothécaire, le layout fournit déjà les marges.
@@ -92,12 +92,22 @@ export default function SearchResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [categoryId, setCategoryId] = useState(searchParams.get('category_id') || '');
-  const [language, setLanguage] = useState(searchParams.get('language') || '');
-  // La page est liée aux critères : une nouvelle recherche ou un nouveau filtre repart de la page 1.
-  const criteria = `${q}|${by}|${categoryId}|${language}`;
-  const [paging, setPaging] = useState({ criteria, page: 1 });
-  const page = paging.criteria === criteria ? paging.page : 1;
+  // Filtres et page dans l'adresse : ils sont retrouvés au retour depuis la fiche d'un document.
+  const categoryId = searchParams.get('category_id') || '';
+  const language = searchParams.get('language') || '';
+  const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
+
+  function updateParams(changes) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
+      return next;
+    }, { replace: true });
+  }
+
+  // Une nouvelle recherche ou un nouveau filtre repart de la page 1.
+  const setCategoryId = (value) => updateParams({ category_id: value, page: '' });
+  const setLanguage = (value) => updateParams({ language: value, page: '' });
 
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => {});
@@ -124,7 +134,7 @@ export default function SearchResultsPage() {
   }, [q, by, categoryId, language, page]);
 
   function changePage(next) {
-    setPaging({ criteria, page: next });
+    updateParams({ page: next > 1 ? String(next) : '' });
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -150,13 +160,12 @@ export default function SearchResultsPage() {
 
   function clearQuery() {
     setSearchKey((k) => k + 1);
-    navigate(location.pathname, { replace: true });
+    updateParams({ q: '', by: '', page: '' });
   }
 
   function clearAll() {
-    setCategoryId('');
-    setLanguage('');
-    if (q) clearQuery();
+    setSearchKey((k) => k + 1);
+    navigate(location.pathname, { replace: true });
   }
 
   const hasFilters = categoryId !== '' || language !== '';

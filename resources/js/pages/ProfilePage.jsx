@@ -117,6 +117,13 @@ const CENTERS = [
     "Ecoles et formations rattachées",
 ];
 
+// Listes fermées (mêmes valeurs que les formulaires de création de compte) : le ciblage des bibliographies
+// compare le niveau à l'identique, un texte libre (« Licence 1 ») sortait l'étudiant de sa classe.
+const CHOICE_FIELDS = {
+    niveau_type: ["Université"],
+    niveau_detail: ["L1", "L2", "L3", "M1", "M2", "Doctorat"],
+};
+
 export default function ProfilePage() {
     const { user, setUser } = useAuth();
 
@@ -130,12 +137,15 @@ export default function ProfilePage() {
 
     const [msg, setMsg] = useState(null);
     const [error, setError] = useState(null);
+    // Résultat du profil et de la photo (`msg` / `error` ne concernent que le formulaire de mot de passe).
+    const [profileNotice, setProfileNotice] = useState(null); // { type: "success" | "error", text }
     const [photoBusy, setPhotoBusy] = useState(false);
     const [editing, setEditing] = useState(false);
     const [profileForm, setProfileForm] = useState({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', date_of_birth: user?.date_of_birth ? String(user.date_of_birth).slice(0, 10) : '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
 
     function startEditing() {
         setProfileForm({ email: user?.email || '', phone: user?.phone || '', address: user?.address || '', date_of_birth: user?.date_of_birth ? String(user.date_of_birth).slice(0, 10) : '', school: user?.school || '', filiere: user?.filiere || '', niveau_type: user?.niveau_type || '', niveau_detail: user?.niveau_detail || '', faculty: user?.faculty || '', department: user?.department || '', position: user?.position || '', teaching_specialty: user?.teaching_specialty || '', research_lab: user?.research_lab || '', researcher_field: user?.researcher_field || '', specialty: user?.specialty || '', diploma: user?.diploma || '', workplace: user?.workplace || '', profession: user?.profession || '', experience: user?.experience || '' });
+        setProfileNotice(null);
         setEditing(true);
     }
 
@@ -146,27 +156,36 @@ export default function ProfilePage() {
     const mergeUser = (updated) => setUser((current) => ({ ...current, ...updated }));
 
     async function saveProfile(e) {
-        e.preventDefault(); setError(null); setMsg(null);
+        e.preventDefault(); setProfileNotice(null);
         try {
             const emailChanged = String(profileForm.email || '').trim().toLowerCase() !== String(user?.email || '').trim().toLowerCase();
             const updated = await api.updateProfile(emailChanged ? { ...profileForm, current_password: emailPassword } : profileForm);
-            mergeUser(updated); setEditing(false); setEmailPassword(''); setMsg('Profil mis à jour avec succès.');
-        } catch (e) { setError(e?.data?.message || Object.values(e?.data?.errors || {})[0]?.[0] || 'Impossible de modifier le profil.'); }
+            mergeUser(updated); setEditing(false); setEmailPassword(''); setProfileNotice({ type: 'success', text: 'Profil mis à jour avec succès.' });
+        } catch (e) { setProfileNotice({ type: 'error', text: e?.data?.message || Object.values(e?.data?.errors || {})[0]?.[0] || 'Impossible de modifier le profil.' }); }
     }
 
     async function uploadPhoto(file) {
         if (!file) return;
-        setPhotoBusy(true); setError(null);
+        setPhotoBusy(true); setProfileNotice(null);
         try {
             const fd = new FormData(); fd.append("email", user.email); fd.append("phone", user.phone || ""); fd.append("address", user.address || ""); fd.append("photo", file);
             const updated = await api.updateProfile(fd); mergeUser(updated);
-        } catch (e) { setError(e?.data?.message || "Impossible de modifier la photo."); } finally { setPhotoBusy(false); }
+        } catch (e) { setProfileNotice({ type: "error", text: e?.data?.message || "Impossible de modifier la photo." }); } finally { setPhotoBusy(false); }
     }
 
     async function removePhoto() {
-        setPhotoBusy(true);
-        try { const updated = await api.deleteProfilePhoto(); mergeUser(updated); } catch(e) { setError(e?.data?.message || "Impossible de supprimer la photo."); } finally { setPhotoBusy(false); }
+        setPhotoBusy(true); setProfileNotice(null);
+        try { const updated = await api.deleteProfilePhoto(); mergeUser(updated); } catch(e) { setProfileNotice({ type: "error", text: e?.data?.message || "Impossible de supprimer la photo." }); } finally { setPhotoBusy(false); }
     }
+
+    const noticeBanner = profileNotice && (
+        <p
+            role={profileNotice.type === "error" ? "alert" : "status"}
+            className={`mb-4 rounded-xl border p-3 text-sm font-medium ${profileNotice.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+        >
+            {profileNotice.text}
+        </p>
+    );
 
 
     async function submit(e) {
@@ -227,6 +246,8 @@ export default function ProfilePage() {
                 <button type="button" onClick={editing ? () => setEditing(false) : startEditing} className="mt-4 btn-secondary">{editing ? 'Annuler la modification' : 'Modifier mes informations'}</button>
             </div>
 
+            {!editing && noticeBanner}
+
             {editing && (
                 <form onSubmit={saveProfile} className="modern-card mb-6 p-5 sm:p-7">
                     <h3 className="mb-4 text-lg font-extrabold text-slate-900">Modifier mes informations</h3>
@@ -245,6 +266,12 @@ export default function ProfilePage() {
                             if (key==='experience') control=<textarea rows="4" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
                             else if (key==='date_of_birth') control=<input type="date" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
                             else if (key==='school') control=<select value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}><option value="">Choisir…</option>{CENTERS.map(c=><option key={c} value={c}>{c}</option>)}</select>;
+                            else if (CHOICE_FIELDS[key]) {
+                                // Ancienne valeur hors liste : reste proposée, pour pouvoir enregistrer le reste du profil.
+                                const saved = user?.[key];
+                                const choices = saved && !CHOICE_FIELDS[key].includes(saved) ? [...CHOICE_FIELDS[key], saved] : CHOICE_FIELDS[key];
+                                control=<select value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}><option value="">Choisir…</option>{choices.map(c=><option key={c} value={c}>{c}</option>)}</select>;
+                            }
                             else control=<input type={key==='email'?'email':'text'} value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
                             return <label key={key} className="block"><span className="mb-1 block text-xs font-bold text-slate-500">{labels[key]||key}</span>{control}</label>;
                         })}
@@ -253,7 +280,8 @@ export default function ProfilePage() {
                     {String(profileForm.email || '').trim().toLowerCase() !== String(user?.email || '').trim().toLowerCase() && (
                         <label className="mt-4 block md:max-w-sm"><span className="mb-1 block text-xs font-bold text-slate-500">Mot de passe actuel (requis pour changer d'adresse e-mail)</span><input type="password" autoComplete="current-password" required value={emailPassword} onChange={e=>setEmailPassword(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"/></label>
                     )}
-                    <div className="mt-5 flex justify-end"><button type="submit" className="btn-primary">Enregistrer les modifications</button></div>
+                    <div className="mt-5">{noticeBanner}</div>
+                    <div className="flex justify-end"><button type="submit" className="btn-primary">Enregistrer les modifications</button></div>
                 </form>
             )}
 
@@ -270,7 +298,7 @@ export default function ProfilePage() {
                             {user?.photo_url ? <img src={user.photo_url} alt="Photo de profil" className="h-20 w-20 rounded-2xl object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100 text-blue-700"><User className="h-8 w-8" /></div>}
                             <label className="absolute -bottom-2 -right-2 cursor-pointer rounded-full bg-blue-600 p-2 text-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-brass)]" title="Modifier la photo">
                                 {/* sr-only (et non hidden) : le champ reste atteignable au clavier et annoncé par les lecteurs d'écran. */}
-                                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" aria-label="Modifier la photo de profil" disabled={photoBusy} onChange={e => uploadPhoto(e.target.files?.[0])} />
+                                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" aria-label="Modifier la photo de profil" disabled={photoBusy} onChange={e => { uploadPhoto(e.target.files?.[0]); e.target.value = ""; }} />
                                 <span aria-hidden="true">✎</span>
                             </label>
                         </div>

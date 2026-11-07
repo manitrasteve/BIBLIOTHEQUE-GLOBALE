@@ -6,12 +6,18 @@ import remarkGfm from "remark-gfm";
 let mathPlugins = null;
 let mathLoading = null;
 function loadMath() {
-    mathLoading ??= import("./aiMathPlugins").then((m) => (mathPlugins = m));
+    mathLoading ??= import("./aiMathPlugins")
+        .then((m) => (mathPlugins = m))
+        .catch((error) => {
+            // Échec (réseau, nouvelle version du site) : la prochaine réponse pourra retenter le chargement.
+            mathLoading = null;
+            throw error;
+        });
     return mathLoading;
 }
 
-// Formule probable : $…$, $$…$$, \( … \) ou \[ … \].
-const MATH_HINT = /\$[^$\n]+\$|\$\$|\\\(|\\\[/;
+// Formule probable : $…$ (éventuellement sur plusieurs lignes), $$…$$, \( … \) ou \[ … \].
+const MATH_HINT = /\$[^$]+\$|\$\$|\\\(|\\\[/;
 
 // Rendu sûr (pas de HTML brut) des réponses de l'assistant :
 // Markdown + tableaux + formules LaTeX ($...$ et $$...$$).

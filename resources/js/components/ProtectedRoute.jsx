@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) {
-    return <Navigate to="/connexion" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/connexion" state={{ from: location.pathname + location.search + location.hash }} replace />;
   }
 
   return children;

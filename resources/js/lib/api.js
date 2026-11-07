@@ -8,11 +8,17 @@ function getToken() {
 // l'AuthProvider (« auth:expired ») qui ferme la session ; les routes protégées renvoient alors à la connexion.
 // Requêtes sans jeton (connexion, pages publiques) : un 401 n'est qu'une erreur ordinaire.
 // Jeton remplacé entre-temps (nouvelle connexion) : la réponse périmée ne touche pas à la nouvelle session.
-function handleUnauthorized(status, sentToken) {
+export function handleUnauthorized(status, sentToken) {
     if (status !== 401 || !sentToken) return;
     if (getToken() !== sentToken) return;
     localStorage.removeItem("bm_token");
     window.dispatchEvent(new Event("auth:expired"));
+}
+
+// Une action a changé un compteur (notification lue, message supprimé…) : la cloche et les badges du menu se rechargent.
+export const BADGES_CHANGED_EVENT = "bm:badges-changed";
+export function notifyBadgesChanged() {
+    window.dispatchEvent(new Event(BADGES_CHANGED_EVENT));
 }
 
 // Lecteur SSE générique (POST) : onDelta reçoit chaque fragment « delta » au fil de l'eau,
@@ -530,6 +536,25 @@ export const api = {
     },
 
     getManagedDocument: (id) => request(`/documents-manage/${id}`),
+
+    // Personnel : PDF d'un document, quel que soit son statut, affiché dans `tab` (onglet ouvert au clic,
+    // pour ne pas être bloqué par le navigateur). L'URL locale est libérée une fois le PDF chargé par l'onglet.
+    openManagedDocumentPdf: async (id, tab) => {
+        const token = getToken();
+        const response = await fetch(`${API_URL}/documents-manage/${id}/stream`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+            handleUnauthorized(response.status, token);
+            const data = await response.json().catch(() => null);
+            const error = new Error(data?.message || "Le PDF n'a pas pu être ouvert.");
+            error.status = response.status;
+            throw error;
+        }
+        const url = URL.createObjectURL(new Blob([await response.blob()], { type: "application/pdf" }));
+        tab.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    },
 
     createDocument: (formData) =>
         request("/documents", {

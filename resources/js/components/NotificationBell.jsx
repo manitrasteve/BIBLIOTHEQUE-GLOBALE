@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
-import { api } from "../lib/api";
+import { api, BADGES_CHANGED_EVENT } from "../lib/api";
 import { useToast } from "./Toast";
 
 // Clé de mémorisation (par visiteur) de la dernière notification déjà signalée : évite de
@@ -65,10 +65,13 @@ export default function NotificationBell({ isAdmin = false, isLibrarian = false 
         refresh();
         const interval = setInterval(onVisible, 20000);
         document.addEventListener("visibilitychange", onVisible);
+        // Notification lue ou non lue depuis la page Notifications : compteur à jour sans attendre.
+        window.addEventListener(BADGES_CHANGED_EVENT, refresh);
         return () => {
             mounted = false;
             clearInterval(interval);
             document.removeEventListener("visibilitychange", onVisible);
+            window.removeEventListener(BADGES_CHANGED_EVENT, refresh);
         };
     }, [toast]);
 

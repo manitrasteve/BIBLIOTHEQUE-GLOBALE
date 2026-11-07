@@ -54,6 +54,19 @@ export function AuthProvider({ children }) {
         return () => window.removeEventListener("auth:expired", clearSession);
     }, []);
 
+    // Déconnexion ou connexion dans un autre onglet : sans cela, cet onglet gardait les données
+    // privées à l'écran. Autre compte : rechargement, pour ne rien conserver du précédent.
+    useEffect(() => {
+        function onStorage(event) {
+            if (event.key !== "bm_token" && event.key !== null) return;
+            if (localStorage.getItem("bm_token")) window.location.reload();
+            else clearSession();
+        }
+
+        window.addEventListener("storage", onStorage);
+        return () => window.removeEventListener("storage", onStorage);
+    }, []);
+
     useEffect(() => {
         const token = localStorage.getItem("bm_token");
 
@@ -64,10 +77,13 @@ export function AuthProvider({ children }) {
 
         api.me()
             .then((me) => {
+                // Déconnexion ou changement de compte pendant la requête : réponse périmée.
+                if (localStorage.getItem("bm_token") !== token) return;
                 setUser(me);
                 rememberUser(me);
             })
             .catch((error) => {
+                if (localStorage.getItem("bm_token") !== token) return;
                 if (error?.status === 401 || error?.status === 403) {
                     clearSession();
                     return;
@@ -84,10 +100,13 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         function refreshUser() {
             if (document.visibilityState !== "visible") return;
-            if (!localStorage.getItem("bm_token")) return;
+            const token = localStorage.getItem("bm_token");
+            if (!token) return;
 
             api.me()
                 .then((me) => {
+                    // Déconnexion ou changement de compte pendant la requête : réponse périmée.
+                    if (localStorage.getItem("bm_token") !== token) return;
                     setUser(me);
                     rememberUser(me);
                 })
@@ -95,7 +114,7 @@ export function AuthProvider({ children }) {
                 // l'interface restait « connectée » et chaque page échouait jusqu'au rechargement.
                 // Hors ligne / serveur indisponible : la session est conservée.
                 .catch((error) => {
-                    if (error?.status === 401) clearSession();
+                    if (error?.status === 401 && localStorage.getItem("bm_token") === token) clearSession();
                 });
         }
 

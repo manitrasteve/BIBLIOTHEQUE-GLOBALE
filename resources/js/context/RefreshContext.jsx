@@ -40,6 +40,8 @@ export function RefreshProvider({ children }) {
     const [updatedAt, setUpdatedAt] = useState(null);
     // Nombre d'actualisations réussies : permet à d'autres éléments (badges du menu) de se recharger aussi.
     const [refreshCount, setRefreshCount] = useState(0);
+    // Bouton « Actualiser » seul : les badges du menu gardent leur propre rythme de 60 s.
+    const [manualRefreshCount, setManualRefreshCount] = useState(0);
 
     const markUpdated = useCallback(() => {
         const now = Date.now();
@@ -73,6 +75,7 @@ export function RefreshProvider({ children }) {
             ]);
             markUpdated();
             setRefreshCount((n) => n + 1);
+            setManualRefreshCount((n) => n + 1);
         } finally {
             busyRef.current = false;
             setRefreshing(false);
@@ -120,8 +123,8 @@ export function RefreshProvider({ children }) {
     }, []);
 
     const value = useMemo(
-        () => ({ register, refresh, pause, registered, refreshing, updatedAt, refreshCount, autoRefreshMs: AUTO_REFRESH_MS }),
-        [register, refresh, pause, registered, refreshing, updatedAt, refreshCount],
+        () => ({ register, refresh, pause, registered, refreshing, updatedAt, refreshCount, manualRefreshCount, autoRefreshMs: AUTO_REFRESH_MS }),
+        [register, refresh, pause, registered, refreshing, updatedAt, refreshCount, manualRefreshCount],
     );
 
     return <RefreshContext.Provider value={value}>{children}</RefreshContext.Provider>;

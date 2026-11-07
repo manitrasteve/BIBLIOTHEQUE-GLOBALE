@@ -36,6 +36,7 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 
 const inputClass = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5';
+const LOAD_ERROR = 'Impossible de charger les bibliothèques.';
 
 export default function AdminLibrariesPage() {
     const confirm = useConfirm();
@@ -53,6 +54,9 @@ export default function AdminLibrariesPage() {
   const [form, setForm] = useState(emptyForm);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  // Change à chaque ouverture du formulaire : le champ fichier repart vide (sinon l'ancien nom restait affiché,
+  // et reprendre le même fichier ne déclenchait aucun changement).
+  const [fileKey, setFileKey] = useState(0);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +75,10 @@ export default function AdminLibrariesPage() {
   useEffect(() => {
     load();
   }, []);
-  usePageRefresh(() => api.getLibraries().then(setLibraries));
+  usePageRefresh(() => api.getLibraries().then((list) => {
+    setLibraries(list);
+    setError((current) => (current === LOAD_ERROR ? null : current));
+  }));
 
   useEffect(() => {
     if (!photo) {
@@ -87,12 +94,13 @@ export default function AdminLibrariesPage() {
     api
       .getLibraries()
       .then(setLibraries)
-      .catch(() => setError('Impossible de charger les bibliothèques.'));
+      .catch(() => setError(LOAD_ERROR));
   }
 
   function startCreate() {
     setForm(emptyForm);
     setPhoto(null);
+    setFileKey((key) => key + 1);
     setEditing(null);
     setError(null);
   }
@@ -107,6 +115,7 @@ export default function AdminLibrariesPage() {
       map_link: lib.map_link || '',
     });
     setPhoto(null);
+    setFileKey((key) => key + 1);
     setEditing(lib);
     setError(null);
   }
@@ -157,6 +166,8 @@ export default function AdminLibrariesPage() {
     if (!(await confirm({ title: `Supprimer « ${lib.name} » ?`, message: `Les documents et comptes associés doivent être migrés au préalable.`, danger: true }))) return;
     try {
       await api.deleteLibrary(lib.id);
+      // Bibliothèque en cours de modification : le formulaire ne doit plus viser une fiche supprimée.
+      if (editing?.id === lib.id) startCreate();
       load();
     } catch (err) {
       setError(err.data?.message || 'Suppression impossible (des données y sont probablement encore rattachées).');
@@ -187,7 +198,7 @@ export default function AdminLibrariesPage() {
               ].map(([key, label, value, icon, tone]) => (
                 <StatCard key={key} label={label} value={value} icon={icon} tone={tone} active={coverFilter === key} onClick={() => selectCoverFilter(key)} />
               ))
-            : Array.from({ length: 3 }, (_, i) => <StatCardSkeleton key={i} />)}
+            : error !== LOAD_ERROR && Array.from({ length: 3 }, (_, i) => <StatCardSkeleton key={i} />)}
         </div>
 
         <div ref={listRef} className="scroll-mt-24" />
@@ -195,7 +206,7 @@ export default function AdminLibrariesPage() {
         {error && <p className="mb-4 text-red-700">{error}</p>}
 
         {libraries === null ? (
-          <SkeletonList count={4} />
+          error !== LOAD_ERROR && <SkeletonList count={4} />
         ) : (
           <>
             <form onSubmit={(e) => e.preventDefault()} className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -326,6 +337,7 @@ export default function AdminLibrariesPage() {
                 {editing ? 'Remplacer la photo de couverture' : 'Ajouter une photo de couverture *'}
               </label>
               <input
+                key={fileKey}
                 id="library-cover"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"

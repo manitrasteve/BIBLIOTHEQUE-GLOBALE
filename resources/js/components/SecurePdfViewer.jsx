@@ -13,7 +13,7 @@ import {
     StickyNote,
     X,
 } from "lucide-react";
-import { api } from "../lib/api";
+import { api, handleUnauthorized } from "../lib/api";
 import { sessionMemory } from "../lib/sessionMemory";
 import { finishTopProgress, startTopProgress } from "../lib/topProgress";
 import ReaderTextView, { buildTextBlocks } from "./ReaderTextView";
@@ -136,10 +136,12 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
 
     useEffect(() => {
         let cancelled = false;
+        let loadingTask = null; // libéré au nettoyage : sinon le worker et le fichier restaient en mémoire
 
         async function load() {
             setLoading(true);
             setError(null);
+            setPdf(null);
             firstPaintRef.current = false;
             startTopProgress();
             // Nouveau document : aucune recherche précédente ne doit subsister.
@@ -154,19 +156,29 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
             setTextView({ state: "loading", pageNum: 0, blocks: [] });
             try {
                 const token = localStorage.getItem("bm_token");
+                // Réseau coupé : message lisible plutôt que « Failed to fetch ».
+                const networkError = () => {
+                    throw new Error("Connexion au serveur impossible. Vérifiez votre réseau puis réessayez.");
+                };
                 const r = await fetch(api.streamDocumentUrl(slug), {
                     headers: { Authorization: `Bearer ${token}` },
-                });
+                }).catch(networkError);
                 if (!r.ok) {
+                    // Même traitement que les autres requêtes : une session expirée ferme la session locale.
+                    handleUnauthorized(r.status, token);
                     throw new Error(
                         r.status === 403
                             ? "Vous n'avez pas les droits nécessaires pour consulter ce document."
-                            : "Impossible de charger le document.",
+                            : r.status === 401
+                              ? "Votre session a expiré. Reconnectez-vous pour lire ce document."
+                              : "Impossible de charger le document.",
                     );
                 }
-                const buffer = await r.arrayBuffer();
+                const buffer = await r.arrayBuffer().catch(networkError);
+                if (cancelled) return;
                 // Fichier corrompu ou qui n'est pas un vrai PDF : message lisible plutôt que l'erreur technique de pdf.js.
-                const doc = await pdfjsLib.getDocument({ data: buffer }).promise.catch((pdfError) => {
+                loadingTask = pdfjsLib.getDocument({ data: buffer });
+                const doc = await loadingTask.promise.catch((pdfError) => {
                     // Cause réelle gardée dans la console (fichier abîmé, worker pdf.js indisponible…).
                     console.error("pdf.js :", pdfError);
                     throw new Error(
@@ -198,6 +210,7 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
             cancelled = true;
             // Lecteur fermé avant la fin du chargement : la barre ne reste pas affichée.
             if (!firstPaintRef.current) finishTopProgress();
+            loadingTask?.destroy();
         };
     }, [slug]);
 
@@ -282,7 +295,8 @@ export default function SecurePdfViewer({ slug, readerName, libraryName, initial
             }
         }
 
-        render();
+        // Document libéré pendant le rendu (lecteur fermé) : sans conséquence.
+        render().catch(() => {});
         return () => {
             cancelled = true;
         };

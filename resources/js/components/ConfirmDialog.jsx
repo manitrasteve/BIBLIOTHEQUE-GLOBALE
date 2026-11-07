@@ -136,6 +136,7 @@ export default function ConfirmDialog({
                 </div>
             </div>
         </div>,
-        document.body,
+        // Plein écran (lecteur PDF) : seul l'élément en plein écran est visible, la fenêtre doit s'y afficher.
+        document.fullscreenElement || document.body,
     );
 }

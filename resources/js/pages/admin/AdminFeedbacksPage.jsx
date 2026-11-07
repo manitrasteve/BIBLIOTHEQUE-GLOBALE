@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, LifeBuoy, Trash2, Inbox as InboxIcon, Sparkles, Eye, Clock3, CheckCircle2 } from "lucide-react";
+import { MessageSquare, LifeBuoy, Trash2, Inbox as InboxIcon, Sparkles, CheckCircle2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
@@ -44,10 +44,14 @@ function Inbox({ kind }) {
 
     // Le serveur pagine (20 par page) : les actions rechargent la page courante.
     // `rethrow` : l'échec remonte au bouton « Actualiser » (sinon il est ignoré).
+    // Seule la réponse à la dernière requête est affichée (clics rapides sur les cartes).
+    const latestRequest = useRef(0);
     function load(page = meta?.current_page || 1, { rethrow = false } = {}) {
+        const requestId = ++latestRequest.current;
         const params = { page, ...(filter === "total" ? {} : { status: filter }) };
         return (isFeedback ? api.getFeedbacks(params) : api.getProblemReports(params))
             .then((r) => {
+                if (requestId !== latestRequest.current) return undefined;
                 // Dernier élément d'une page supprimé : retour à la page précédente.
                 if (!(r.data || []).length && page > 1) return load(page - 1, { rethrow });
                 setError(null);
@@ -56,6 +60,7 @@ function Inbox({ kind }) {
                 setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
             })
             .catch((e) => {
+                if (requestId !== latestRequest.current) return;
                 setError(isFeedback ? "Impossible de charger les avis." : "Impossible de charger les signalements.");
                 setRows((current) => current ?? []);
                 if (rethrow) throw e;
@@ -149,12 +154,12 @@ function Inbox({ kind }) {
             </div>
 
             {/* Cartes de compteurs : un clic filtre la liste (« Total » ou la carte active : tout). */}
-            <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-live="polite">
+            <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3" role="status" aria-live="polite">
+                {/* Pas de carte « Lus » / « En cours » : aucune action de l'application ne pose ces statuts. */}
                 {counts
                     ? [
                           ["total", "Total", InboxIcon, undefined],
                           ["nouveau", "Nouveaux", Sparkles, "warning"],
-                          isFeedback ? ["lu", "Lus", Eye, undefined] : ["en_cours", "En cours", Clock3, undefined],
                           ["traite", "Traités", CheckCircle2, "success"],
                       ].map(([key, label, icon, tone]) => (
                           <StatCard
@@ -167,7 +172,7 @@ function Inbox({ kind }) {
                               onClick={() => selectFilter(key)}
                           />
                       ))
-                    : Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
+                    : !error && Array.from({ length: 3 }, (_, i) => <StatCardSkeleton key={i} />)}
             </div>
 
             <div ref={listRef} className="scroll-mt-24" />
@@ -194,6 +199,12 @@ function Inbox({ kind }) {
                                 <p className="mt-3 text-sm text-slate-600">
                                     {r.message || r.description}
                                 </p>
+                                {r.screenshot_url && (
+                                    <a href={r.screenshot_url} target="_blank" rel="noopener noreferrer" className="mt-3 block w-fit">
+                                        <img src={r.screenshot_url} alt="Capture d’écran jointe au signalement" loading="lazy" className="max-h-40 rounded-lg border border-line object-contain" />
+                                        <span className="mt-1 block text-xs font-semibold text-brass">Ouvrir la capture</span>
+                                    </a>
+                                )}
                                 {r.rating && (
                                     <p className="mt-2">
                                         {"★".repeat(r.rating)}

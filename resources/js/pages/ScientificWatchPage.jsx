@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Radar, Plus, Trash2, Tag, Hash } from "lucide-react";
 import { api } from "../lib/api";
@@ -24,6 +24,16 @@ export default function ScientificWatchPage() {
     const [selected, setSelected] = useState(null);
     const [documents, setDocuments] = useState(null);
     const [docPage, setDocPage] = useState(1);
+    // Documents vus comme nouveaux depuis l'ouverture du thème : leur badge reste affiché après le marquage
+    // « vu » côté serveur (l'actualisation suivante renvoie is_new = false).
+    const [newSlugs, setNewSlugs] = useState(() => new Set());
+    // Dernier chargement de documents lancé : une actualisation en cours pour un autre thème est ignorée.
+    const docsRequest = useRef(0);
+
+    function rememberNew(res) {
+        const fresh = (res.data || []).filter((d) => d.is_new).map((d) => d.slug);
+        if (fresh.length) setNewSlugs((current) => new Set([...current, ...fresh]));
+    }
 
     function loadTopics() {
         return api
@@ -41,20 +51,26 @@ export default function ScientificWatchPage() {
     }, []);
 
     useEffect(() => {
+        setNewSlugs(new Set());
+    }, [selected?.id]);
+
+    useEffect(() => {
         if (!selected) return undefined;
         let active = true;
+        docsRequest.current += 1;
         setDocuments(null);
         api.getWatchTopicDocuments(selected.id, { page: docPage })
             .then((res) => {
                 if (!active) return;
                 setDocuments(res);
+                rememberNew(res);
                 // Les « Nouveau » restent affichés ; les nouveautés sont marquées vues côté serveur
                 // et les compteurs des thèmes actualisés.
                 if (docPage === 1 && res.data.some((d) => d.is_new)) {
                     api.markWatchTopicSeen(selected.id).then(loadTopics).catch(() => {});
                 }
             })
-            .catch(() => active && setDocuments({ data: [] }));
+            .catch(() => active && setDocuments({ data: [], failed: true }));
         return () => {
             active = false;
         };
@@ -64,7 +80,14 @@ export default function ScientificWatchPage() {
     usePageRefresh(async () => {
         const res = await api.getWatchTopics();
         setTopics(res.data || []);
-        if (selected) setDocuments(await api.getWatchTopicDocuments(selected.id, { page: docPage }));
+        if (selected) {
+            const requestId = docsRequest.current;
+            const res = await api.getWatchTopicDocuments(selected.id, { page: docPage });
+            if (requestId === docsRequest.current) {
+                setDocuments(res);
+                rememberNew(res);
+            }
+        }
         setError(null);
     });
 
@@ -222,6 +245,10 @@ export default function ScientificWatchPage() {
                     </h3>
                     {documents === null ? (
                         <p className="text-slate-500">Chargement…</p>
+                    ) : documents.failed ? (
+                        <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+                            Impossible de charger les documents de ce thème.
+                        </p>
                     ) : documents.data.length === 0 ? (
                         <div className="modern-card p-5 text-center text-slate-500">
                             Aucun document ne correspond à ce thème pour l'instant.
@@ -236,7 +263,7 @@ export default function ScientificWatchPage() {
                                     >
                                         <p className="break-words font-bold text-slate-900">
                                             {doc.title}
-                                            {doc.is_new && (
+                                            {(doc.is_new || newSlugs.has(doc.slug)) && (
                                                 <span className="ml-2 rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white">
                                                     Nouveau
                                                 </span>

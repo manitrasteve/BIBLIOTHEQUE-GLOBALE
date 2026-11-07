@@ -108,12 +108,18 @@ export default function AdminHomepageEditorPage() {
         setErrors({});
     }
 
-    useEffect(() => {
+    // Échec du chargement : pas d'éditeur vide, dont la publication remplacerait toute la page d'accueil.
+    const [loadError, setLoadError] = useState(null);
+    function loadEditor() {
+        setLoading(true);
+        setLoadError(null);
         api.getHomepageAdmin()
             .then(applyState)
-            .catch((e) => setNotice({ type: "error", text: e.message || "Chargement impossible." }))
+            .catch((e) => setLoadError(e.message || "Chargement impossible."))
             .finally(() => setLoading(false));
-    }, []);
+    }
+
+    useEffect(loadEditor, []);
 
     // Avertit avant de quitter la page avec des modifications non enregistrées.
     useEffect(() => {
@@ -246,6 +252,15 @@ export default function AdminHomepageEditorPage() {
         return (
             <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" /> Chargement de l'éditeur…
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+                <p>{loadError}</p>
+                <button type="button" onClick={loadEditor} className="btn-secondary mt-3">Réessayer</button>
             </div>
         );
     }

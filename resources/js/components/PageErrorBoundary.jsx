@@ -13,7 +13,7 @@ export default class PageErrorBoundary extends Component {
     }
 
     componentDidCatch(error) {
-        const chunkError = /dynamically imported module|Importing a module script failed|Loading chunk/i.test(String(error?.message));
+        const chunkError = /dynamically imported module|Importing a module script failed|Loading chunk|Unable to preload CSS/i.test(String(error?.message));
         try {
             // Au plus un rechargement automatique par minute : jamais de boucle si l'erreur persiste.
             const last = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);

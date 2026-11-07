@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heart } from "lucide-react";
 import { api } from "../lib/api";
 import CatalogueCard, { CATALOGUE_GRID_CLASS } from "../components/CatalogueCard";
@@ -12,6 +12,8 @@ import { useFavoriteToggle } from "../lib/useFavoriteToggle";
 const OFFLINE_KEY = "bm_offline_favorites";
 
 function saveOffline(page, response) {
+    // Déconnexion pendant la requête : rien n'est réécrit après l'effacement de la copie locale.
+    if (!localStorage.getItem("bm_token")) return;
     try {
         const saved = JSON.parse(localStorage.getItem(OFFLINE_KEY)) || { pages: {} };
         saved.pages[page] = response;
@@ -40,16 +42,29 @@ export default function FavoritesPage() {
     const [meta, setMeta] = useState(null);
     const [offlineSince, setOfflineSince] = useState(null);
 
+    // Réponse du serveur : page devenue vide (derniers favoris retirés) => page précédente. Une réponse
+    // périmée (la page a changé entre-temps) est ignorée.
+    const requestRef = useRef(0);
+    function applyResponse(requestId, response) {
+        if (requestId !== requestRef.current) return;
+        if (!response?.data?.length && page > 1) {
+            setPage(page - 1);
+            return;
+        }
+        setItems(Array.isArray(response?.data) ? response.data : []);
+        setMeta(response);
+        saveOffline(page, response);
+    }
+
     async function load() {
         setError(null);
         setOfflineSince(null);
+        const requestId = ++requestRef.current;
 
         try {
-            const response = await api.getFavorites(page);
-            setItems(Array.isArray(response?.data) ? response.data : []);
-            setMeta(response);
-            saveOffline(page, response);
+            applyResponse(requestId, await api.getFavorites(page));
         } catch (err) {
+            if (requestId !== requestRef.current) return;
             // Pas de réponse du serveur : dernière liste enregistrée sur cet appareil, si elle existe.
             const offline = !err?.status ? readOffline(page) : null;
             if (offline) {
@@ -71,10 +86,8 @@ export default function FavoritesPage() {
 
     // Actualisation : en cas d'échec, la liste affichée est conservée (pas de bascule vers la copie hors ligne).
     usePageRefresh(async () => {
-        const response = await api.getFavorites(page);
-        setItems(Array.isArray(response?.data) ? response.data : []);
-        setMeta(response);
-        saveOffline(page, response);
+        const requestId = ++requestRef.current;
+        applyResponse(requestId, await api.getFavorites(page));
         setError(null);
         setOfflineSince(null);
     });
@@ -91,6 +104,11 @@ export default function FavoritesPage() {
     );
 
     const visible = (items || []).filter((item) => item?.document && !item.removed);
+
+    // Tous les favoris de cette page retirés : on passe à la page précédente au lieu d'annoncer une liste vide.
+    useEffect(() => {
+        if (items?.length && visible.length === 0 && page > 1) setPage(page - 1);
+    }, [items]);
 
     return (
         <div>

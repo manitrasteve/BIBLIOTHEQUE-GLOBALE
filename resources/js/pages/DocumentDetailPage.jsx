@@ -223,8 +223,13 @@ export default function DocumentDetailPage() {
         });
     }, [docReadable, tab]);
 
+    // Une seule requête à la fois : un double clic ajoutait puis retirait aussitôt le favori.
+    const favoriteBusy = useRef(false);
+
     async function toggleFavorite() {
         if (!user) return navigate("/connexion");
+        if (favoriteBusy.current) return;
+        favoriteBusy.current = true;
 
         setFavoriteError(null);
 
@@ -237,6 +242,8 @@ export default function DocumentDetailPage() {
                 err?.data?.message ||
                     "Impossible de mettre à jour vos favoris.",
             );
+        } finally {
+            favoriteBusy.current = false;
         }
     }
 

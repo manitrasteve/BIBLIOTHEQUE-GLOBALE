@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { api } from "../lib/api";
 import AuthField from "../components/AuthField";
@@ -20,6 +20,13 @@ export default function PasswordSetupPage() {
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    // Lien refusé à l'ouverture : pas de formulaire, l'envoi échouerait de toute façon.
+    const [linkInvalid, setLinkInvalid] = useState(false);
+    // Mot de passe créé : le lien est consommé, un second envoi afficherait « Lien invalide ».
+    const [done, setDone] = useState(false);
+    const redirectTimer = useRef(null);
+
+    useEffect(() => () => clearTimeout(redirectTimer.current), []);
 
     useEffect(() => {
         let cancelled = false;
@@ -27,6 +34,7 @@ export default function PasswordSetupPage() {
         async function loadAccount() {
             if (!token) {
                 setLoading(false);
+                setLinkInvalid(true);
                 setError("Lien invalide : le token est absent.");
                 return;
             }
@@ -42,6 +50,8 @@ export default function PasswordSetupPage() {
             } catch (err) {
                 if (!cancelled) {
                     setLoading(false);
+                    // Réseau coupé ou trop de tentatives : le lien est peut-être valide, le formulaire reste proposé.
+                    if (err?.status === 404 || err?.status === 410) setLinkInvalid(true);
                     setError(
                         err?.data?.message ||
                             err?.message ||
@@ -87,11 +97,12 @@ export default function PasswordSetupPage() {
                 password_confirmation: passwordConfirmation,
             }));
 
+            setDone(true);
             setMessage(
                 "Votre mot de passe a été créé. Votre compte est maintenant actif.",
             );
 
-            setTimeout(() => {
+            redirectTimer.current = setTimeout(() => {
                 navigate("/connexion");
             }, 1500);
         } catch (err) {
@@ -113,6 +124,25 @@ export default function PasswordSetupPage() {
                     <p className="text-sm text-slate-500">
                         Vérification de votre lien...
                     </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (linkInvalid) {
+        return (
+            <div className="mx-auto w-full max-w-lg px-4 py-8">
+                <div className="modern-card w-full space-y-4 p-5 sm:p-7">
+                    <h1 className="font-display text-2xl font-extrabold">
+                        Lien de création indisponible
+                    </h1>
+                    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                    <p className="text-sm text-slate-500">
+                        Si votre mot de passe est déjà créé, connectez-vous. Sinon, demandez un nouveau lien au Service Numérique.
+                    </p>
+                    <Link to="/connexion" className="btn-primary inline-flex justify-center">Aller à la connexion</Link>
                 </div>
             </div>
         );
@@ -182,8 +212,8 @@ export default function PasswordSetupPage() {
 
                 <button
                     type="submit"
-                    disabled={submitting}
-                    className="btn-primary flex w-full items-center justify-center gap-2 !py-3.5"
+                    disabled={submitting || done}
+                    className="btn-primary flex w-full items-center justify-center gap-2 !py-3.5 disabled:opacity-50"
                 >
                     <Lock className="h-4 w-4" />
 

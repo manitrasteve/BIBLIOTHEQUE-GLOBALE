@@ -4,6 +4,7 @@ import { Lock, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import AuthField from "../components/AuthField";
 import { finishTopProgress, startTopProgress } from "../lib/topProgress";
+import { canAccessPath, defaultPathFor } from "../lib/routeAccess";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -25,16 +26,13 @@ export default function LoginPage() {
             finishTopProgress();
 
             // Page protégée demandée avant la connexion (ProtectedRoute / RoleRoute / PermissionRoute) :
-            // on y retourne, si c'est bien un chemin interne autre que la page de connexion.
+            // on y retourne, si c'est bien un chemin interne autre que la page de connexion et que ce compte
+            // y a accès (session d'un autre rôle expirée sur cette page : page d'accueil de son propre espace).
             const from = location.state?.from;
-            if (typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/connexion")) {
+            if (typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/connexion") && canAccessPath(from, connectedUser)) {
                 navigate(from, { replace: true });
-            } else if (connectedUser.role === "administrateur") {
-                navigate("/administrateur/statistiques", { replace: true });
-            } else if (connectedUser.role === "bibliothecaire") {
-                navigate("/bibliothecaire/tableau-de-bord", { replace: true });
             } else {
-                navigate("/tableau-de-bord", { replace: true });
+                navigate(defaultPathFor(connectedUser), { replace: true });
             }
         } catch (err) {
             finishTopProgress(true);

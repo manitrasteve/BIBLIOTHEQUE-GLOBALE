@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Mail, Trash2, UserRound, CheckCheck, Search, SlidersHorizontal, X } from "lucide-react";
-import { api } from "../lib/api";
+import { api, notifyBadgesChanged } from "../lib/api";
 import Pager from "../components/Pager";
 import { useConfirm } from "../components/ConfirmDialog";
 import { usePageRefresh } from "../context/RefreshContext";
@@ -47,6 +47,11 @@ export default function MessagesPage() {
         const requestId = ++requestRef.current;
         const response = await api.getMessages(page, query);
         if (requestId !== requestRef.current) return;
+        // Page devenue vide (derniers messages supprimés) : retour à la page précédente.
+        if (!(response.data || []).length && page > 1) {
+            setPage(page - 1);
+            return;
+        }
         setItems(response.data || []);
         setMeta(response);
         setError(null);
@@ -59,11 +64,15 @@ export default function MessagesPage() {
     useEffect(() => { load(); }, [page, debouncedSearch, filters]);
     usePageRefresh(fetchMessages);
 
+    // Lien « ?message= » traité une seule fois par message : sans cela, un marquage « lu » en échec relançait
+    // load() puis open() sans fin, et chaque actualisation ramenait le défilement sur ce message.
+    const handledMessage = useRef(null);
     useEffect(() => {
         const id = params.get("message");
-        if (!id || !items) return;
+        if (!id || !items || handledMessage.current === id) return;
         const item = items.find((x) => String(x.id) === String(id));
         if (item) {
+            handledMessage.current = id;
             setTimeout(() => document.getElementById(`message-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
             if (!item.read_at) open(item);
         }
@@ -84,16 +93,25 @@ export default function MessagesPage() {
     async function open(item) {
         if (item.read_at) return;
         setItems((current) => current.map((x) => x.id === item.id ? { ...x, read_at: new Date().toISOString() } : x));
-        try { await api.markMessageRead(item.id); } catch { load(); }
+        try { await api.markMessageRead(item.id); notifyBadgesChanged(); } catch { load(); }
     }
     async function remove(id) {
         if (!(await confirm({ title: "Supprimer ce message de votre compte ?", danger: true }))) return;
-        try { await api.deleteMessage(id); setItems((current) => current.filter((x) => x.id !== id)); }
+        try {
+            await api.deleteMessage(id);
+            setItems((current) => current.filter((x) => x.id !== id));
+            notifyBadgesChanged();
+            // Dernier message de la page : on affiche la page voisine au lieu d'une liste vide.
+            if (items.length <= 1) {
+                if (page > 1) setPage(page - 1);
+                else load();
+            }
+        }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }
     async function clear() {
         if (!(await confirm({ title: "Supprimer tous vos historiques/messages ?", danger: true }))) return;
-        try { await api.clearMessages(); setItems([]); setMeta(null); }
+        try { await api.clearMessages(); setItems([]); setMeta(null); setPage(1); notifyBadgesChanged(); }
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }
 

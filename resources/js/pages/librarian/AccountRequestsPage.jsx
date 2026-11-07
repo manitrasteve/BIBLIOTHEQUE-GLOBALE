@@ -195,6 +195,10 @@ export default function AccountRequestsPage() {
     // Sélection multiple (administrateur) : seules les demandes encore à traiter (non validées / vérifiées)
     // peuvent être cochées. La sélection est vidée à chaque rechargement de la liste.
     const isAdmin = user?.role === "administrateur";
+    // Bibliothécaire : validation d'une demande vérifiée avec « valider_demande_compte » (ligne par ligne : la
+    // validation groupée reste réservée à l'administrateur côté serveur). Renvoi du lien : « ajouter_utilisateur ».
+    const canValidateVerified = !isAdmin && !!user?.permissions?.includes("valider_demande_compte");
+    const canResendLink = isAdmin || !!user?.permissions?.includes("ajouter_utilisateur");
     const [selected, setSelected] = useState(() => new Set());
     const [bulk, setBulk] = useState(null); // { action: 'validate' | 'reject', all: bool } : confirmation ouverte
     const [bulkBusy, setBulkBusy] = useState(false);
@@ -335,6 +339,16 @@ export default function AccountRequestsPage() {
                         </button>
                     </>
                 )}
+                {canValidateVerified && r.status === "verifiee" && (
+                    <button
+                        onClick={() => setRowAction({ action: "validate", row: r })}
+                        disabled={busyId !== null}
+                        className="btn-primary disabled:opacity-50"
+                    >
+                        <ShieldCheck className="h-4 w-4" />
+                        {busyId === r.id ? "Validation…" : "Valider"}
+                    </button>
+                )}
                 {/* Administrateur : validation directe, sans étape « Vérifier ». */}
                 {user?.role === "administrateur" && ["en_attente", "verifiee"].includes(r.status) && (
                     <>
@@ -366,14 +380,16 @@ export default function AccountRequestsPage() {
                             <Clock3 className="h-4 w-4" />
                             Lien expiré
                         </span>
-                        <button
-                            onClick={() => resendLink(r.id)}
-                            disabled={busyId !== null}
-                            className="btn-secondary disabled:opacity-50"
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                            {busyId === r.id ? "Envoi…" : "Renvoyer le lien"}
-                        </button>
+                        {canResendLink && (
+                            <button
+                                onClick={() => resendLink(r.id)}
+                                disabled={busyId !== null}
+                                className="btn-secondary disabled:opacity-50"
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                {busyId === r.id ? "Envoi…" : "Renvoyer le lien"}
+                            </button>
+                        )}
                     </>
                 ) : r.status === "validee" && (
                     <>
@@ -381,15 +397,17 @@ export default function AccountRequestsPage() {
                             <Clock3 className="h-4 w-4" />
                             Lien envoyé
                         </span>
-                        <button
-                            onClick={() => resendLink(r.id)}
-                            disabled={busyId !== null}
-                            title="Renvoyer le lien de création du mot de passe"
-                            aria-label="Renvoyer le lien de création du mot de passe"
-                            className="btn-secondary !px-2.5 disabled:opacity-50"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${busyId === r.id ? "animate-spin" : ""}`} />
-                        </button>
+                        {canResendLink && (
+                            <button
+                                onClick={() => resendLink(r.id)}
+                                disabled={busyId !== null}
+                                title="Renvoyer le lien de création du mot de passe"
+                                aria-label="Renvoyer le lien de création du mot de passe"
+                                className="btn-secondary !px-2.5 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${busyId === r.id ? "animate-spin" : ""}`} />
+                            </button>
+                        )}
                     </>
                 )}
             </>

@@ -15,6 +15,8 @@ export default function StaffDiscussionPage() {
     const [conversation, setConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
+    // Bibliothécaire : administrateur qui recevra la réponse (fil unique pouvant mêler plusieurs administrateurs).
+    const [interlocutor, setInterlocutor] = useState(null);
     const [error, setError] = useState(null);
     const isAdmin = user?.role === "administrateur";
 
@@ -27,6 +29,8 @@ export default function StaffDiscussionPage() {
         // Changement de conversation : on vide l'affichage pour ne jamais écrire au mauvais destinataire.
         setConversation(null);
         setMessages([]);
+        setInterlocutor(null);
+        setText("");
         try {
             const response = isAdmin ? await api.getStaffConversation(id) : await api.getMyStaffConversation();
             if (requestId !== latestRequest.current) return;
@@ -34,6 +38,7 @@ export default function StaffDiscussionPage() {
             if (requestId !== latestRequest.current) return;
             setConversation(response.conversation);
             setMessages(result.messages || []);
+            setInterlocutor(result.interlocutor || null);
             setError(null);
         } catch (e) { if (requestId === latestRequest.current) setError(e?.data?.message || "Impossible de charger la discussion."); }
     }
@@ -57,7 +62,10 @@ export default function StaffDiscussionPage() {
         if (conversation) {
             const requestId = latestRequest.current;
             const result = await api.getStaffMessages(conversation.id);
-            if (requestId === latestRequest.current) setMessages(result.messages || []);
+            if (requestId === latestRequest.current) {
+                setMessages(result.messages || []);
+                setInterlocutor(result.interlocutor || null);
+            }
         }
         setError(null);
     });
@@ -67,12 +75,15 @@ export default function StaffDiscussionPage() {
         if (!text.trim() || !conversation || sending) return;
         const recipientId = isAdmin ? conversation.librarian_id : conversation.admin_id;
         const requestId = latestRequest.current;
+        const sent = text.trim();
         setSending(true);
         try {
-            const result = await api.sendStaffMessage({ recipient_id: recipientId, message: text.trim() });
+            const result = await api.sendStaffMessage({ recipient_id: recipientId, message: sent });
+            // Message parti : il ne reste jamais dans le champ, même si la conversation a changé entre-temps
+            // (un nouveau brouillon commencé depuis, différent, est conservé).
+            setText((current) => (current.trim() === sent ? "" : current));
             if (requestId !== latestRequest.current) return;
             setMessages((list) => [...list, result.data]);
-            setText("");
         } catch (e) { if (requestId === latestRequest.current) setError(e?.data?.message || "Envoi impossible."); }
         finally { setSending(false); }
     }
@@ -89,7 +100,7 @@ export default function StaffDiscussionPage() {
         catch (e) { setError(e?.data?.message || "Suppression impossible."); }
     }
 
-    const otherName = isAdmin ? conversation?.librarian?.name : conversation?.admin?.name;
+    const otherName = isAdmin ? conversation?.librarian?.name : interlocutor?.name || conversation?.admin?.name;
 
     return (
         <div className="w-full">
@@ -110,10 +121,10 @@ export default function StaffDiscussionPage() {
             {isAdmin && <div className="mb-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-surface p-2">{librarians.map((l) => <button key={l.id} onClick={() => setSelectedId(String(l.id))} className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold ${String(l.id) === String(selectedId) ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-indigo-50"}`}><UserRound className="mr-1 inline h-4 w-4" />{l.name}</button>)}</div>}
             {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {!conversation ? <div className="modern-card p-10 text-center text-slate-500">Sélectionnez une conversation.</div> : <div className="modern-card overflow-hidden">
-                <div className="border-b border-slate-200 bg-indigo-50 p-4"><p className="font-bold text-brass-deep">Conversation avec {otherName}</p><p className="text-xs text-brass-deep">Messages privés entre le personnel.</p></div>
+                <div className="border-b border-slate-200 bg-indigo-50 p-4"><p className="font-bold text-brass-deep">Conversation avec {otherName}</p><p className="text-xs text-brass-deep">{!isAdmin && interlocutor?.name ? `Votre réponse sera envoyée à ${interlocutor.name}.` : "Messages privés entre le personnel."}</p></div>
                 <div className="min-h-72 max-h-[calc(100dvh-24rem)] space-y-3 overflow-y-auto bg-slate-50 p-4">
                     {messages.length === 0 && <p className="py-16 text-center text-sm text-slate-500">Aucun message. Commencez la discussion.</p>}
-                    {messages.map((m) => { const mine = Number(m.sender_id) === Number(user.id); return <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`group max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-indigo-600 text-white" : "bg-surface text-slate-800 border border-slate-200"}`}><p className="whitespace-pre-wrap text-sm leading-6">{m.message}</p><div className={`mt-1 flex items-center justify-between gap-4 text-[10px] ${mine ? "text-on-primary-soft" : "text-slate-400"}`}><span>{new Date(m.created_at).toLocaleString("fr-FR")}</span><button onClick={() => remove(m.id)} title="Supprimer" className="opacity-70 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>; })}
+                    {messages.map((m) => { const mine = Number(m.sender_id) === Number(user.id); return <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`group max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-indigo-600 text-white" : "bg-surface text-slate-800 border border-slate-200"}`}>{!isAdmin && (mine || m.sender?.name) && <p className={`mb-0.5 text-xs font-bold ${mine ? "text-on-primary-soft" : "text-brass-deep"}`}>{mine ? "Vous" : m.sender.name}</p>}<p className="whitespace-pre-wrap text-sm leading-6">{m.message}</p><div className={`mt-1 flex items-center justify-between gap-4 text-[10px] ${mine ? "text-on-primary-soft" : "text-slate-400"}`}><span>{new Date(m.created_at).toLocaleString("fr-FR")}</span><button onClick={() => remove(m.id)} title="Supprimer" className="opacity-70 hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>; })}
                 </div>
                 <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-surface p-3"><textarea value={text} onChange={(e) => setText(e.target.value)} rows="2" placeholder="Écrire un message…" className="min-w-0 flex-1 rounded-xl" /><button disabled={sending || !text.trim()} className="btn-primary self-end disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-4 w-4" /> {sending ? "Envoi…" : "Envoyer"}</button></form>
             </div>}

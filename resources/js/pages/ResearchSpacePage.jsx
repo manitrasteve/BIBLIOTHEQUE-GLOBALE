@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Microscope, Search, SearchX, RotateCcw } from "lucide-react";
 import { api } from "../lib/api";
@@ -59,23 +59,30 @@ export default function ResearchSpacePage() {
         return params;
     }
 
-    usePageRefresh(() => api.searchDocuments(searchParamsFor()).then((res) => { setResults(res); setError(null); }));
+    // Seule la réponse à la dernière requête est affichée (saisie pendant une actualisation automatique).
+    const requestRef = useRef(0);
+    function fetchResults() {
+        const requestId = ++requestRef.current;
+        return api.searchDocuments(searchParamsFor()).then((res) => {
+            if (requestId !== requestRef.current) return;
+            setResults(res);
+            setError(null);
+        });
+    }
+
+    usePageRefresh(fetchResults);
 
     useEffect(() => {
-        let active = true;
         setResults(null);
         setError(null);
 
-        api.searchDocuments(searchParamsFor())
-            .then((res) => active && setResults(res))
-            .catch(() => {
-                if (!active) return;
-                setError("Impossible de charger les résultats pour le moment.");
-                setResults({ data: [] });
-            });
-        return () => {
-            active = false;
-        };
+        const pending = fetchResults();
+        const requestId = requestRef.current;
+        pending.catch(() => {
+            if (requestId !== requestRef.current) return;
+            setError("Impossible de charger les résultats pour le moment.");
+            setResults({ data: [] });
+        });
     }, [
         debouncedQ,
         debouncedAuthor,

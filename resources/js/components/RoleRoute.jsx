@@ -13,7 +13,7 @@ export default function RoleRoute({ roles, children }) {
   }
 
   if (!user) {
-    return <Navigate to="/connexion" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/connexion" state={{ from: location.pathname + location.search + location.hash }} replace />;
   }
 
   const normalizedRoles = roles.map((role) => role === "admin" ? "administrateur" : role);

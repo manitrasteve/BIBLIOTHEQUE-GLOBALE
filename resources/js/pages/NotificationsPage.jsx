@@ -16,7 +16,7 @@ import {
     SlidersHorizontal,
     X,
 } from "lucide-react";
-import { api } from "../lib/api";
+import { api, notifyBadgesChanged } from "../lib/api";
 import LocalTimeFilters, { EMPTY_TIME_FILTERS } from "../components/LocalTimeFilters";
 import { usePageRefresh } from "../context/RefreshContext";
 import Pager from "../components/Pager";
@@ -126,6 +126,7 @@ export default function NotificationsPage() {
         );
         try {
             await api.markNotificationRead(notification.id);
+            notifyBadgesChanged();
         } catch {
             load(); // resynchronise en cas d'échec
         }
@@ -133,7 +134,7 @@ export default function NotificationsPage() {
 
     async function markUnread(notification) {
         setNotifications((prev)=>(prev||[]).map(n=>n.id===notification.id?{...n,read_at:null}:n));
-        try { await api.markNotificationUnread(notification.id); } catch { load(); }
+        try { await api.markNotificationUnread(notification.id); notifyBadgesChanged(); } catch { load(); }
     }
 
     async function markAllRead() {
@@ -145,12 +146,15 @@ export default function NotificationsPage() {
         );
         try {
             await api.markAllNotificationsRead();
+            notifyBadgesChanged();
         } catch {
             load();
         }
     }
 
-    const hasUnread = notifications?.some((n) => !n.read_at);
+    // Le serveur marque toutes les notifications : le bouton reste proposé s'il y a d'autres pages (non lues
+    // possibles ailleurs), et il est masqué sous un filtre, où il toucherait aussi les notifications non affichées.
+    const canMarkAll = !isFiltering && (notifications?.some((n) => !n.read_at) || meta?.last_page > 1);
 
     return (
         <div className="w-full">
@@ -162,7 +166,7 @@ export default function NotificationsPage() {
                     />
                     Notifications
                 </h1>
-                {hasUnread && (
+                {canMarkAll && (
                     <button
                         onClick={markAllRead}
                         className="flex items-center gap-1.5 text-sm text-blue-700 hover:underline"

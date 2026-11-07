@@ -44,7 +44,7 @@ export default function MyCoursesPage() {
                 <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
                     <BookOpenCheck className="h-5 w-5 text-brass" /> Mes bibliographies de cours
                 </h2>
-                {!creating && (
+                {!creating && data && (
                     <button type="button" onClick={() => setCreating(true)} className="btn-primary">
                         <Plus className="h-4 w-4" /> Nouvelle bibliographie
                     </button>
