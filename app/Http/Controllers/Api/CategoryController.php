@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Document;
+use App\Models\WatchTopic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -80,6 +81,15 @@ class CategoryController extends Controller
         if ($documents > 0) {
             return response()->json([
                 'message' => "Cette catégorie est utilisée par {$documents} document(s) (Corbeille comprise) : elle ne peut pas être supprimée.",
+            ], 422);
+        }
+
+        // La clé étrangère watch_topics.category_id est aussi en cascade : supprimer la catégorie
+        // effacerait sans prévenir les thèmes de veille des chercheurs.
+        $topics = WatchTopic::where('category_id', $category->id)->count();
+        if ($topics > 0) {
+            return response()->json([
+                'message' => "Cette catégorie est suivie par {$topics} thème(s) de veille de chercheurs : elle ne peut pas être supprimée.",
             ], 422);
         }
 

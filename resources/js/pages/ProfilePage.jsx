@@ -265,6 +265,8 @@ export default function ProfilePage() {
                             let control;
                             if (key==='experience') control=<textarea rows="4" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
                             else if (key==='date_of_birth') control=<input type="date" value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}/>;
+                            // Le centre d'un enseignant est rattaché à son compte : affiché, non modifiable.
+                            else if (key==='school' && user?.role==='enseignant' && user?.school) control=<input type="text" value={user.school} readOnly aria-readonly="true" title="Votre établissement est rattaché à votre compte." className={`${inputCls} cursor-not-allowed bg-slate-50 text-slate-500`}/>;
                             else if (key==='school') control=<select value={value||''} onChange={e=>setProfileForm(f=>({...f,[key]:e.target.value}))} className={inputCls}><option value="">Choisir…</option>{CENTERS.map(c=><option key={c} value={c}>{c}</option>)}</select>;
                             else if (CHOICE_FIELDS[key]) {
                                 // Ancienne valeur hors liste : reste proposée, pour pouvoir enregistrer le reste du profil.

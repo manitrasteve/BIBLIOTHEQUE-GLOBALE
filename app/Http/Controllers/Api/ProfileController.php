@@ -50,13 +50,27 @@ class ProfileController extends Controller
                 ]);
             }
         }
+
+        // Le centre d'un enseignant est rattaché à son compte : il ne peut pas en sortir par son profil
+        // (il atteindrait les étudiants d'un autre centre, ses bibliographies restant à l'ancien).
+        if (
+            $user->role === 'enseignant'
+            && filled($user->school)
+            && array_key_exists('school', $data)
+            && $data['school'] !== $user->school
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'school' => 'Votre établissement est rattaché à votre compte : il ne peut pas être modifié depuis votre profil.',
+            ]);
+        }
+
         unset($data['photo']);
         if ($request->hasFile('photo')) {
             if ($user->photo_path) Storage::disk('public')->delete($user->photo_path);
             $data['photo_path'] = $request->file('photo')->store('profiles','public');
         }
 
-        // Si un enseignant change d'établissement, ses classes suivent le nouvel établissement
+        // Enseignant sans centre (ancien compte) qui renseigne le sien : ses classes le reprennent,
         // pour que le ciblage des bibliographies reste cohérent.
         $schoolChanged = $user->role === 'enseignant'
             && array_key_exists('school', $data)

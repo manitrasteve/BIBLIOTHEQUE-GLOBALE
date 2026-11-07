@@ -50,7 +50,9 @@ return [
     |
     */
 
-    'expiration' => null,
+    // 30 jours : un jeton volé ou oublié ne reste pas valable indéfiniment. Passé ce délai, l'utilisateur
+    // se reconnecte (le front renvoie à la connexion sur le 401).
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

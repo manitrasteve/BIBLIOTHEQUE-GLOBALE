@@ -15,6 +15,9 @@ Artisan::command('comptes:rappel-mot-de-passe', function (\App\Services\SetupLin
 
 \Illuminate\Support\Facades\Schedule::command('comptes:rappel-mot-de-passe')->hourly()->withoutOverlapping();
 
+// Nettoyage des jetons de connexion expirés (config/sanctum.php : 30 jours).
+\Illuminate\Support\Facades\Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
 // Publication programmée des documents. Chaque minute avec le planificateur, sinon par App\Support\PublicationKicker.
 Artisan::command('documents:publier-programmes', function () {
     $this->info(\App\Services\DocumentPublisher::publishDue() . ' document(s) publié(s).');
