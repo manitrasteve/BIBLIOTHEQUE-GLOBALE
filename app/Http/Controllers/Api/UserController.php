@@ -135,7 +135,7 @@ class UserController extends Controller
         // « ?search[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
         if ($search = trim(is_scalar($search) ? (string) $search : '')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('matricule', 'like', "%{$search}%");
+                $q->where('name', 'like', \App\Support\Like::contains($search))->orWhere('email', 'like', \App\Support\Like::contains($search))->orWhere('matricule', 'like', \App\Support\Like::contains($search));
             });
         }
     }

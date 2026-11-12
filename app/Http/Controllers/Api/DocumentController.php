@@ -67,14 +67,14 @@ class DocumentController extends Controller
             // « Rechercher dans » (by) : un seul champ ; sans by, recherche large (titre, mots-clés, auteurs,
             // et le résumé via l'index plein texte quand la base le permet).
             match ($request->get('by')) {
-                'title' => $query->where('title', 'like', "%{$search}%"),
-                'author' => $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%")),
-                'category' => $query->whereHas('category', fn ($c) => $c->where('name', 'like', "%{$search}%")),
-                'keyword' => $query->where('keywords', 'like', "%{$search}%"),
+                'title' => $query->where('title', 'like', \App\Support\Like::contains($search)),
+                'author' => $query->whereHas('authors', fn ($a) => $a->where('name', 'like', \App\Support\Like::contains($search))),
+                'category' => $query->whereHas('category', fn ($c) => $c->where('name', 'like', \App\Support\Like::contains($search))),
+                'keyword' => $query->where('keywords', 'like', \App\Support\Like::contains($search)),
                 default => $query->where(function ($q) use ($search, $fullText) {
-                    $q->where('title', 'like', "%{$search}%")
-                      ->orWhere('keywords', 'like', "%{$search}%")
-                      ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', "%{$search}%"));
+                    $q->where('title', 'like', \App\Support\Like::contains($search))
+                      ->orWhere('keywords', 'like', \App\Support\Like::contains($search))
+                      ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', \App\Support\Like::contains($search)));
                     // Mots entiers n'importe où (résumé compris), ordre des mots indifférent.
                     if ($fullText) {
                         $q->orWhereFullText(self::FULLTEXT_COLUMNS, $search);
@@ -85,7 +85,7 @@ class DocumentController extends Controller
 
         // Filtre optionnel par auteur (Espace recherche du chercheur).
         if ($author = $this->textParam($request, 'author')) {
-            $query->whereHas('authors', fn ($a) => $a->where('name', 'like', "%{$author}%"));
+            $query->whereHas('authors', fn ($a) => $a->where('name', 'like', \App\Support\Like::contains($author)));
         }
 
         if ($category = $request->get('category_id')) {
@@ -111,7 +111,7 @@ class DocumentController extends Controller
 
         // Avec une recherche : les plus pertinents d'abord (titre qui contient la saisie, puis score plein texte).
         if ($fullText) {
-            $query->orderByRaw('(title LIKE ?) DESC', ["%{$search}%"])
+            $query->orderByRaw('(title LIKE ?) DESC', [\App\Support\Like::contains($search)])
                 ->orderByRaw('MATCH(' . implode(', ', self::FULLTEXT_COLUMNS) . ') AGAINST (? IN NATURAL LANGUAGE MODE) DESC', [$search]);
         }
 
@@ -152,15 +152,15 @@ class DocumentController extends Controller
 
         $documents = Document::query()
             ->where('status', 'publie')
-            ->where('title', 'like', "%{$search}%")
+            ->where('title', 'like', \App\Support\Like::contains($search))
             // Titres qui commencent par la saisie d'abord.
-            ->orderByRaw('(title LIKE ?) DESC', ["{$search}%"])
+            ->orderByRaw('(title LIKE ?) DESC', [\App\Support\Like::startsWith($search)])
             ->orderBy('title')
             ->limit(6)
             ->get(['slug', 'title', 'year']);
 
         $authors = \App\Models\Author::query()
-            ->where('name', 'like', "%{$search}%")
+            ->where('name', 'like', \App\Support\Like::contains($search))
             ->whereHas('documents', fn ($d) => $d->where('status', 'publie'))
             ->orderBy('name')
             ->limit(4)
@@ -185,7 +185,7 @@ class DocumentController extends Controller
                     ->when($authorIds->isNotEmpty(), fn ($q) => $q->orWhereHas('authors', fn ($a) => $a->whereIn('authors.id', $authorIds)))
                     ->when($keywords, fn ($q) => $q->orWhere(function ($k) use ($keywords) {
                         foreach (array_slice($keywords, 0, 8) as $keyword) {
-                            $k->orWhere('keywords', 'like', "%{$keyword}%");
+                            $k->orWhere('keywords', 'like', \App\Support\Like::contains($keyword));
                         }
                     }));
             })
@@ -322,7 +322,7 @@ class DocumentController extends Controller
             $query->where('status', $status);
         }
         if ($search = $this->textParam($request, 'q')) {
-            $query->where('title', 'like', "%{$search}%");
+            $query->where('title', 'like', \App\Support\Like::contains($search));
         }
         // Bibliothèque Numérique Globale : administrateur et bibliothécaire peuvent filtrer sur une bibliothèque précise.
         $request->user()->restrictToManagedLibrary($query);
@@ -344,7 +344,7 @@ class DocumentController extends Controller
     {
         $user = $request->user();
         $base = fn () => $user->restrictToManagedLibrary(Document::query())
-            ->when($this->textParam($request, 'q'), fn ($q, $search) => $q->where('title', 'like', "%{$search}%"))
+            ->when($this->textParam($request, 'q'), fn ($q, $search) => $q->where('title', 'like', \App\Support\Like::contains($search)))
             ->when(($user->isAdmin() || $user->isLibrarian()) ? $this->textParam($request, 'library_id') : null, fn ($q, $library) => $q->where('library_id', $library));
 
         $byStatus = $base()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');

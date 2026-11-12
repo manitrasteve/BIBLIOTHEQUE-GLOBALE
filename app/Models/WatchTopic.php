@@ -28,9 +28,9 @@ class WatchTopic extends Model
         $term = $this->term;
 
         return $query->where(function ($q) use ($term) {
-            $q->where('title', 'like', "%{$term}%")
-              ->orWhere('keywords', 'like', "%{$term}%")
-              ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', "%{$term}%"));
+            $q->where('title', 'like', \App\Support\Like::contains($term))
+              ->orWhere('keywords', 'like', \App\Support\Like::contains($term))
+              ->orWhereHas('authors', fn ($a) => $a->where('name', 'like', \App\Support\Like::contains($term)));
         });
     }
 }

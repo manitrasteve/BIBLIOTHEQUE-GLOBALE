@@ -15,7 +15,7 @@ class AuthorController extends Controller
         // Route publique : « ?search[]=… » (tableau) est ignoré au lieu de provoquer une erreur 500.
         $search = $request->query('search');
         if (is_scalar($search) && ($search = (string) $search) !== '') {
-            $query->where('name', 'like', "%{$search}%");
+            $query->where('name', 'like', \App\Support\Like::contains($search));
         }
 
         // Le sélecteur d'auteurs du formulaire document affiche toute la liste
