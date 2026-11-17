@@ -84,3 +84,31 @@ test('l\'assistant des documents demande une réflexion réduite à Gemini', fun
     expect($generation)->not->toBeNull()
         ->and($generation[0]->data()['generationConfig']['thinkingConfig']['thinkingLevel'] ?? null)->toBe('low');
 });
+
+test('une fois l\'échéance de la question atteinte, aucun autre modèle n\'est essayé', function () {
+    config(['services.gemini.key' => 'test-key', 'services.gemini.model' => 'm-main', 'services.gemini.fallback_models' => ['m-secours']]);
+    Http::fake();
+
+    // Il reste 2 s : pas assez pour un essai de plus, la question échoue proprement (pas de coupure par PHP).
+    expect(fn () => app(App\Services\GeminiClient::class)->generateContents(
+        [['role' => 'user', 'parts' => [['text' => 'Bonjour']]]],
+        ['deadline' => microtime(true) + 2],
+    ))->toThrow(App\Services\GeminiException::class, 'Délai de réponse dépassé');
+
+    Http::assertNothingSent();
+});
+
+test('les modèles de secours sont essayés tant que l\'échéance le permet', function () {
+    config(['services.gemini.key' => 'test-key', 'services.gemini.model' => 'm-main', 'services.gemini.fallback_models' => ['m-secours']]);
+    Http::fake([
+        '*m-main:generateContent*' => Http::response(['error' => ['message' => 'high demand']], 503),
+        '*m-secours:generateContent*' => Http::response(speedText('Bonjour !')),
+    ]);
+
+    $result = app(App\Services\GeminiClient::class)->generateContents(
+        [['role' => 'user', 'parts' => [['text' => 'Bonjour']]]],
+        ['deadline' => microtime(true) + 120],
+    );
+
+    expect($result['text'])->toBe('Bonjour !')->and($result['model'])->toBe('m-secours');
+});

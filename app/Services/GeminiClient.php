@@ -191,6 +191,31 @@ public function batchEmbed(array $texts): array
      * Requête HTTP Gemini avec délais bornés (une panne réseau ne bloque
      * pas la requête plusieurs minutes).
      */
+    /**
+     * Échéance globale d'une question (option « deadline », horodatage microtime) : chaque modèle a son
+     * propre délai, mais leur total pouvait dépasser la limite de 180 s de PHP quand Google est en panne,
+     * et la requête était alors tuée en pleine réponse. Plus de nouvel essai s'il reste moins de 5 s ;
+     * sinon le délai de l'essai est ramené au temps restant. Par défaut : 150 s pour l'appel.
+     */
+    private function withinDeadline(array &$options): bool
+    {
+        $options['deadline'] ??= microtime(true) + 150;
+        $left = (int) floor($options['deadline'] - microtime(true));
+
+        if ($left < 5) {
+            return false;
+        }
+
+        $options['timeout'] = min((int) $options['timeout'], $left);
+
+        return true;
+    }
+
+    private static function deadlineExceeded(): GeminiException
+    {
+        return new GeminiException('Délai de réponse dépassé : aucun modèle Gemini n\'a répondu à temps.', 504);
+    }
+
     private function http(int $timeout): \Illuminate\Http\Client\PendingRequest
     {
         return Http::connectTimeout(8)->timeout($timeout)->withHeaders($this->headers());
@@ -358,8 +383,14 @@ public function batchEmbed(array $texts): array
     public function generateContents(array $contents, array $options = []): array
     {
         $last = null;
+        $options['timeout'] ??= 60;
 
         foreach ($this->modelChain($options['model'] ?? null) as $model) {
+            if (!$this->withinDeadline($options)) {
+                $last ??= self::deadlineExceeded();
+                break;
+            }
+
             try {
                 $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $contents, $options);
             } catch (ConnectionException $e) {
@@ -425,8 +456,14 @@ public function batchEmbed(array $texts): array
         // Modèle qui a produit les tours précédents (boucle d'outils) : on le réessaie en premier.
         $historyModel = $options['history_model'] ?? null;
         unset($options['history_model']);
+        $options['timeout'] ??= 60;
 
         foreach ($this->modelChain($options['model'] ?? $historyModel) as $model) {
+            if (!$this->withinDeadline($options)) {
+                $last ??= self::deadlineExceeded();
+                break;
+            }
+
             // Les signatures de réflexion sont propres au modèle qui les a émises : envoyées à un modèle de
             // repli, elles faisaient échouer la requête (HTTP 400, non retentée).
             $payload = $historyModel && $model !== $historyModel ? self::neutralizeThoughtSignatures($contents) : $contents;
@@ -512,8 +549,14 @@ public function batchEmbed(array $texts): array
         // Modèle qui a produit les tours d'outils : réessayé en premier, comme generateWithTools().
         $historyModel = $options['history_model'] ?? null;
         unset($options['history_model']);
+        $options['timeout'] ??= 90;
 
         foreach ($this->modelChain($options['model'] ?? $historyModel) as $model) {
+            if (!$this->withinDeadline($options)) {
+                $last ??= self::deadlineExceeded();
+                break;
+            }
+
             $url = "{$this->baseUrl}/models/{$model}:streamGenerateContent?alt=sse";
             // Signatures de réflexion propres au modèle émetteur : neutralisées pour un modèle de repli.
             $payload = $historyModel && $model !== $historyModel ? self::neutralizeThoughtSignatures($contents) : $contents;

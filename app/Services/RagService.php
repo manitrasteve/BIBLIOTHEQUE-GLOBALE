@@ -98,6 +98,9 @@ class RagService
         array $options,
         ?callable $onDelta
     ): array {
+        // Échéance commune (calcul d'embedding compris), sous la limite PHP de 180 s.
+        $deadline = microtime(true) + 150;
+
         $plan = $this->prepare($document, $question, $options);
 
         if (isset($plan['final'])) {
@@ -144,11 +147,11 @@ class RagService
                 ? $this->gemini->streamContents(
                     $generate['contents'],
                     $safeDelta,
-                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level')]
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level'), 'deadline' => $deadline]
                 )
                 : $this->gemini->generateContents(
                     $generate['contents'],
-                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level')]
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level'), 'deadline' => $deadline]
                 );
         } catch (\Throwable $e) {
             report($e);

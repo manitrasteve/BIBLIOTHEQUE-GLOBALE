@@ -44,6 +44,8 @@ class ManagementAssistantService
         }
 
         @set_time_limit(180);
+        // Échéance commune à tous les appels Gemini de la question, sous la limite PHP de 180 s.
+        $deadline = microtime(true) + 150;
 
         $contents = [...$this->historyContents($history), ['role' => 'user', 'parts' => [['text' => $question]]]];
         $used = [];
@@ -59,6 +61,7 @@ class ManagementAssistantService
                     'timeout' => 45, // ce tour peut aussi rédiger la réponse complète (version sans flux)
                     // Réflexion abaissée (Gemini 3) : réponses nettement plus rapides.
                     'thinking_level' => config('services.gemini.thinking_level'),
+                    'deadline' => $deadline,
                 ];
 
                 // Premier tour : appel d'outil obligatoire (les salutations passent par « aucune_donnee_necessaire »).
@@ -140,6 +143,8 @@ class ManagementAssistantService
         }
 
         @set_time_limit(180);
+        // Échéance commune à tous les appels Gemini de la question, sous la limite PHP de 180 s.
+        $deadline = microtime(true) + 150;
 
         $system = $this->systemPrompt($scope);
         $thinking = config('services.gemini.thinking_level');
@@ -171,6 +176,7 @@ class ManagementAssistantService
             'temperature' => 0.1,
             'timeout' => 25, // réponse courte (choix d'un outil) : au-delà, on passe au modèle suivant
             'thinking_level' => $thinking,
+            'deadline' => $deadline,
         ]);
         $model = $reply['model'];
         $runTools($reply);
@@ -195,6 +201,7 @@ class ManagementAssistantService
                     'timeout' => 60,
                     'history_model' => $model, // signatures de réflexion émises par ce modèle
                     'thinking_level' => $thinking,
+                    'deadline' => $deadline,
                 ]
             );
             $model = $streamed['model'] ?? $model;
