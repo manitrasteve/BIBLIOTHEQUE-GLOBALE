@@ -160,7 +160,7 @@ public function batchEmbed(array $texts): array
         ])));
 
         // Un modèle qui vient d'échouer (surcharge, quota) passe en dernier
-        // pendant une minute : on n'attend pas un nouvel échec à chaque question.
+        // quelques minutes (voir markDown) : on n'attend pas un nouvel échec à chaque question.
         usort($chain, fn ($a, $b) => (int) $this->isDown($a) <=> (int) $this->isDown($b));
 
         return $chain;
@@ -171,9 +171,20 @@ public function batchEmbed(array $texts): array
         return Cache::has("gemini:down:{$model}");
     }
 
-    private function markDown(string $model): void
+    /**
+     * Met un modèle en fin de chaîne. Durée selon la panne : un modèle qui ne répond pas du tout
+     * (délai dépassé) fait perdre tout le délai d'attente à chaque essai, il est donc écarté plus
+     * longtemps (10 min) qu'un modèle momentanément saturé (503, 429), qui refuse vite (3 min).
+     * Un modèle retiré (404) ne reviendra pas : écarté une heure.
+     */
+    private function markDown(string $model, int $minutes = 3): void
     {
-        Cache::put("gemini:down:{$model}", true, now()->addMinute());
+        Cache::put("gemini:down:{$model}", true, now()->addMinutes($minutes));
+    }
+
+    private function markDownAfter(string $model, int $status): void
+    {
+        $this->markDown($model, $status === 404 ? 60 : 3);
     }
 
     /**
@@ -354,7 +365,7 @@ public function batchEmbed(array $texts): array
             } catch (ConnectionException $e) {
                 // Délai dépassé / réseau : on tente le modèle suivant.
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
-                $this->markDown($model);
+                $this->markDown($model, 10); // aucune réponse : écarté 10 min
                 continue;
             }
 
@@ -394,7 +405,7 @@ public function batchEmbed(array $texts): array
                 throw $last;
             }
 
-            $this->markDown($model);
+            $this->markDownAfter($model, $response->status());
         }
 
         throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
@@ -424,7 +435,7 @@ public function batchEmbed(array $texts): array
                 $response = $this->postContent("{$this->baseUrl}/models/{$model}:generateContent", $payload, $options);
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
-                $this->markDown($model);
+                $this->markDown($model, 10); // aucune réponse : écarté 10 min
                 continue;
             }
 
@@ -461,7 +472,7 @@ public function batchEmbed(array $texts): array
                 throw $last;
             }
 
-            $this->markDown($model);
+            $this->markDownAfter($model, $response->status());
         }
 
         throw $last ?? new GeminiException('Aucun modèle Gemini configuré.', 0);
@@ -520,7 +531,7 @@ public function batchEmbed(array $texts): array
                 }
             } catch (ConnectionException $e) {
                 $last = new GeminiException("Connexion à Gemini impossible ({$model}) : " . $e->getMessage(), 504);
-                $this->markDown($model);
+                $this->markDown($model, 10); // aucune réponse : écarté 10 min
                 continue;
             }
 
@@ -535,7 +546,7 @@ public function batchEmbed(array $texts): array
                     throw $last;
                 }
 
-                $this->markDown($model);
+                $this->markDownAfter($model, $response->status());
 
                 continue;
             }
@@ -544,13 +555,32 @@ public function batchEmbed(array $texts): array
             $buffer = '';
             $full = '';
             $finish = ['reason' => null, 'block_reason' => null];
+            // Avec des outils autorisés, le modèle peut demander un outil au lieu d'écrire : les parties
+            // reçues sont gardées telles quelles (signatures de réflexion comprises) pour le tour suivant.
+            $parts = [];
+            $calls = [];
 
-            $handle = function (string $event) use (&$full, &$finish, $onDelta): void {
+            $handle = function (string $event) use (&$full, &$finish, &$parts, &$calls, $onDelta): void {
                 if (!str_starts_with($event, 'data:')) {
                     return;
                 }
 
                 $json = json_decode(trim(substr($event, 5)), true);
+
+                foreach (($json['candidates'][0]['content']['parts'] ?? []) as $part) {
+                    if (!is_array($part)) {
+                        continue;
+                    }
+                    if (isset($part['functionCall']['name'])) {
+                        $calls[] = ['name' => (string) $part['functionCall']['name'], 'args' => (array) ($part['functionCall']['args'] ?? [])];
+                        // « args: {} » décodé en tableau vide serait renvoyé « [] » et refusé par l'API.
+                        if (empty($part['functionCall']['args'])) {
+                            $part['functionCall']['args'] = new \stdClass();
+                        }
+                    }
+                    $parts[] = $part;
+                }
+
                 $delta = $this->extractText($json);
 
                 if ($delta !== '') {
@@ -580,7 +610,7 @@ public function batchEmbed(array $texts): array
                 $handle(trim($buffer));
             }
 
-            if ($full === '' && $this->isBlocked($finish)) {
+            if ($full === '' && $calls === [] && $this->isBlocked($finish)) {
                 // Rien n'a encore été émis : on peut encore basculer sur le
                 // modèle suivant sans le mettre en veille.
                 $last = new GeminiException(
@@ -598,6 +628,9 @@ public function batchEmbed(array $texts): array
                 'model' => $model,
                 'finish_reason' => $finish['reason'],
                 'block_reason' => $finish['block_reason'],
+                // Outils demandés par le modèle (vide pour une réponse écrite) et son contenu à renvoyer tel quel.
+                'function_calls' => $calls,
+                'content' => ['role' => 'model', 'parts' => $parts],
             ];
         }
 

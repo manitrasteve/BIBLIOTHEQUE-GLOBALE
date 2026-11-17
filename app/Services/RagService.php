@@ -137,16 +137,18 @@ class RagService
             }
             : null;
 
+        // thinking_level : sans lui, Gemini « réfléchit » longuement avant d'écrire le premier mot
+        // (réglage déjà appliqué aux assistants de gestion, oublié ici).
         try {
             $result = $onDelta
                 ? $this->gemini->streamContents(
                     $generate['contents'],
                     $safeDelta,
-                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout']]
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level')]
                 )
                 : $this->gemini->generateContents(
                     $generate['contents'],
-                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout']]
+                    ['temperature' => 0.2, 'model' => $generate['model'], 'timeout' => $generate['timeout'], 'thinking_level' => config('services.gemini.thinking_level')]
                 );
         } catch (\Throwable $e) {
             report($e);

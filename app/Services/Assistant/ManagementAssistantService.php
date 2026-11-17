@@ -56,7 +56,7 @@ class ManagementAssistantService
                     'system' => $this->systemPrompt($scope),
                     'tools' => [['functionDeclarations' => $tools->declarations()]],
                     'temperature' => 0.1,
-                    'timeout' => 45,
+                    'timeout' => 45, // ce tour peut aussi rédiger la réponse complète (version sans flux)
                     // Réflexion abaissée (Gemini 3) : réponses nettement plus rapides.
                     'thinking_level' => config('services.gemini.thinking_level'),
                 ];
@@ -149,29 +149,7 @@ class ManagementAssistantService
         $data = [];
         $model = null;
 
-        // Phase 1 : tours d'outils (le premier est forcé, comme pour ask()).
-        for ($step = 0; $step < self::MAX_TOOL_ROUNDS; $step++) {
-            $options = [
-                'system' => $system,
-                'tools' => $declarations,
-                'temperature' => 0.1,
-                'timeout' => 45,
-                'thinking_level' => $thinking,
-            ];
-            if ($step === 0) {
-                $options['tool_config'] = ['functionCallingConfig' => ['mode' => 'ANY']];
-            }
-            if ($step > 0 && $model) {
-                $options['history_model'] = $model; // signatures de réflexion émises par ce modèle
-            }
-
-            $reply = $this->gemini->generateWithTools($contents, $options);
-            $model = $reply['model'];
-
-            if (!$reply['function_calls']) {
-                break; // le modèle n'a plus besoin d'outil : on passe à la formulation streamée
-            }
-
+        $runTools = function (array $reply) use (&$contents, &$used, &$data, $tools): void {
             $contents[] = $reply['content'];
             $responses = [];
             foreach ($reply['function_calls'] as $call) {
@@ -183,27 +161,50 @@ class ManagementAssistantService
                 $responses[] = ['functionResponse' => ['name' => $call['name'], 'response' => ['result' => $output]]];
             }
             $contents[] = ['role' => 'user', 'parts' => $responses];
-        }
+        };
 
-        // Phase 2 : formulation finale en flux, outils désactivés (le modèle conclut avec les données obtenues).
+        // Premier tour : appel d'outil obligatoire (aucun texte à afficher), comme pour ask().
+        $reply = $this->gemini->generateWithTools($contents, [
+            'system' => $system,
+            'tools' => $declarations,
+            'tool_config' => ['functionCallingConfig' => ['mode' => 'ANY']],
+            'temperature' => 0.1,
+            'timeout' => 25, // réponse courte (choix d'un outil) : au-delà, on passe au modèle suivant
+            'thinking_level' => $thinking,
+        ]);
+        $model = $reply['model'];
+        $runTools($reply);
+
+        // Tours suivants directement en flux : soit le modèle demande encore un outil, soit il écrit la
+        // réponse, affichée mot à mot. Auparavant la réponse était rédigée une première fois (jetée) puis
+        // réécrite en flux : une génération complète de trop à chaque question.
         $full = '';
-        $streamed = $this->gemini->streamContents(
-            $contents,
-            function (string $delta) use (&$full, $onDelta) {
-                $full .= $delta;
-                $onDelta($delta);
-            },
-            [
-                'system' => $system,
-                'tools' => $declarations,
-                'tool_config' => ['functionCallingConfig' => ['mode' => 'NONE']],
-                'temperature' => 0.1,
-                'timeout' => 60,
-                'history_model' => $model, // signatures de réflexion émises par ce modèle
-                'thinking_level' => $thinking,
-            ]
-        );
-        $model = $streamed['model'] ?? $model;
+        for ($step = 1; $step <= self::MAX_TOOL_ROUNDS; $step++) {
+            $streamed = $this->gemini->streamContents(
+                $contents,
+                function (string $delta) use (&$full, $onDelta) {
+                    $full .= $delta;
+                    $onDelta($delta);
+                },
+                [
+                    'system' => $system,
+                    'tools' => $declarations,
+                    // Dernier tour : plus d'outil, le modèle conclut avec les données déjà obtenues.
+                    'tool_config' => ['functionCallingConfig' => ['mode' => $step === self::MAX_TOOL_ROUNDS ? 'NONE' : 'AUTO']],
+                    'temperature' => 0.1,
+                    'timeout' => 60,
+                    'history_model' => $model, // signatures de réflexion émises par ce modèle
+                    'thinking_level' => $thinking,
+                ]
+            );
+            $model = $streamed['model'] ?? $model;
+
+            if (empty($streamed['function_calls'])) {
+                break;
+            }
+
+            $runTools($streamed);
+        }
 
         $answer = trim($full);
         if ($answer === '') {

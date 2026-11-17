@@ -55,13 +55,14 @@ return [
         'thinking_level' => env('GEMINI_THINKING_LEVEL', 'low'),
 
         // Modèles essayés dans l'ordre si le modèle demandé est indisponible
-        // (503 surcharge, 429 quota, 404 modèle retiré). Chaîne pensée pour
-        // dégrader proprement : latest → 3.8 (stable) → 3.6 (rapide) → lite.
+        // (503 surcharge, 429 quota, 404 modèle retiré, aucune réponse). Les « lite »
+        // viennent tôt : en cas de forte demande chez Google, ce sont souvent les seuls
+        // qui répondent encore, et rapidement.
         'fallback_models' => array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env(
                 'GEMINI_FALLBACK_MODELS',
-                'gemini-flash-latest,gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite'
+                'gemini-flash-latest,gemini-flash-lite-latest,gemini-3.8-flash,gemini-3.5-flash-lite,gemini-3.6-flash'
             ))
         ))),
 
