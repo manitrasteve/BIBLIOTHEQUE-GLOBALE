@@ -91,7 +91,7 @@ class CourseListController extends Controller
         $data = $request->validate([
             'slug' => ['required', 'string'],
             'instruction' => ['nullable', 'string', 'max:500'],
-            'due_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:' . \App\Support\LocalDate::today()],
         ]);
 
         // Seuls les documents publiés du catalogue : les étudiants doivent pouvoir les ouvrir.
@@ -125,7 +125,8 @@ class CourseListController extends Controller
         // (modifier la consigne d'une lecture dont la date est dépassée).
         $dueDate = ['nullable', 'date'];
         if ($request->input('due_date') !== $item->due_date?->format('Y-m-d')) {
-            $dueDate[] = 'after_or_equal:today';
+            // Date locale : « today » (UTC) acceptait la veille entre minuit et 3 h à Madagascar.
+            $dueDate[] = 'after_or_equal:' . \App\Support\LocalDate::today();
         }
 
         $item->update($request->validate([

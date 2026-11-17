@@ -67,10 +67,8 @@ return [
 
     'timezone' => 'UTC',
 
-    // Fuseau des dates affichées par le serveur (exports, e-mails, tickets) : les dates restent stockées en UTC.
-    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Indian/Antananarivo'),
-
-    // Fuseau utilisé pour écrire les dates dans le texte des notifications (les dates stockées restent en UTC).
+    // Fuseau local (Madagascar) : dates affichées par le serveur (exports, e-mails, tickets, notifications)
+    // et « aujourd'hui » des règles de validation (App\Support\LocalDate). Les dates restent stockées en UTC.
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Indian/Antananarivo'),
 
     /*

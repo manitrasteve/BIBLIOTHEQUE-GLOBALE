@@ -113,7 +113,7 @@ class User extends Authenticatable
     public static function generateMatricule(string $role): string
     {
         $prefix = self::MATRICULE_PREFIXES[$role] ?? 'USR';
-        $year = now()->year;
+        $year = \App\Support\LocalDate::year();
 
         return DB::transaction(function () use ($role, $prefix, $year) {
             DB::table('matricule_sequences')->insertOrIgnore([

@@ -38,7 +38,7 @@ class LibrarianManagementController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:masculin,feminin'],
             'cin_number' => ['required', 'digits:12'],
-            'cin_issued_at' => ['required', 'date', 'before_or_equal:today'],
+            'cin_issued_at' => ['required', 'date', 'before_or_equal:' . \App\Support\LocalDate::today()],
         ]);
 
         // Compte, numéro de compte et registre : tout ou rien (l'e-mail part ensuite, hors transaction).

@@ -41,7 +41,7 @@ final class AccountRequestRules
         }
 
         try {
-            return Carbon::parse($dateOfBirth)->addYears(18)->lte(today());
+            return Carbon::parse($dateOfBirth)->addYears(18)->lte(Carbon::parse(\App\Support\LocalDate::today()));
         } catch (\Throwable) {
             return false;
         }
@@ -54,7 +54,7 @@ final class AccountRequestRules
 
         return [
             'cin_number' => [Rule::requiredIf($required), 'nullable', 'digits:12'],
-            'cin_issued_at' => [Rule::requiredIf($required), 'nullable', 'date', 'before_or_equal:today'],
+            'cin_issued_at' => [Rule::requiredIf($required), 'nullable', 'date', 'before_or_equal:' . \App\Support\LocalDate::today()],
         ];
     }
 
@@ -99,7 +99,7 @@ final class AccountRequestRules
      */
     public static function newRequestNumber(array $data = []): string
     {
-        $year = now()->year;
+        $year = \App\Support\LocalDate::year();
         $code = self::establishmentCode($data['school'] ?? null)
             ?? self::establishmentCode($data['faculty'] ?? null)
             ?? (self::ROLE_CODES[$data['role'] ?? ''] ?? 'GEN');

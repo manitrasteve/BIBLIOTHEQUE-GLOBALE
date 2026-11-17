@@ -234,7 +234,7 @@ class AccountRequestController extends Controller
             $rules['role'] = ['sometimes', Rule::in(['etudiant'])];
         } else {
             $rules += [
-                'date_of_birth' => ['required', 'date', 'before:today'],
+                'date_of_birth' => ['required', 'date', 'before:' . \App\Support\LocalDate::today()],
                 'birth_place' => ['required', 'string', 'max:255'],
                 ...Rules::studentCinRules($request),
                 'role' => ['required', Rule::in(['etudiant'])],
@@ -341,7 +341,7 @@ class AccountRequestController extends Controller
              * Étudiant : mêmes champs et mêmes règles que le formulaire
              * d'ajout d'utilisateur de l'administrateur.
              */
-            'date_of_birth' => ['required', 'date', 'before:today'],
+            'date_of_birth' => ['required', 'date', 'before:' . \App\Support\LocalDate::today()],
             'birth_place' => ['required', 'string', 'max:255'],
             ...Rules::studentCinRules($request),
             'student_card_number' => ['required', 'string', 'max:255'],
@@ -1400,7 +1400,7 @@ class AccountRequestController extends Controller
             // L'adresse est facultative pour un chercheur, obligatoire pour les autres rôles.
             'address' => [Rule::requiredIf($request->input('role') !== 'chercheur'), 'nullable', 'string', 'max:255'],
             'gender' => ['required', Rule::in(['masculin', 'feminin'])],
-            'date_of_birth' => ['required', 'date', 'before:today'],
+            'date_of_birth' => ['required', 'date', 'before:' . \App\Support\LocalDate::today()],
             'birth_place' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
             ...Rules::studentCinRules($request, $request->input('role') === 'etudiant'),
             'student_card_number' => [Rule::requiredIf($request->input('role') === 'etudiant'), 'nullable', 'string', 'max:255'],
