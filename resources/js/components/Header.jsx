@@ -310,6 +310,10 @@ export default function Header() {
     // sur toutes les pages, sans menu ☰. Sur le catalogue, le premier lien ramène à l'accueil.
     const visitorOnCatalogue = location.pathname.startsWith("/recherche");
 
+    // Visiteur : bouton « Installer » dans la barre tant que l'application n'est pas installée
+    // (un membre connecté le trouve dans le menu de sa photo de profil).
+    const { mode: visitorInstallMode, install: visitorInstall, dialog: visitorInstallDialog } = useInstallAction();
+
     const [isConfirmingLogout, setIsConfirmingLogout] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -439,6 +443,21 @@ export default function Header() {
                                     <UserPlus className="h-4 w-4" aria-hidden="true" />
                                     <span className="sr-only sm:not-sr-only">S’inscrire</span>
                                 </Link>
+
+                                {/* Installer l'application : seulement si elle n'est pas déjà installée. Pas sur téléphone :
+                                    la barre n'a pas la place (« Connexion » sortait de l'écran) et le bandeau de l'accueil le propose. */}
+                                {visitorInstallMode && (
+                                    <button
+                                        type="button"
+                                        onClick={visitorInstall}
+                                        title="Installer l’application"
+                                        className="hidden sm:inline-flex items-center gap-1.5 rounded-xl px-2 py-2 sm:px-3 font-semibold text-slate-600 hover:bg-indigo-50 hover:text-brass-deep"
+                                    >
+                                        <MonitorDown className="h-4 w-4" aria-hidden="true" />
+                                        <span className="sr-only lg:not-sr-only">Installer</span>
+                                    </button>
+                                )}
+                                {visitorInstallDialog}
 
                                 {/* Lune */}
                                 <ThemeToggle />
