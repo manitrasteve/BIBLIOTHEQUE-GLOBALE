@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#11116f">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="/images/pwa/icon-192.png">
-    <link rel="apple-touch-icon" href="/images/pwa/apple-touch-icon.png">
+    {{-- ?v=2 : les navigateurs gardent longtemps l’ancien favicon en cache. --}}
+    <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
+    <link rel="icon" type="image/svg+xml" href="/images/pwa/icon.svg?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="/images/pwa/icon-192.png?v=2">
+    <link rel="apple-touch-icon" href="/images/pwa/apple-touch-icon.png?v=2">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Bibliothèque UMG">

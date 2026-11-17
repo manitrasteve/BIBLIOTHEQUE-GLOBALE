@@ -11,7 +11,7 @@
  *   icônes / manifest / logo en « stale-while-revalidate ».
  * - Mise à jour : CACHE_VERSION change => les anciens caches sont supprimés à l'activation.
  */
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = `bm-static-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const SHELL_URL = '/__app-shell'; // clé de cache de la coquille HTML de l'application
